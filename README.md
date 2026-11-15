@@ -15,6 +15,6 @@
 
 0.1.1将剧情、朝政、世界和档案分别按任务切换；长文限制高度，存档/人物/历史分页，操作反馈不遮挡按钮。保留连续时间、暂停和1×/4×/16×/64×。
 
-验证：[紧凑版构建与界面测试](https://github.com/initial2024/game/actions/runs/43719611922)；[真实GGUF专项测试](https://github.com/initial2024/game/actions/runs/43715879415)。
+验证：[最终全部测试（规则、断网界面与真实GGUF）](https://github.com/initial2024/game/actions/runs/43721094983)；[完整交付报告](https://github.com/initial2024/game/blob/main/docs/TESTING.md)；[实际界面截图](https://github.com/initial2024/game/blob/main/docs/SCREENSHOTS.md)。
 
 当前是开发测试版。完整战争、继承、间谍系统和vivo真机性能验收仍在后续阶段。
