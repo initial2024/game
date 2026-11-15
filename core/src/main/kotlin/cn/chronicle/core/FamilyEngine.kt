@@ -2,7 +2,9 @@ package cn.chronicle.core
 
 import kotlinx.serialization.Serializable
 @Serializable data class FamilyMember(val id:Int,val name:String,val role:String,val bornDay:Int,
- val alive:Boolean=true,val willing:Boolean=true,val relationship:Int=68,val health:Int=80)
+ val alive:Boolean=true,val willing:Boolean=true,val relationship:Int=68,val health:Int=80,val diedDay:Int?=null) {
+ fun ageAt(day:Int):Int=((if(alive)day else diedDay?:minOf(day,bornDay+36000))-bornDay)/360
+}
 @Serializable data class Pregnancy(val parent:Int,val remainingDays:Int=270,val childName:String)
 @Serializable data class Household(val allowPregnancy:Boolean=false,val nextChildName:String="景宁",
  val members:List<FamilyMember> = listOf(FamilyMember(1,"林映书","成年伴侣",-27*360)),
@@ -47,7 +49,7 @@ object FamilyEngine {
  }
  fun advance(w:World,days:Int,events:MutableList<String>):World {
   var h=w.household
-  h=h.copy(members=h.members.map {m->if(m.alive && w.day-m.bornDay>=100*360){events+="宗室${m.name}寿终，其身份改记已故。";m.copy(alive=false)}else m})
+  h=h.copy(members=h.members.map {m->if(m.alive && w.day-m.bornDay>=100*360){events+="宗室${m.name}寿终，其身份改记已故。";m.copy(alive=false,diedDay=w.day)}else m})
   h.pregnancy?.let {p->
    val parent=h.members.find {it.id==p.parent && it.alive}
    if(parent==null) {h=h.copy(pregnancy=null);events+="登记孕期因家族成员离世结束，史官保留原始记录。"}

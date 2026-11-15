@@ -21,7 +21,7 @@ class RealtimeTest {
  @Test fun realTimePregnancyAndReplayAreDeterministic() {
   var a=submit(submit(game(),Command("FAMILY_PLAN",target="允许")),Command("TRY_HEIR"));var b=a
   repeat(1000){a=advance(a,90);b=advance(b,90);assertEquals(a,b);Rules.verify(a)}
-  assertTrue(a.household.members.any {it.role=="子女"});assertEquals(90000,a.day)
+  assertTrue(a.household.members.any {it.role=="子女"});assertTrue(a.household.members.filter {!it.alive}.all {it.ageAt(a.day)==100});assertEquals(90000,a.day)
  }
  @Test fun investigationCanCompleteDuringContinuousTime() {
   var w=submit(game(),Command("DEPART"));w=advance(w,7);w=submit(w,Command("INVESTIGATE"));w=advance(w,5);assertTrue(w.caseFile.evidence.any {it.id=="receipt"})

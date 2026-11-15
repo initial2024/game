@@ -57,7 +57,7 @@ class MainActivity:ComponentActivity() {
  var tab by rememberSaveable { mutableIntStateOf(0) }
  var new by rememberSaveable { mutableStateOf(false) }
  var plan by remember { mutableStateOf<Preview?>(null) }; var expected by remember { mutableLongStateOf(0) }
- val schemes=listOf(darkColorScheme(primary=Gold,secondary=Jade,background=Color(0xFF101D1C),surface=Color(0xFF192B29),surfaceVariant=Color(0xFF253A35),primaryContainer=Color(0xFF3C4B34),secondaryContainer=Color(0xFF29463E),onPrimary=Color(0xFF17261F)), lightColorScheme(primary=Color(0xFF546839),secondary=Color(0xFF326759),background=Color(0xFFF6F3EA),surface=Color(0xFFFFFDF7)), darkColorScheme(primary=Color(0xFFC8BA86),secondary=Color(0xFFABC09B),background=Color(0xFF22291F),surface=Color(0xFF30392A)))
+ val schemes=listOf(darkColorScheme(primary=Gold,secondary=Jade,background=Color(0xFF101D1C),surface=Color(0xFF192B29),surfaceVariant=Color(0xFF253A35),surfaceContainer=Color(0xFF192B29),surfaceContainerHigh=Color(0xFF203631),surfaceContainerHighest=Color(0xFF29423B),primaryContainer=Color(0xFF3C4B34),secondaryContainer=Color(0xFF29463E),onPrimary=Color(0xFF17261F)), lightColorScheme(primary=Color(0xFF546839),secondary=Color(0xFF326759),background=Color(0xFFF6F3EA),surface=Color(0xFFFFFDF7)), darkColorScheme(primary=Color(0xFFC8BA86),secondary=Color(0xFFABC09B),background=Color(0xFF22291F),surface=Color(0xFF30392A)))
  MaterialTheme(colorScheme=schemes[theme.coerceIn(0,2)]) {
   val d=LocalDensity.current
   CompositionLocalProvider(LocalDensity provides Density(d.density,d.fontScale*scale)) {
@@ -67,7 +67,7 @@ class MainActivity:ComponentActivity() {
    Scaffold(bottomBar={
     NavigationBar(containerColor=MaterialTheme.colorScheme.surface) { listOf("剧情" to Icons.Outlined.AutoStories,"朝政" to Icons.Outlined.AccountBalance,"世界" to Icons.Outlined.Public,"档案" to Icons.Outlined.Inventory2).forEachIndexed { i,(s,icon) -> NavigationBarItem(selected=tab==i,onClick={tab=i},icon={Icon(icon,s)},label={Text(s)},enabled=!ui.busy) } }
    }) { padding ->
-    Column(Modifier.fillMaxSize().padding(padding)) {
+    Column(Modifier.fillMaxSize().padding(padding).imePadding()) {
      Row(Modifier.fillMaxWidth().padding(horizontal=20.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically) {
       Icon(Icons.Outlined.Landscape,"山河纪年",tint=MaterialTheme.colorScheme.primary,modifier=Modifier.size(30.dp));Spacer(Modifier.width(10.dp))
       Column(Modifier.weight(1f)) { Text("山 河 纪 年",style=MaterialTheme.typography.titleLarge,fontFamily=FontFamily.Serif); Text(ui.world?.let { "${it.name}  /  ${it.date}" }?:"CHRONICLE AI · 离线历史策略",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.secondary) }
@@ -103,54 +103,126 @@ class MainActivity:ComponentActivity() {
 @Composable private fun Panel(title:String,subtitle:String?=null,content:@Composable ColumnScope.()->Unit) { Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface)) { Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) { Text(title,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold);subtitle?.let {Text(it,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.secondary)};content() } } }
 @Composable private fun ActionButton(c:Command,ask:(Command)->Unit) { OutlinedButton(onClick={ask(c)},modifier=Modifier.fillMaxWidth(),shape=RoundedCornerShape(12.dp),contentPadding=PaddingValues(12.dp)) { Text(Rules.label(c),Modifier.weight(1f));Text("${Rules.cost(c)} 万两",style=MaterialTheme.typography.labelMedium) } }
 @Composable private fun Story(w:World,ui:UiState,vm:GameViewModel,ask:(Command)->Unit,custom:(Preview)->Unit) {
- var text by rememberSaveable { mutableStateOf("") }; var ledger by rememberSaveable {mutableStateOf(false)}
+ var text by rememberSaveable {mutableStateOf("")};var group by rememberSaveable {mutableStateOf("纪事")}
  Page {
-  Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) { BadgeText("连续时间");BadgeText(if(vm.models.isLoaded) "本地模型已加载" else "规则叙事");BadgeText("已自动存档") }
-  Panel("${if(w.journey!=null) "行旅札记" else "御前纪事"}","${w.ruler}执政 · ${w.scale} · ${w.atmosphere}") {
-   Text(w.recent.lastOrNull()?.narrative?:"启元初年，蒸汽机的轰鸣初入山河。澄江税册却与民间传言相悖。朝臣等待你的第一道决策。",style=MaterialTheme.typography.bodyLarge,lineHeight=27.sp)
-   if(ui.aiText.isNotBlank()) { HorizontalDivider();Text("本地 AI 演绎 · 辅助叙述",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.secondary);Text(ui.aiText,lineHeight=26.sp) }
-   if(ui.generating) Row(verticalAlignment=Alignment.CenterVertically) { CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp);Text(" 正在演绎…",Modifier.weight(1f));TextButton(onClick={vm.cancelAi()}){Text("取消")} }
-   if(!ui.generating && vm.models.isLoaded) TextButton(onClick={vm.generate()}){Text("本地 AI 演绎本期剧情")}
-   if(w.recent.isNotEmpty()) { TextButton(onClick={ledger=!ledger}) {Text(if(ledger) "收起结算账簿" else "查看结算账簿")};if(ledger) w.recent.last().ledger.forEach {Text(it,style=MaterialTheme.typography.bodySmall)} }
+  Choices(listOf("纪事","行动","事务"),group,{group=it})
+  when(group) {
+   "纪事" -> {
+    Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {BadgeText("连续时间");BadgeText(if(vm.models.isLoaded)"本地模型已加载" else "规则叙事");BadgeText("已自动存档")}
+    Panel(if(w.journey!=null)"行旅札记" else "御前纪事","${w.ruler}执政 · ${w.scale} · ${w.atmosphere}") {
+     Column(Modifier.heightIn(max=260.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+      Text(w.recent.lastOrNull()?.narrative?:"${w.era}初年，蒸汽机的轰鸣初入山河。澄江税册却与民间传言相悖。朝臣等待你的第一道决策。",style=MaterialTheme.typography.bodyLarge,lineHeight=27.sp)
+      if(ui.aiText.isNotBlank()){HorizontalDivider();Text("本地AI演绎 · 辅助叙述",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.secondary);Text(ui.aiText,lineHeight=26.sp)}
+     }
+     if(ui.generating)Row(verticalAlignment=Alignment.CenterVertically){CircularProgressIndicator(Modifier.size(18.dp),strokeWidth=2.dp);Text(" 正在演绎…",Modifier.weight(1f));TextButton(onClick={vm.cancelAi()}){Text("取消")}}
+     if(!ui.generating && vm.models.isLoaded)TextButton(onClick={vm.generate()}){Text("演绎当前局势")}
+    }
+    Button(onClick={group="行动"},modifier=Modifier.fillMaxWidth()){Text("前往下令")}
+   }
+   "行动" -> {
+    Panel("可行之策","时间自动流动，政策和地方事务按日办理") {RealtimeEngine.suggestions(w).forEach {ActionButton(it,ask)}}
+    Fold("亲拟诏令") {OutlinedTextField(value=text,onValueChange={text=it.take(600)},label={Text("例如：兴修水渠、资助科研")},minLines=2,maxLines=4,modifier=Modifier.fillMaxWidth());Button(onClick={vm.parse(text,custom)},enabled=text.isNotBlank()&&!ui.busy&&!ui.generating,modifier=Modifier.fillMaxWidth()){Text("解析并预览")}}
+   }
+   else -> {
+    Panel("正在办理","最多3项并行事务；取消退还80%预留资金") {
+     if(w.pending.isEmpty())Text("暂无待办政策，时间仍会推动生产与国政。")
+     w.pending.forEach {order->Row(verticalAlignment=Alignment.CenterVertically){Text("${Rules.label(order.command)} · ${order.remainingDays}日",Modifier.weight(1f));TextButton(onClick={ask(Command("CANCEL_TASK",target=order.id.toString()))}){Text("撤销")}}}
+     w.journey?.let {Text("行旅：${w.regions[it.region].name} · ${if(it.remainingTravel>0) "距抵达${it.remainingTravel}日" else "已抵达"}")}
+     Text("在建项目见朝政 → 项目。",style=MaterialTheme.typography.bodySmall)
+    }
+    w.recent.lastOrNull()?.let {e->Panel("最近结算","${e.day}日 · ${e.action}"){Column(Modifier.heightIn(max=220.dp).verticalScroll(rememberScrollState())){e.ledger.forEach {Text(it,style=MaterialTheme.typography.bodySmall)}}}}
+   }
   }
-  Panel("可行之策","时间自动流动；政策与地方事务按日办理") { RealtimeEngine.suggestions(w).forEach {ActionButton(it,ask)} }
-  if(w.pending.isNotEmpty()) Panel("正在办理","取消退还80%预留资金；完成时再次检查执行条件") {w.pending.forEach {order->Row(verticalAlignment=Alignment.CenterVertically){Text("${Rules.label(order.command)} · 剩余${order.remainingDays}日",Modifier.weight(1f));TextButton(onClick={ask(Command("CANCEL_TASK",target=order.id.toString()))}){Text("撤销")}}}}
-  Panel("亲拟诏令","规则解析仅执行明确列出的政策，复杂条款会提示") { OutlinedTextField(value=text,onValueChange={text=it.take(600)},label={Text("例如：兴修水渠、资助科研")},minLines=2,maxLines=4,modifier=Modifier.fillMaxWidth());Button(onClick={vm.parse(text,custom)},enabled=text.isNotBlank()&&!ui.busy&&!ui.generating,modifier=Modifier.fillMaxWidth()) {Text("解析并预览")} }
  }
 }
 @Composable private fun BadgeText(s:String) { Text(s,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.secondary,modifier=Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.secondary.copy(alpha=.1f)).padding(horizontal=8.dp,vertical=6.dp)) }
 @Composable private fun Fold(title:String,openInitially:Boolean=false,content:@Composable ColumnScope.()->Unit) { var open by rememberSaveable {mutableStateOf(openInitially)};Panel(title) { TextButton(onClick={open=!open},modifier=Modifier.fillMaxWidth()) {Text(if(open) "收起  −" else "展开  ＋")};if(open) content() } }
 @Composable private fun Stat(name:String,value:Int) { Row(verticalAlignment=Alignment.CenterVertically) { Text(name,Modifier.width(74.dp),style=MaterialTheme.typography.bodyMedium);LinearProgressIndicator(progress={value/100f},modifier=Modifier.weight(1f).height(5.dp),color=MaterialTheme.colorScheme.secondary);Text(" $value",Modifier.width(38.dp),style=MaterialTheme.typography.labelMedium) } }
-@Composable private fun Court(w:World,ask:(Command)->Unit) { val n=w.nation
+@Composable private fun Court(w:World,ask:(Command)->Unit) {
+ val n=w.nation;var group by rememberSaveable {mutableStateOf("财政")};var projectPage by rememberSaveable {mutableIntStateOf(0)}
+ LaunchedEffect(w.projects.size) {projectPage=projectPage.coerceAtMost((w.projects.size-1).coerceAtLeast(0)/4)}
  Page {
-  Panel("国库", "资金单位：万两 · 人口单位：人 · 其他发展属性 0–100") { Text("${n.treasury} 万两",style=MaterialTheme.typography.headlineLarge,color=MaterialTheme.colorScheme.primary);Text("债务 ${n.debt} · 税率 ${n.tax}%");Text("年度折算：收入 ${n.income} / 支出 ${n.expense}",style=MaterialTheme.typography.bodySmall);Text("年度财政为最近季度的四倍估算。",style=MaterialTheme.typography.labelSmall);Row {TextButton(onClick={ask(Command("TAX_DOWN"))}){Text("减税")};TextButton(onClick={ask(Command("TAX_UP"))}){Text("增税")};TextButton(onClick={ask(Command("REPAY"))}){Text("还债")}} }
-  Fold("产业与科技",true) { Stat("农业",n.agriculture);Stat("商业",n.commerce);Stat("工业",n.industry);Stat("科技",n.technology);Stat("基础设施",n.infrastructure);Text("研究经费 ${n.research} 万两/季");Row {TextButton(onClick={ask(Command("FACTORY"))}){Text("工厂")};TextButton(onClick={ask(Command("FARM"))}){Text("水利")};TextButton(onClick={ask(Command("RESEARCH"))}){Text("研发")};TextButton(onClick={ask(Command("ROAD"))}){Text("道路")}} }
-  Fold("人口与朝政") {Text("全国人口 ${n.population}");Stat("民心",n.morale);Stat("稳定",n.stability);Stat("行政",n.administration);Stat("中央腐败",n.corruption);Stat("军队实力",n.military);ActionButton(Command("RELIEF"),ask);ActionButton(Command("REFORM"),ask);ActionButton(Command("DRILL"),ask)}
-  Fold("政策与在建项目") {Text("方向：${w.strategy}");Choices(listOf("工业强国","富民治国","综合发展"),w.strategy,{ask(Command("STRATEGY",target=it))});if(w.projects.isEmpty()) Text("暂无在建项目");w.projects.forEach {Text("${w.regions[it.region].name} · ${Rules.label(Command(it.kind))} · 剩余 ${it.remainingDays} 日")};Text("研究预算持续生效；休养每季削减 2 万两研究预算。",style=MaterialTheme.typography.bodySmall)}
-  Fold("近期变化") { w.recent.takeLast(4).reversed().forEach { Text("纪年${it.day}日 · ${it.action}",color=MaterialTheme.colorScheme.secondary);it.ledger.takeLast(3).forEach {l->Text(l,style=MaterialTheme.typography.bodySmall)} } }
+  Choices(listOf("财政","产业","民生","项目","趋势"),group,{group=it})
+  when(group) {
+   "财政" -> Panel("国库","资金：万两 · 年度数为最近季度的四倍估算") {
+    Text("${n.treasury} 万两",style=MaterialTheme.typography.headlineLarge,color=MaterialTheme.colorScheme.primary)
+    Text("债务 ${n.debt} · 税率 ${n.tax}%");Text("年度收入 ${n.income} / 支出 ${n.expense}")
+    Row {TextButton(onClick={ask(Command("TAX_DOWN"))}){Text("减税")};TextButton(onClick={ask(Command("TAX_UP"))}){Text("增税")};TextButton(onClick={ask(Command("REPAY"))}){Text("还债")}}
+   }
+   "产业" -> Panel("产业与科技","发展属性均为0–100") {
+    Stat("农业",n.agriculture);Stat("商业",n.commerce);Stat("工业",n.industry);Stat("科技",n.technology);Stat("基础设施",n.infrastructure)
+    Text("持续研究 ${n.research} 万两/季",style=MaterialTheme.typography.bodySmall)
+    Row {TextButton(onClick={ask(Command("FACTORY"))}){Text("工厂")};TextButton(onClick={ask(Command("FARM"))}){Text("水利")};TextButton(onClick={ask(Command("RESEARCH"))}){Text("研发")};TextButton(onClick={ask(Command("ROAD"))}){Text("道路")}}
+   }
+   "民生" -> Panel("人口与朝政") {
+    Text("全国人口 ${n.population} 人");Stat("民心",n.morale);Stat("稳定",n.stability);Stat("行政",n.administration);Stat("中央腐败",n.corruption);Stat("军队实力",n.military)
+    ActionButton(Command("RELIEF"),ask);ActionButton(Command("REFORM"),ask);ActionButton(Command("DRILL"),ask)
+   }
+   "项目" -> Panel("政策与在建项目") {
+    Text("当前方向：${w.strategy}");Choices(listOf("工业强国","富民治国","综合发展"),w.strategy,{ask(Command("STRATEGY",target=it))})
+    if(w.projects.isEmpty())Text("暂无在建项目")
+    w.projects.drop(projectPage*4).take(4).forEach {Text("${w.regions[it.region].name} · ${Rules.label(Command(it.kind))} · 剩余${it.remainingDays}日")}
+    if(w.projects.size>4)Row {TextButton(onClick={projectPage--},enabled=projectPage>0){Text("上一页")};TextButton(onClick={projectPage++},enabled=(projectPage+1)*4<w.projects.size){Text("下一页")}}
+    Text("研究预算持续生效，休养会逐步削减预算。",style=MaterialTheme.typography.bodySmall)
+   }
+   else -> Panel("近期属性变化","每次变化均可在档案查询原始决策与账簿") {
+    w.recent.takeLast(3).reversed().forEach {e->Fold("${e.day}日 · ${e.action}") {e.ledger.takeLast(3).forEach {Text(it,style=MaterialTheme.typography.bodySmall)}}}
+   }
+  }
  }
 }
 @Composable private fun WorldPage(w:World,ask:(Command)->Unit) {
  var area by rememberSaveable {mutableIntStateOf(0)};var section by rememberSaveable {mutableIntStateOf(0)}
+ var regionGroup by rememberSaveable {mutableStateOf("概览")};var personPage by rememberSaveable {mutableIntStateOf(0)};var selectedPerson by remember {mutableStateOf<Person?>(null)}
  Page {
-  SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {listOf("地区","人物","列国","宗室").forEachIndexed {i,s->SegmentedButton(selected=section==i,onClick={section=i},shape=SegmentedButtonDefaults.itemShape(i,4)){Text(s)}}}
-  if(section==3) {FamilyPanel(w,ask);return@Page}
+  SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {listOf("地区","人物","列国","宗室").forEachIndexed {i,t->SegmentedButton(selected=section==i,onClick={section=i},shape=SegmentedButtonDefaults.itemShape(i,4)){Text(t)}}}
   when(section) {
-   0 -> { Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {w.regions.forEach {r->FilterChip(selected=area==r.id,onClick={area=r.id},label={Text(r.name)})} }
+   0 -> {
+    Choices(w.regions.map {it.name},w.regions[area].name,{name->area=w.regions.first {it.name==name}.id})
+    Choices(listOf("概览","行旅","案卷","建设"),regionGroup,{regionGroup=it})
     val r=w.regions[area]
-    Panel(r.name,"地方官：${w.people.find {it.id==r.official}?.name?:"暂缺"} · 人口 ${r.population}") {Text("地方财政 ${r.funds} 万两");Stat("农业",r.agriculture);Stat("工业",r.industry);Stat("治安",r.security);Stat("地方腐败",r.corruption);Stat("民心",r.morale);Text("基层腐败线索：${if(area==0) "关卡额外收费" else "尚未核查"}；军事腐败：${if(w.nation.military>60) "需核验军需" else "尚无充分证据"}",style=MaterialTheme.typography.bodySmall)}
-    if(w.journey==null) Departure(area,w,ask) else JourneyPanel(w,ask)
-    if(area==0) CasePanel(w,ask)
-    Fold("地区建设") {ActionButton(Command("FACTORY",region=area),ask);ActionButton(Command("FARM",region=area),ask);ActionButton(Command("ROAD",region=area),ask)}
+    when(regionGroup) {
+     "概览" -> Panel(r.name,"地方官：${w.people.find {it.id==r.official}?.name?:"暂缺"} · 人口 ${r.population}") {
+      Text("地方财政 ${r.funds} 万两");Stat("农业",r.agriculture);Stat("工业",r.industry);Stat("治安",r.security);Stat("地方腐败",r.corruption);Stat("民心",r.morale)
+      Row {TextButton(onClick={regionGroup="行旅"}){Text("安排行程")};TextButton(onClick={regionGroup="案卷"}){Text("查看案件")}}
+     }
+     "行旅" -> if(w.journey==null)Departure(area,w,ask) else JourneyPanel(w,ask)
+     "案卷" -> if(area==0)CasePanel(w,ask) else Panel("地方案卷") {Text("此地暂无已登记的完整案件。澄江为首个示范地区；地方腐败仍保留在地区状态中。")}
+     else -> Panel("${r.name}建设") {w.projects.filter {it.region==area}.forEach {Text("${Rules.label(Command(it.kind))} · 剩余${it.remainingDays}日")};ActionButton(Command("FACTORY",region=area),ask);ActionButton(Command("FARM",region=area),ask);ActionButton(Command("ROAD",region=area),ask)}
+    }
    }
-   1 -> { Fold("主要利益集团",true) {w.factions.forEach {Stat(it.name,it.support)}};w.people.take(10).forEach {p -> Fold("${p.name} · ${p.role}") {Text("${p.ageQuarters/4}岁 · ${w.factions[p.faction].name} · ${p.stance}");Stat("能力",p.ability);Stat("忠诚",p.loyalty);Stat("信任",p.trust);Stat("怀疑",p.suspicion);Stat("敌意",p.hostility);Text("目标：${p.goal}");p.memories.forEach {Text(it,style=MaterialTheme.typography.bodySmall)}}} }
-   else -> {w.neighbors.forEach {n->Panel(n.name) {Stat("外交关系",n.relation);Stat("军事实力",n.strength)}};ActionButton(Command("DIPLOMACY"),ask);Fold("天下大事",true) {w.recent.flatMap {it.events}.takeLast(8).forEach {Text(it)}}}
+   1 -> {
+    Fold("主要利益集团") {w.factions.forEach {Stat(it.name,it.support)}}
+    w.people.drop(personPage*3).take(3).forEach {person->Panel("${person.name} · ${person.role}") {Text("${person.ageQuarters/4}岁 · ${w.factions[person.faction].name}",style=MaterialTheme.typography.bodySmall);TextButton(onClick={selectedPerson=person}){Text("查看人物档案")}}}
+    Row {TextButton(onClick={personPage--},enabled=personPage>0){Text("上一页")};Text("${personPage+1} / ${maxOf(1,(w.people.size+2)/3)}");TextButton(onClick={personPage++},enabled=(personPage+1)*3<w.people.size){Text("下一页")}}
+   }
+   2 -> {
+    w.neighbors.forEach {n->Panel(n.name) {Stat("外交关系",n.relation);Stat("军事实力",n.strength)}}
+    ActionButton(Command("DIPLOMACY"),ask)
+    Fold("天下大事") {Column(Modifier.heightIn(max=220.dp).verticalScroll(rememberScrollState())) {w.recent.flatMap {it.events}.takeLast(8).forEach {Text(it)}}}
+   }
+   else -> FamilyPanel(w,ask)
   }
  }
+ selectedPerson?.let {p->AlertDialog(onDismissRequest={selectedPerson=null},title={Text("${p.name} · ${p.role}")},text={Column(Modifier.heightIn(max=420.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(10.dp)){Text("${p.ageQuarters/4}岁 · ${p.stance}");Stat("能力",p.ability);Stat("忠诚",p.loyalty);Stat("信任",p.trust);Stat("怀疑",p.suspicion);Stat("敌意",p.hostility);Text("目标：${p.goal}");p.memories.forEach {Text(it,style=MaterialTheme.typography.bodySmall)}}},confirmButton={TextButton(onClick={selectedPerson=null}){Text("关闭")}})}
 }
 @Composable private fun Departure(area:Int,w:World,ask:(Command)->Unit) {
- var mode by rememberSaveable {mutableStateOf("微服私访")};var disguise by rememberSaveable {mutableStateOf("商人")};var companion by rememberSaveable {mutableIntStateOf(2)};var regent by rememberSaveable {mutableIntStateOf(0)};var days by rememberSaveable {mutableIntStateOf(30)};var objective by rememberSaveable {mutableStateOf("财政审计")}
- Fold("安排巡游",true) { Choices(listOf("公开巡幸","微服私访","秘密调查"),mode,{mode=it});if(mode!="公开巡幸") Choices(listOf("商人","书生","百姓"),disguise,{disguise=it});Text("随行人员");Choices(w.people.take(3).filter {it.alive}.map {it.name},w.people.getOrNull(companion)?.name?:"无",{s->companion=w.people.first {it.name==s}.id});Text("留朝代理");Choices(w.people.take(3).filter {it.alive}.map {it.name},w.people.getOrNull(regent)?.name?:"无",{s->regent=w.people.first {it.name==s}.id});Choices(listOf("财政审计","民情巡视","产业考察"),objective,{objective=it});Text("停留上限 $days 日");Slider(value=days.toFloat(),onValueChange={days=it.toInt()},valueRange=10f..90f,steps=7);Text("微服成本低但调查会增加暴露；秘密调查较贵，暴露增长较慢；公开巡幸可直接核验账册。",style=MaterialTheme.typography.bodySmall);ActionButton(Command("DEPART",region=area,mode=mode,disguise=disguise,companion=companion,regent=regent,days=days,objective=objective),ask) }
+ var mode by rememberSaveable {mutableStateOf("微服私访")};var disguise by rememberSaveable {mutableStateOf("商人")};var companion by rememberSaveable {mutableIntStateOf(2)};var regent by rememberSaveable {mutableIntStateOf(0)}
+ var days by rememberSaveable {mutableIntStateOf(30)};var objective by rememberSaveable {mutableStateOf("财政审计")};var form by rememberSaveable {mutableStateOf("行程")}
+ Panel("安排巡游","${w.regions[area].name} · ${mode} · 随行与摄政分别指定") {
+  Choices(listOf("行程","人员"),form,{form=it})
+  if(form=="行程") {
+   Choices(listOf("公开巡幸","微服私访","秘密调查"),mode,{mode=it})
+   if(mode!="公开巡幸")Choices(listOf("商人","书生","百姓"),disguise,{disguise=it})
+   Choices(listOf("财政审计","民情巡视","产业考察"),objective,{objective=it})
+   Text("停留上限 $days 日");Slider(value=days.toFloat(),onValueChange={days=it.toInt()},valueRange=10f..90f,steps=7)
+  } else {
+   Text("随行人员");Choices(w.people.take(3).filter {it.alive}.map {it.name},w.people.getOrNull(companion)?.name?:"无",{name->companion=w.people.first {it.name==name}.id})
+   Text("留朝代理");Choices(w.people.take(3).filter {it.alive}.map {it.name},w.people.getOrNull(regent)?.name?:"无",{name->regent=w.people.first {it.name==name}.id})
+  }
+  Text("微服较便宜，调查增加暴露；秘密调查较贵但暴露较慢；公开巡幸可直接核验账册。",style=MaterialTheme.typography.bodySmall)
+  ActionButton(Command("DEPART",region=area,mode=mode,disguise=disguise,companion=companion,regent=regent,days=days,objective=objective),ask)
+ }
 }
 @OptIn(ExperimentalLayoutApi::class)
 @Composable private fun Choices(items:List<String>,selected:String,onSelect:(String)->Unit) { FlowRow(horizontalArrangement=Arrangement.spacedBy(6.dp)) {items.forEach {s->FilterChip(selected=s==selected,onClick={onSelect(s)},label={Text(s,style=MaterialTheme.typography.labelMedium)})} } }
@@ -170,19 +242,50 @@ class MainActivity:ComponentActivity() {
  val ctx=LocalContext.current;val scope=rememberCoroutineScope()
  val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) {uri->if(uri!=null) scope.launch {runCatching {val text=vm.export();withContext(Dispatchers.IO){ctx.contentResolver.openOutputStream(uri)?.use {it.write(text.toByteArray())}?:error("文件无法打开")}}.onSuccess {vm.message("存档已导出到你选择的位置。")}.onFailure {vm.message(it.message?:"导出失败")} }}
  val import=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {uri->if(uri!=null) scope.launch {runCatching {withContext(Dispatchers.IO){ctx.contentResolver.openInputStream(uri)?.use { readBoundedSave(it)}?:error("文件无法打开")}}.onSuccess {vm.import(it)}.onFailure {vm.message(it.message?:"导入失败")} }}
+ var group by rememberSaveable {mutableStateOf("存档")};var savePage by rememberSaveable {mutableIntStateOf(0)};var selectedEntry by remember {mutableStateOf<Entry?>(null)}
+ LaunchedEffect(group) {if(group=="史书")vm.page(0)}
  Page {
-  Panel("纪年存档","每次行动事务自动保存 · 最多 8 个相互隔离的槽位") {ui.slots.forEach {slot->OutlinedButton(onClick={vm.load(slot.id)},enabled=!ui.busy,modifier=Modifier.fillMaxWidth()) {Text("${if(slot.id==ui.slot) "●" else "○"} 槽 ${slot.id} · ${slot.name} · ${slot.turn*3}个月")}};Row {TextButton(onClick=new){Text("新建")};TextButton(onClick={vm.manualSave()}){Text("手动快照")}};Row {TextButton(onClick={export.launch("山河纪年-槽${ui.slot}.json")}){Text("导出本地文件")};TextButton(onClick={import.launch(arrayOf("application/json","text/*"))}){Text("导入空槽")}} }
-  Fold("史官档案") {Button(onClick={vm.page(0)}){Text("查询最新记录")};ui.archive.forEach {entry->Fold("${entry.day}日 · ${entry.action}") {Text(entry.narrative);entry.ledger.forEach {Text(it,style=MaterialTheme.typography.bodySmall)};Text("种子 ${entry.seed} · 决策 ${entry.revision}",style=MaterialTheme.typography.labelSmall)}};Row {TextButton(onClick={vm.page(ui.offset-20)},enabled=ui.offset>0){Text("上一页")};TextButton(onClick={vm.page(ui.offset+20)},enabled=ui.archive.size==20){Text("更早记录")}}}
-  ModelPanel(vm)
-  Fold("阅读与主题") {Choices(listOf("深色","正常","护眼"),listOf("深色","正常","护眼")[theme],{onTheme(listOf("深色","正常","护眼").indexOf(it))});Text("字号 ${"%.0f".format(scale*100)}%");Slider(value=scale,onValueChange=onScale,valueRange=.85f..1.3f)}
-  Fold("关于与玩法") {Text("山河纪年 0.1 · 原创架空历史\n原生 Kotlin / Compose · 离线优先\n包名 cn.chronicle.shanhe\n\n连续时间，可暂停与调速。政策异步办理，季度交界自动结算国政。\n\nP0 规则版：四地区、项目经济、30 个事件、澄江案件三条处理路线。AI 叙述不参与数值结算。\n\n后续版本：更丰富的战争、地区案件与制度改革。当前不含领土战争或无限制自由指令。");Text("本应用不发送游戏通知，不上传存档。",style=MaterialTheme.typography.bodySmall)}
+  Choices(listOf("存档","史书","模型","设置"),group,{group=it})
+  when(group) {
+   "存档" -> Panel("纪年存档","自动保存 · 最多8个独立槽位") {
+    ui.slots.drop(savePage*4).take(4).forEach {slot->OutlinedButton(onClick={vm.load(slot.id)},enabled=!ui.busy,modifier=Modifier.fillMaxWidth()){Text("${if(slot.id==ui.slot) "●" else "○"} 槽${slot.id} · ${slot.name} · ${slot.turn*3}个月")}}
+    if(ui.slots.size>4)Row {TextButton(onClick={savePage--},enabled=savePage>0){Text("上一页")};TextButton(onClick={savePage++},enabled=(savePage+1)*4<ui.slots.size){Text("下一页")}}
+    Row {TextButton(onClick=new){Text("新建")};TextButton(onClick={vm.manualSave()}){Text("手动快照")}}
+    Row {TextButton(onClick={export.launch("山河纪年-槽${ui.slot}.json")}){Text("导出本地文件")};TextButton(onClick={import.launch(arrayOf("application/json","text/*"))}){Text("导入空槽")}}
+   }
+   "史书" -> Panel("史官档案","每页5项，点开查看剧情与结算账簿") {
+    if(ui.archive.isEmpty())Text("本页暂无记录")
+    ui.archive.forEach {entry->OutlinedButton(onClick={selectedEntry=entry},modifier=Modifier.fillMaxWidth()){Text("${entry.day}日 · ${entry.action}")}}
+    Row {TextButton(onClick={vm.page(ui.offset-5)},enabled=ui.offset>0){Text("上一页")};TextButton(onClick={vm.page(ui.offset+5)},enabled=ui.archive.size==5){Text("更早记录")}}
+    TextButton(onClick={vm.page(0)}){Text("回到最新")}
+   }
+   "模型" -> ModelPanel(vm)
+   else -> {
+    Panel("阅读与主题") {Choices(listOf("深色","正常","护眼"),listOf("深色","正常","护眼")[theme],{onTheme(listOf("深色","正常","护眼").indexOf(it))});Text("字号 ${"%.0f".format(scale*100)}%");Slider(value=scale,onValueChange=onScale,valueRange=.85f..1.3f)}
+    Fold("关于山河纪年") {Text("山河纪年0.1.1 · 原创离线文字策略\n连续时间，可暂停与调速。政策异步办理，季度交界自动结算国政。\n\n包含四地区、项目经济、33个规则事件和澄江案件三条处理路线。AI不参与数值结算。\n\n完整战争、继承和多地区案件尚在后续阶段。本应用不上传存档，不发送不必要的提醒。")}
+   }
+  }
  }
+ selectedEntry?.let {e->AlertDialog(onDismissRequest={selectedEntry=null},title={Text("${e.day}日 · ${e.action}")},text={Column(Modifier.heightIn(max=420.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)){Text(e.narrative);HorizontalDivider();e.ledger.forEach {Text(it,style=MaterialTheme.typography.bodySmall)};Text("种子${e.seed} · 决策${e.revision}",style=MaterialTheme.typography.labelSmall)}},confirmButton={TextButton(onClick={selectedEntry=null}){Text("关闭")}})}
 }
 @Composable private fun NewDialog(close:()->Unit,start:(String,String,String,String,String,String,String,String)->Unit) {
- var scale by rememberSaveable {mutableStateOf("中等国家")};var atmosphere by rememberSaveable {mutableStateOf("均势博弈")};var era by rememberSaveable {mutableStateOf("启元")};var name by rememberSaveable {mutableStateOf("承熙")};var ruler by rememberSaveable {mutableStateOf("景衡")};var strategy by rememberSaveable {mutableStateOf("综合发展")};var difficulty by rememberSaveable {mutableStateOf("标准")};var seed by rememberSaveable {mutableStateOf("1847")}
- AlertDialog(onDismissRequest=close,title={Text("开启新的纪年")},text={Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(10.dp)){OutlinedTextField(value=name,onValueChange={name=it.take(24)},label={Text("国号")},singleLine=true);OutlinedTextField(value=ruler,onValueChange={ruler=it.take(24)},label={Text("君主")},singleLine=true);OutlinedTextField(value=era,onValueChange={era=it.take(16)},label={Text("纪元名称")},singleLine=true);Choices(listOf("工业强国","富民治国","综合发展"),strategy,{strategy=it});Choices(listOf("宽裕","标准","艰难"),difficulty,{difficulty=it});Text("国家规模");Choices(listOf("超级大国","中等国家","小国","随机"),scale,{scale=it});Text("世界格局");Choices(listOf("和平建设","均势博弈","烽火边疆"),atmosphere,{atmosphere=it});OutlinedTextField(value=seed,onValueChange={seed=it.take(20)},label={Text("世界种子（整数）")},singleLine=true);TextButton(onClick={seed=java.security.SecureRandom().nextInt(1000000).toString()}){Text("随机种子")}}},confirmButton={TextButton(onClick={start(name,ruler,strategy,difficulty,seed,era,scale,atmosphere)},enabled=name.isNotBlank()&&ruler.isNotBlank()&&FamilyEngine.validName(era)&&seed.toLongOrNull()!=null){Text("建立国家")}},dismissButton={TextButton(onClick=close){Text("取消")}})
+ var name by rememberSaveable {mutableStateOf("承熙")};var ruler by rememberSaveable {mutableStateOf("景衡")};var era by rememberSaveable {mutableStateOf("启元")};var strategy by rememberSaveable {mutableStateOf("综合发展")}
+ var difficulty by rememberSaveable {mutableStateOf("标准")};var scale by rememberSaveable {mutableStateOf("中等国家")};var atmosphere by rememberSaveable {mutableStateOf("均势博弈")};var seed by rememberSaveable {mutableStateOf("1847")};var advanced by rememberSaveable {mutableStateOf(false)}
+ AlertDialog(onDismissRequest=close,title={Text("开启新的纪年")},text={Column(Modifier.heightIn(max=440.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(10.dp)) {
+  OutlinedTextField(value=name,onValueChange={name=it.take(24)},label={Text("国号")},singleLine=true,modifier=Modifier.fillMaxWidth())
+  OutlinedTextField(value=ruler,onValueChange={ruler=it.take(24)},label={Text("君主")},singleLine=true,modifier=Modifier.fillMaxWidth())
+  OutlinedTextField(value=era,onValueChange={era=it.take(16)},label={Text("纪元名称")},singleLine=true,modifier=Modifier.fillMaxWidth())
+  Choices(listOf("工业强国","富民治国","综合发展"),strategy,{strategy=it})
+  TextButton(onClick={advanced=!advanced}){Text(if(advanced)"收起开局与世界设置" else "开局与世界设置 ＋")}
+  if(advanced) {
+   Text("难度");Choices(listOf("宽裕","标准","艰难"),difficulty,{difficulty=it})
+   Text("国家规模");Choices(listOf("超级大国","中等国家","小国","随机"),scale,{scale=it})
+   Text("世界格局");Choices(listOf("和平建设","均势博弈","烽火边疆"),atmosphere,{atmosphere=it})
+   OutlinedTextField(value=seed,onValueChange={seed=it.take(20)},label={Text("世界种子（整数）")},singleLine=true,modifier=Modifier.fillMaxWidth())
+   TextButton(onClick={seed=java.security.SecureRandom().nextInt(1000000).toString()}){Text("随机种子")}
+  }
+ }},confirmButton={TextButton(onClick={start(name,ruler,strategy,difficulty,seed,era,scale,atmosphere)},enabled=name.isNotBlank()&&ruler.isNotBlank()&&FamilyEngine.validName(era)&&seed.toLongOrNull()!=null){Text("建立国家")}},dismissButton={TextButton(onClick=close){Text("取消")}})
 }
-
 private fun readBoundedSave(input:java.io.InputStream):String {
  val out=java.io.ByteArrayOutputStream();val buffer=ByteArray(32768)
  while(true) {val n=input.read(buffer);if(n<0)break;require(out.size()+n<=8*1024*1024){"文件超过8MB"};out.write(buffer,0,n)}
@@ -190,30 +293,35 @@ private fun readBoundedSave(input:java.io.InputStream):String {
 }
 
 @Composable private fun FamilyPanel(w:World,ask:(Command)->Unit) {
- val h=w.household
- var ruler by rememberSaveable(w.ruler){mutableStateOf(w.ruler)};var era by rememberSaveable(w.era){mutableStateOf(w.era)}
- var childName by rememberSaveable(h.nextChildName){mutableStateOf(h.nextChildName)}
- Panel("宗室与家族","所有命名、备孕与出生结果都会登记并自动保存") {
-  Text("君主：${w.ruler} · 纪元：${w.era}")
-  Row {Switch(checked=h.allowPregnancy,onCheckedChange={ask(Command("FAMILY_PLAN",target=if(it)"允许" else "暂停"))});Text(" 允许新的自愿备孕",Modifier.padding(top=12.dp))}
-  Text("仅成年、自愿且健康与关系条件合适的伴侣可备孕。暂停新安排不改变已有孕期。",style=MaterialTheme.typography.bodySmall)
-  h.pregnancy?.let {Text("已登记孕期：预计还需 ${it.remainingDays} 日 · 预备名 ${it.childName}",color=MaterialTheme.colorScheme.primary)}?:Text("当前没有登记孕期")
-  ActionButton(Command("TRY_HEIR"),ask);ActionButton(Command("FAMILY_TIME"),ask)
+ val h=w.household;var group by rememberSaveable {mutableStateOf("家族")};var nameGroup by rememberSaveable {mutableStateOf("君主")}
+ var ruler by rememberSaveable(w.ruler){mutableStateOf(w.ruler)};var era by rememberSaveable(w.era){mutableStateOf(w.era)};var childName by rememberSaveable(h.nextChildName){mutableStateOf(h.nextChildName)}
+ var memberPage by rememberSaveable {mutableIntStateOf(0)};var childPage by rememberSaveable {mutableIntStateOf(0)};var renameId by rememberSaveable {mutableIntStateOf(-1)};var renameText by rememberSaveable {mutableStateOf("")}
+ Choices(listOf("家族","命名","名册"),group,{group=it})
+ when(group) {
+  "家族" -> Panel("宗室与家族","君主：${w.ruler} · 纪元：${w.era}") {
+   Row {Switch(checked=h.allowPregnancy,onCheckedChange={ask(Command("FAMILY_PLAN",target=if(it)"允许" else "暂停"))});Text(" 允许新的自愿备孕",Modifier.padding(top=12.dp))}
+   Text("仅成年、自愿且健康与关系条件合适的伴侣可备孕。暂停不改变已有孕期。",style=MaterialTheme.typography.bodySmall)
+   h.pregnancy?.let {Text("还需${it.remainingDays}日 · 预备名${it.childName}",color=MaterialTheme.colorScheme.primary)}?:Text("当前没有登记孕期")
+   ActionButton(Command("TRY_HEIR"),ask);ActionButton(Command("FAMILY_TIME"),ask)
+  }
+  "命名" -> Panel("自主命名","旧历史保留，新的姓名与纪元从登记后生效") {
+   Choices(listOf("君主","纪元","子女"),nameGroup,{nameGroup=it})
+   when(nameGroup) {
+    "君主" -> {OutlinedTextField(value=ruler,onValueChange={ruler=it.take(16)},label={Text("君主姓名")},singleLine=true,modifier=Modifier.fillMaxWidth());TextButton(onClick={ask(Command("RULER_NAME",target=ruler))},enabled=FamilyEngine.validName(ruler)){Text("登记新姓名")}}
+    "纪元" -> {OutlinedTextField(value=era,onValueChange={era=it.take(16)},label={Text("纪元")},singleLine=true,modifier=Modifier.fillMaxWidth());TextButton(onClick={ask(Command("ERA",target=era))},enabled=FamilyEngine.validName(era)){Text("确认改元")}}
+    else -> {
+     OutlinedTextField(value=childName,onValueChange={childName=it.take(16)},label={Text("下一次备孕的预备名")},singleLine=true,modifier=Modifier.fillMaxWidth());TextButton(onClick={ask(Command("CHILD_NAME_PLAN",target=childName))},enabled=FamilyEngine.validName(childName)){Text("保存预备名")}
+     val children=h.members.filter {it.role=="子女" && it.alive}
+     if(children.isEmpty())Text("暂无在世子女")
+     children.drop(childPage*2).take(2).forEach {p->Row(verticalAlignment=Alignment.CenterVertically){Text("${p.name} · ${p.ageAt(w.day)}岁",Modifier.weight(1f));TextButton(onClick={renameId=p.id;renameText=p.name}){Text("更名")}}}
+     if(children.size>2)Row {TextButton(onClick={childPage--},enabled=childPage>0){Text("上一页")};TextButton(onClick={childPage++},enabled=(childPage+1)*2<children.size){Text("下一页")}}
+    }
+   }
+  }
+  else -> Panel("家族名册","每页3名，保留已故成员记录") {
+   h.members.drop(memberPage*3).take(3).forEach {p->Text("${p.name} · ${p.role} · ${p.ageAt(w.day)}岁 · ${if(p.alive) "在世" else "已故"}");Text("关系${p.relationship} / 健康${p.health}",style=MaterialTheme.typography.bodySmall);HorizontalDivider()}
+   Row {TextButton(onClick={memberPage--},enabled=memberPage>0){Text("上一页")};TextButton(onClick={memberPage++},enabled=(memberPage+1)*3<h.members.size){Text("下一页")}}
+  }
  }
- Fold("君主姓名与纪元") {
-  OutlinedTextField(value=ruler,onValueChange={ruler=it.take(16)},label={Text("君主姓名")},singleLine=true,modifier=Modifier.fillMaxWidth())
-  TextButton(onClick={ask(Command("RULER_NAME",target=ruler))},enabled=FamilyEngine.validName(ruler)){Text("登记新姓名")}
-  OutlinedTextField(value=era,onValueChange={era=it.take(16)},label={Text("纪元")},singleLine=true,modifier=Modifier.fillMaxWidth())
-  TextButton(onClick={ask(Command("ERA",target=era))},enabled=FamilyEngine.validName(era)){Text("确认改元")}
-  Text("改元从当前年份记元年，原始日期和历史文本不重写。",style=MaterialTheme.typography.bodySmall)
- }
- Fold("子女命名",true) {
-  OutlinedTextField(value=childName,onValueChange={childName=it.take(16)},label={Text("下一次备孕的预备名")},singleLine=true,modifier=Modifier.fillMaxWidth())
-  TextButton(onClick={ask(Command("CHILD_NAME_PLAN",target=childName))},enabled=FamilyEngine.validName(childName)){Text("保存预备名")}
-  Text("子女出生后仍可更名；已登记孕期保留当时的预备名。",style=MaterialTheme.typography.bodySmall)
-  val children=h.members.filter {it.role=="子女" && it.alive}
-  if(children.isEmpty())Text("暂无在世子女")
-  children.forEach {p->var name by rememberSaveable(p.id){mutableStateOf(p.name)};Text("${p.name} · ${(w.day-p.bornDay)/360}岁");OutlinedTextField(value=name,onValueChange={name=it.take(16)},label={Text("子女姓名")},singleLine=true,modifier=Modifier.fillMaxWidth());TextButton(onClick={ask(Command("NAME_CHILD",target="${p.id}|$name"))},enabled=FamilyEngine.validName(name)){Text("为${p.name}更名")}}
- }
- Fold("家族名册") {h.members.takeLast(12).forEach {p->Text("${p.name} · ${p.role} · ${(w.day-p.bornDay)/360}岁 · ${if(p.alive) "在世" else "已故"}");Text("关系 ${p.relationship} / 健康 ${p.health}${if(p.role=="成年伴侣") " / 自愿意愿${if(p.willing) "已确认" else "未确认"}" else ""}",style=MaterialTheme.typography.bodySmall)}}
+ if(renameId>=0)AlertDialog(onDismissRequest={renameId=-1},title={Text("子女更名")},text={OutlinedTextField(value=renameText,onValueChange={renameText=it.take(16)},label={Text("子女姓名")},singleLine=true)},confirmButton={TextButton(onClick={ask(Command("NAME_CHILD",target="$renameId|$renameText"));renameId=-1},enabled=FamilyEngine.validName(renameText)){Text("预览更名")}},dismissButton={TextButton(onClick={renameId=-1}){Text("取消")}})
 }

@@ -67,7 +67,7 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
  }
  fun load(id:Int)=task { cancelAi(); val w=store.load(id)?:error("存档不存在");mutable.update { currentUi -> currentUi.copy(world=w,slot=id,paused=true,aiText="",archive=emptyList(),offset=0,message="存档已读取。") } }
  fun manualSave()=task { val id=(1..8).firstOrNull { n->store.slots().none { it.id==n } } ?: error("没有空存档槽");store.copyTo(mutable.value.slot,id);mutable.update { currentUi -> currentUi.copy(slots=store.slots(),message="已建立独立快照：槽 $id") } }
- fun page(offset:Int)=task { val p=offset.coerceAtLeast(0);mutable.update { currentUi -> currentUi.copy(archive=store.history(mutable.value.slot,p),offset=p) } }
+ fun page(offset:Int)=task { val p=offset.coerceAtLeast(0);mutable.update { currentUi -> currentUi.copy(archive=store.history(mutable.value.slot,p,5),offset=p) } }
  suspend fun export():String=withContext(Dispatchers.IO) { lock.withLock { store.export(mutable.value.slot) } }
  fun import(text:String)=task { val id=(1..8).firstOrNull { n->store.slots().none { it.id==n } }?:error("没有空槽");store.import(text,id);mutable.update { currentUi -> currentUi.copy(slots=store.slots(),message="导入完成，位于槽 $id。") } }
  fun parse(text:String,ready:(Preview)->Unit) {

@@ -140,7 +140,7 @@ object Rules {
   require(w.scale in listOf("超级大国","中等国家","小国") && w.atmosphere in listOf("和平建设","均势博弈","烽火边疆"))
   require(FamilyEngine.validName(w.era) && w.eraDay in 0..w.day)
   require(w.household.members.size<=100 && w.household.members.map {it.id}.distinct().size==w.household.members.size)
-  require(w.household.members.all {FamilyEngine.validName(it.name) && it.bornDay<=w.day && it.relationship in 0..100 && it.health in 0..100})
+  require(w.household.members.all {FamilyEngine.validName(it.name) && it.bornDay<=w.day && it.relationship in 0..100 && it.health in 0..100 && (it.diedDay==null || (!it.alive && it.diedDay in it.bornDay..w.day))})
   require(w.household.pregnancy==null || (w.household.pregnancy.remainingDays in 1..270 && w.household.members.any {it.id==w.household.pregnancy.parent && it.alive && (w.day-it.bornDay)/360>=18}))
   require(w.recent.size<=12 && w.projects.size<=12 && w.neighbors.size==3 && w.factions.size==3)
   require(w.caseFile.evidence.size<=8 && w.caseFile.evidence.map { it.id }.distinct().size==w.caseFile.evidence.size)
