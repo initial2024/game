@@ -34,12 +34,15 @@ class MapIntegrationTest {
  private fun ready(vm:GameViewModel){compose.waitUntil(30000){compose.activity.mapController?.readyRevision==vm.state.value.world?.revision}}
  private fun openMap(){compose.onNodeWithText("世界",useUnmergedTree=true).performClick();compose.onNodeWithText("打开世界舆图 v4").performScrollTo().performClick()}
  private fun touch(selector:String){
-  val query="(function(){const e=document.querySelector("+MapBridgePolicy.quoted(selector)+");if(!e)throw Error('missing element');e.scrollIntoView({block:'center'});const r=e.getBoundingClientRect();return JSON.stringify({x:r.x+r.width/2,y:r.y+r.height/2,width:innerWidth,height:innerHeight});})()"
+  val query="(function(){const e=document.querySelector("+MapBridgePolicy.quoted(selector)+");if(!e)throw Error('missing element');const r=e.getBoundingClientRect();return JSON.stringify({x:r.x+r.width/2,y:r.y+r.height/2,width:innerWidth,height:innerHeight});})()"
   val p=JSONObject(JSONTokener(js(query)).nextValue() as String);assertTrue("DOM control outside viewport: $p",p.getDouble("y") in 0.0..p.getDouble("height"));var point=android.graphics.Point()
-  compose.runOnUiThread {point=compose.activity.mapController!!.screenPointForTest(p.getDouble("x"),p.getDouble("y"),p.getDouble("width"))};assertTrue(UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).click(point.x,point.y))
+  val x=p.getDouble("x");val y=p.getDouble("y");val viewportWidth=p.getDouble("width")
+  println("MAP_TOUCH=$selector bounds=$p")
+  compose.onNodeWithTag("world-map-web").performTouchInput {val factor=width/viewportWidth;click(androidx.compose.ui.geometry.Offset((x*factor).toFloat(),(y*factor).toFloat()))}
+
  }
  private fun cityClick(name:String){
-  touch("#search");js("(function(){const e=document.querySelector('input[type=search]');e.value="+MapBridgePolicy.quoted(name)+";e.dispatchEvent(new Event('input',{bubbles:true}));return true})()")
+  touch("#search");compose.waitUntil(10000){js("!!document.querySelector('input[type=search]')")=="true"};js("(function(){const e=document.querySelector('input[type=search]');e.value="+MapBridgePolicy.quoted(name)+";e.dispatchEvent(new Event('input',{bubbles:true}));return true})()")
   touch("#panel button.listing");compose.waitUntil(10000){compose.onAllNodesWithText("城邑名称").fetchSemanticsNodes().isNotEmpty()}
  }
 

@@ -33,9 +33,9 @@ object MapValidation {
   require(s.schema==MAP_SCHEMA && id(s.id) && s.id.length<=65 && s.revision in 0..9007199254740991L)
   text(s.meta.title,40);text(s.meta.era,65);text(s.meta.seal,5)
   require(s.polities.size<=40 && s.groups.size<=200 && s.extraPlaces.size<=200 && s.places.size<=1500 && s.placeStates.size<=1700 && s.territories.size<=80 && s.routes.size<=250)
-  fun ids(values:List<String>) {require(values.all(::id) && values.distinct().size==values.size)}
-  ids(s.polities.map {it.id});ids(s.groups.map {it.id});ids(s.extraPlaces.map {it.id});ids(s.territories.map {it.id});ids(s.routes.map {it.id})
-  fun place(id:String)=s.extraPlaces.any {it.id==id} || Regex("place-[0-9]{1,4}").matches(id) && id.substringAfter('-').toInt()<1500
+  fun ids(values:List<String>,max:Int=72) {require(values.all {id(it)&&it.length<=max} && values.distinct().size==values.size)}
+  ids(s.polities.map {it.id});ids(s.groups.map {it.id});ids(s.extraPlaces.map {it.id},85);require(s.extraPlaces.none {it.id in builtinMapPlaceIds});ids(s.territories.map {it.id});ids(s.routes.map {it.id})
+  fun place(id:String)=s.extraPlaces.any {it.id==id} || id in builtinMapPlaceIds
   fun polity(id:String)=id.isEmpty()||s.polities.any {it.id==id}
   fun group(id:String)=id.isEmpty()||s.groups.any {it.id==id}
   s.polities.forEach {text(it.name,50);require(Regex("#[0-9A-Fa-f]{6}").matches(it.color))}
@@ -71,9 +71,14 @@ object MapSnapshotMapper {
   val s=w.cartography?:base(w)
   return s.copy(id="game-slot-$slot",revision=w.revision,meta=MapMeta(w.name,w.date,if(w.setting=="古代王朝")"古" else "纪"),polities=s.polities.map {if(it.id=="nation")it.copy(name=w.name)else it},groups=s.groups.map {g->w.regions.find {"region-${it.id}"==g.id}?.let {g.copy(name=it.name)}?:g}).also(MapValidation::verify)
  }
- fun regionId(w:World,placeId:String):Int? {
-  val p=(w.cartography?:base(w)).places[placeId]?:return null
-  return p.groupId.removePrefix("region-").toIntOrNull()?.takeIf {n->w.regions.any {it.id==n}}
+ fun regionId(w:World,placeId:String):Int? = (w.cartography?:base(w)).places[placeId]?.let {regionForGroup(w,it.groupId)}
+ fun regionForGroup(w:World,groupId:String):Int? {
+  val s=w.cartography?:base(w);var id=groupId;val seen=mutableSetOf<String>()
+  while(id.isNotEmpty()&&seen.add(id)){
+   id.takeIf {it.startsWith("region-")}?.removePrefix("region-")?.toIntOrNull()?.takeIf {n->w.regions.any {it.id==n}}?.let {return it}
+   id=s.groups.find {it.id==id}?.parentId?:return null
+  }
+  return null
  }
  fun base(w:World):MapScenario {
   val positions=listOf(109.0 to 30.0,102.0 to 35.0,114.0 to 25.0,110.0 to 41.0)
@@ -111,7 +116,7 @@ object MapActions {
   val s=w.cartography?:MapSnapshotMapper.base(w)
   if(w.pending.any {it.command.type==c.type && it.command.region==c.region} || w.projects.any {it.kind==c.type&&it.region==c.region})return "同一地区已有这项事务。"
   return when(c.type){
-   "CITY_FOUND" -> if(s.places.containsKey("settlement-r${c.region}"))"此地新城已登记。" else null
+   "CITY_FOUND" -> if(s.places.containsKey("settlement-r${c.region}"))"此地新城已登记。" else if(s.extraPlaces.none {it.id=="city-r${c.region}"&&it.lon<=154&&it.lat>=-3.3})"当前剧情没有可用的地区营建点。" else null
    "CITY_RESTORE" -> if(c.target!="ruin-r0"||c.region!=0||s.placeStates[c.target]?.status !in listOf("ruined","abandoned"))"目标不是可恢复的已登记旧城。" else null
    "CITY_RENAME" -> if(MapSnapshotMapper.regionId(w,c.target)!=c.region || !FamilyEngine.validName(c.objective))"地点或新名称无效。" else null
    "BORDER_TREATY" -> if(c.target!="frontier-0"||w.neighbors[0].relation<80||s.territories.none {it.id==c.target&&it.polityId=="neighbor-0"})"须与东部邻国关系达到80，且边地尚未移交。" else null

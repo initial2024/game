@@ -19,6 +19,8 @@ class CartographyTest {
   val w=game();val a=MapSnapshotMapper.scene(w,1);val b=MapSnapshotMapper.scene(w.copy(name="另一国"),2)
   assertNotEquals(a.id,b.id);assertEquals(a.extraPlaces,b.extraPlaces);assertNotEquals(a.meta.title,b.meta.title)
   assertEquals(0,MapSnapshotMapper.regionId(w,"city-r0"));assertNull(MapSnapshotMapper.regionId(w,"neighbor-city-0"));assertNull(MapSnapshotMapper.regionId(w,"invented"))
+  val sub=a.copy(groups=a.groups+MapGroup("county-demo",parentId="region-0"),places=a.places+("city-r0" to a.places.getValue("city-r0").copy(groupId="county-demo")))
+  val nested=w.copy(cartography=sub);MapValidation.verify(sub);assertEquals(0,MapSnapshotMapper.regionId(nested,"city-r0"))
  }
  @Test fun fullAndVersionedDeltaDispatch(){
   val s=MapSnapshotMapper.scene(game(),1);val d=MapDeltaDispatcher();assertEquals("applyScenario",d.next(s)!!.method);assertNull(d.next(s));assertNull(d.next(s.copy(revision=0)))
@@ -36,6 +38,12 @@ class CartographyTest {
   assertFails {MapValidation.verify(s.copy(placeStates=mapOf("city-r0" to MapPlaceState("immortal"))))}
   assertFails {MapValidation.verify(s.copy(geography=MapGeography("custom")))}
   for(p in listOf(listOf(listOf(100.0,30.0),listOf(104.0,34.0),listOf(100.0,34.0),listOf(104.0,30.0)),listOf(listOf(100.0,30.0),listOf(104.0,30.0),listOf(102.0,30.0),listOf(104.0,34.0))))assertFails {MapValidation.ring(p,60)}
+ }
+ @Test fun originalCountyIdsRemainCompatibleAndReservedBaseIdsCannotBeDuplicated(){
+  val input="""{"schema":"chronicle-map-scenario/v2","id":"county-scene","places":{"county-jingji-01":{"name":"原创县名"}}}"""
+  assertEquals("原创县名",MapValidation.parse(input).places.getValue("county-jingji-01").name)
+  val s=MapSnapshotMapper.scene(game(),1);assertFails {MapValidation.verify(s.copy(extraPlaces=s.extraPlaces+MapPoint("place-0",100.0,30.0)))}
+  assertFails {MapValidation.verify(s.copy(polities=s.polities+MapPolity("a".repeat(73))))}
  }
  @Test fun v1ScenarioUpgradesAndCustomGeographyIsSeparate(){
   val old="""{"schema":"chronicle-map-scenario/v1","id":"old","places":{"place-0":{"name":"旧城"}}}"""

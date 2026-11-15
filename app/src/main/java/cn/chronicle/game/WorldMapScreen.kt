@@ -86,7 +86,6 @@ class MapWebController(private val web:WebView,private val editor:Boolean,privat
  }
  fun export(ready:(String)->Unit){web.evaluateJavascript("JSON.stringify(ChronicleMap.exportScenario())"){raw->runCatching {val text=org.json.JSONTokener(raw).nextValue() as String;MapValidation.parse(text);text}.onSuccess(ready).onFailure {error("地图导出失败：${it.message}")}}}
  fun importPreview(scene:MapScenario){if(!editor)return;MapValidation.verify(scene);web.evaluateJavascript("ChronicleMap.applyScenario(JSON.parse(${MapBridgePolicy.quoted(SaveJson.encodeToString(scene))}));",null)}
- fun screenPointForTest(x:Double,y:Double,width:Double):android.graphics.Point {val location=IntArray(2);web.getLocationOnScreen(location);val scale=web.width/width;return android.graphics.Point((location[0]+x*scale).toInt(),(location[1]+y*scale).toInt())}
  fun evaluateForTest(js:String,ready:(String)->Unit){check(!destroyed);web.evaluateJavascript(js,ready)}
  fun pause(){if(!destroyed)web.onPause()}
  fun resume(){if(!destroyed)web.onResume()}
@@ -128,7 +127,7 @@ private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapO
  var editor by remember {mutableStateOf(false)};var error by remember {mutableStateOf("")};var selection by remember {mutableStateOf<MapHostMessage?>(null)}
  var controller by remember {mutableStateOf<MapWebController?>(null)};var exportData by remember {mutableStateOf("")};var pendingImport by remember {mutableStateOf<MapScenario?>(null)}
  val currentWorld by rememberUpdatedState(world);val currentSlot by rememberUpdatedState(slot)
- val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")){uri->if(uri!=null)scope.launch {runCatching {withContext(Dispatchers.IO){context.contentResolver.openOutputStream(uri)!!.use {it.write(exportData.toByteArray())}}}.onFailure {error="导出失败：${it.message}"}}}
+ val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")){uri->if(uri!=null)scope.launch {runCatching {withContext(Dispatchers.IO){require(exportData.isNotBlank()){"导出状态已重置，请重新导出。"};context.contentResolver.openOutputStream(uri)!!.use {it.write(exportData.toByteArray())}}}.onFailure {error="导出失败：${it.message}"}}}
  val import=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()){uri->if(uri!=null)scope.launch {runCatching {withContext(Dispatchers.IO){context.contentResolver.openInputStream(uri)!!.use {val out=java.io.ByteArrayOutputStream();val buffer=ByteArray(8192);while(true){val n=it.read(buffer);if(n<0)break;require(out.size()+n<=1024*1024);out.write(buffer,0,n)};MapValidation.parse(out.toString("UTF-8"))}}}.onSuccess {pendingImport=it}.onFailure {error="未导入，原沙盘保持不变：${it.message}"}}}
  BackHandler {if(selection!=null)selection=null else if(editor)editor=false else onClose()}
  Column(Modifier.fillMaxSize()) {
@@ -141,7 +140,7 @@ private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapO
    AndroidView(factory={ctx->
     val (web,c)=createMapWebView(ctx,editor,{error=it},{raw->runCatching {MapBridgePolicy.selection(raw,currentWorld,currentSlot)}.onSuccess {selection=it}.onFailure {error="已拒绝无效地图选择。"}},{isImport->if(isImport)import.launch(arrayOf("application/json","text/plain"))else controller?.export {text->exportData=text;export.launch("chronicle-map.json")}})
     owned=c;controller=c;activity?.mapController=c;MapWebController.created();web
-   },modifier=Modifier.weight(1f).fillMaxWidth(),update={owned?.update(world,slot)})
+   },modifier=Modifier.weight(1f).fillMaxWidth().testTag("world-map-web"),update={owned?.update(world,slot)})
    DisposableEffect(owned,lifecycle){val c=owned;val observer=LifecycleEventObserver {_,event->if(event==Lifecycle.Event.ON_STOP)c?.pause()else if(event==Lifecycle.Event.ON_START)c?.resume()};lifecycle.addObserver(observer);onDispose {lifecycle.removeObserver(observer)}}
    DisposableEffect(Unit){onDispose {owned?.destroy();if(owned!=null)MapWebController.released();if(activity?.mapController===owned)activity?.mapController=null;if(controller===owned)controller=null}}
   }
@@ -151,12 +150,14 @@ private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapO
  if(picked!=null){
   val scene=MapSnapshotMapper.scene(world,slot)
   val place=scene.places[picked.placeId]
-  val region=if(place!=null)MapSnapshotMapper.regionId(world,picked.placeId)else scene.territories.find {it.id==picked.territoryId}?.groupId?.removePrefix("region-")?.toIntOrNull()
+  val region=if(place!=null)MapSnapshotMapper.regionId(world,picked.placeId)else scene.territories.find {it.id==picked.territoryId}?.let {MapSnapshotMapper.regionForGroup(world,it.groupId)}
   val territory=scene.territories.find {it.id==picked.territoryId}
   val polity=scene.polities.find {it.id==picked.polityId}
   var newName by remember(picked.placeId){mutableStateOf(place?.name?:"")}
   AlertDialog(onDismissRequest={selection=null},title={Text(place?.name?:territory?.name?:polity?.name?:"地图选择")},text={Column(Modifier.heightIn(max=360.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(10.dp)){
    Text("ID：${picked.placeId.ifEmpty {picked.territoryId.ifEmpty {picked.polityId}}}",style=MaterialTheme.typography.labelSmall)
+   if(polity?.id=="nation"){Text("国库${world.nation.treasury}万两 · 债务${world.nation.debt}万两");Text("人口${world.nation.population} · 民心${world.nation.morale} · 稳定${world.nation.stability}")}
+   if(territory!=null)Text("归属：${scene.polities.find {it.id==territory.polityId}?.name?:"无主"} · 状态：${territory.status}")
    if(place!=null)Text("状态：${scene.placeStates[picked.placeId]?.status?:"active"} · 归属：${scene.polities.find {it.id==place.polityId}?.name?:"未定"}")
    if(region!=null&&region in 0..3){val r=world.regions[region];Text("${r.name} · 人口${r.population} · 治安${r.security} · 腐败${r.corruption}");Text("地方官：${world.people.find {it.id==r.official}?.name?:"暂缺"}")
     TextButton(onClick={selection=null;onRegion(region)}){Text("地区治理、巡游与案卷")}
