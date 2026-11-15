@@ -64,6 +64,16 @@ class RealModelTest {
   val before=System.nanoTime();val output=NativeBridge.generate(prompt,12,300000).toString(Charsets.UTF_8)
   val ms=(System.nanoTime()-before)/1000000
   assertTrue(output.isNotBlank());println("REAL_MODEL load_ms=$loadMs inference_ms=$ms max_tokens=12 text=$output")
+  val narrativePrompt="<|im_start|>system\n你是历史游戏叙事员，只描述已知事实。<|im_end|>\n<|im_start|>user\n已知事实：澄江筹建工厂，花费140万两，三季后完工。请用中文写50字以内的剧情。<|im_end|>\n<|im_start|>assistant\n".toByteArray()
+  val story=NativeBridge.generate(narrativePrompt,96,300000).toString(Charsets.UTF_8)
+  assertTrue(story.any {it in '\u4e00'..'\u9fff'})
+  println("REAL_NARRATIVE text=$story")
+  val memory=android.os.Debug.MemoryInfo();android.os.Debug.getMemoryInfo(memory);println("ANDROID_OBSERVED_PSS_KIB=${memory.totalPss}")
+  repeat(3) {assertTrue(NativeBridge.generate(prompt,6,120000).isNotEmpty())}
+  val executor=java.util.concurrent.Executors.newSingleThreadExecutor()
+  val attempt=executor.submit<Boolean> {try {NativeBridge.generate(narrativePrompt,256,300000);false}catch(_:IllegalStateException){true}}
+  Thread.sleep(100);NativeBridge.cancel();assertTrue("cancel must interrupt inference",attempt.get(30,java.util.concurrent.TimeUnit.SECONDS));executor.shutdownNow()
+  assertTrue(NativeBridge.generate(prompt,6,120000).isNotEmpty())
   NativeBridge.unload()
  }
 }
