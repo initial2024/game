@@ -7,6 +7,13 @@ adb shell getprop ro.build.version.release > "$report_dir/device.txt"
 adb shell wm size >> "$report_dir/device.txt"
 adb shell wm density >> "$report_dir/device.txt"
 adb shell cat /proc/meminfo >> "$report_dir/device.txt"
+if [[ "${CI:-}" == "true" ]]; then
+  adb shell svc wifi disable
+  adb shell svc data disable
+  echo "Guest network switches after disabling:" >> "$report_dir/device.txt"
+  adb shell settings get global wifi_on >> "$report_dir/device.txt"
+  adb shell settings get global mobile_data >> "$report_dir/device.txt"
+fi
 set +e
 adb shell am instrument -w -e ci_emulator true -e class "$classes" cn.chronicle.shanhe.test/androidx.test.runner.AndroidJUnitRunner | tee "$report_dir/instrumentation.txt"
 runner_status=${PIPESTATUS[0]}

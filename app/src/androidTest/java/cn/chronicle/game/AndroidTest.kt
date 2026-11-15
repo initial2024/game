@@ -45,7 +45,7 @@ class ScreenTest {
  private fun clearEmulatorLauncher() {
   if(InstrumentationRegistry.getArguments().getString("ci_emulator")=="true") {
    val descriptor=InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand("am force-stop com.android.launcher3")
-   java.io.FileInputStream(descriptor.fileDescriptor).use {it.readBytes()};descriptor.close()
+   android.os.ParcelFileDescriptor.AutoCloseInputStream(descriptor).use {it.readBytes()}
   }
  }
  @Before fun prepareEmulatorWindow() {clearEmulatorLauncher()}
@@ -148,6 +148,8 @@ class RealModelTest {
   val attempt=executor.submit<Boolean> {try {NativeBridge.generate(narrativePrompt,256,300000);false}catch(_:IllegalStateException){true}}
   Thread.sleep(100);NativeBridge.cancel();assertTrue("cancel must interrupt inference",attempt.get(30,java.util.concurrent.TimeUnit.SECONDS));executor.shutdownNow()
   assertTrue(NativeBridge.generate(prompt,6,120000).isNotEmpty())
+  val resident=File("/proc/self/status").readLines().filter {it.startsWith("VmHWM:")||it.startsWith("VmRSS:")}.joinToString("; ")
+  println("ANDROID_PROCESS_RESIDENT $resident")
   NativeBridge.unload()
  }
 }
