@@ -109,7 +109,7 @@ class ScreenTest {
   compose.onNodeWithText("确认执行").assertIsDisplayed().performClick()
   compose.waitUntil(30000){compose.onAllNodesWithText("确认执行").fetchSemanticsNodes().isEmpty()}
   compose.onNodeWithText("展开  ＋").performScrollTo().performClick()
-  compose.onNodeWithText("例如：兴修水渠、资助科研").performScrollTo().performTextInput("兴修水渠")
+  compose.onNode(hasSetTextAction()).performScrollTo().performTextInput("兴修水渠")
   compose.onNodeWithText("解析并预览").performScrollTo().performClick()
   compose.waitUntil(10000){compose.onAllNodesWithText("确认执行").fetchSemanticsNodes().isNotEmpty()};screenshot("custom-action")
   compose.onNodeWithText("确认执行").assertIsDisplayed().performClick()

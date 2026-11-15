@@ -14,6 +14,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
@@ -102,7 +105,7 @@ private fun createMapWebView(context:android.content.Context,editor:Boolean,erro
    return denied()
   }
   override fun onPageFinished(view:WebView,url:String){if(MapBridgePolicy.trusted(url))control.pageReady()}
-  override fun onRenderProcessGone(view:WebView,detail:RenderProcessGoneDetail):Boolean {error("地图渲染器已释放，请返回后重新打开。游戏存档仍在数据库中。");return true}
+  override fun onRenderProcessGone(view:WebView,detail:RenderProcessGoneDetail):Boolean {control.destroy();error("地图渲染器已释放，请返回后重新打开。游戏存档仍在数据库中。");return true}
  }
  web.webChromeClient=object:WebChromeClient(){override fun onPermissionRequest(request:PermissionRequest){request.deny()};override fun onGeolocationPermissionsShowPrompt(origin:String,callback:GeolocationPermissions.Callback){callback.invoke(origin,false,false)}}
  if(WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER))WebViewCompat.addWebMessageListener(web,"ChronicleHost",setOf(MapBridgePolicy.ORIGIN)){_,message,origin,main,_->control.receive(message.data?:"",origin,main)}
@@ -113,7 +116,8 @@ private fun createMapWebView(context:android.content.Context,editor:Boolean,erro
 private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapOf("Cache-Control" to "no-store"),ByteArrayInputStream(ByteArray(0)))
 
 @Composable fun WorldMapScreen(world:World,slot:Int,onClose:()->Unit,onAction:(Command)->Unit,onRegion:(Int)->Unit) {
- val context=LocalContext.current;val activity=context as? MainActivity;val scope=rememberCoroutineScope();val lifecycle=LocalLifecycleOwner.current.lifecycle
+ val gameVm:GameViewModel=viewModel();val clock by gameVm.state.collectAsStateWithLifecycle()
+ val context=LocalContext.current;val activity=generateSequence(context){(it as? android.content.ContextWrapper)?.baseContext}.filterIsInstance<MainActivity>().firstOrNull();val scope=rememberCoroutineScope();val lifecycle=LocalLifecycleOwner.current.lifecycle
  var editor by remember {mutableStateOf(false)};var error by remember {mutableStateOf("")};var selection by remember {mutableStateOf<MapHostMessage?>(null)}
  var controller by remember {mutableStateOf<MapWebController?>(null)};var exportData by remember {mutableStateOf("")};var pendingImport by remember {mutableStateOf<MapScenario?>(null)}
  val currentWorld by rememberUpdatedState(world);val currentSlot by rememberUpdatedState(slot)
@@ -122,6 +126,7 @@ private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapO
  BackHandler {if(selection!=null)selection=null else if(editor)editor=false else onClose()}
  Column(Modifier.fillMaxSize()) {
   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){TextButton(onClick={if(editor)editor=false else onClose()}){Text(if(editor)"返回游戏地图" else "返回地区列表")};TextButton(onClick={editor=!editor;selection=null}){Text(if(editor)"查看游戏" else "地图沙盘")}}
+  if(!editor)Row(Modifier.fillMaxWidth()){TextButton(onClick={gameVm.toggleClock()},modifier=Modifier.testTag("map-clock")){Text(if(clock.paused)"继续时间" else "暂停时间")};TextButton(onClick={gameVm.changeSpeed()},modifier=Modifier.testTag("map-speed")){Text("×${clock.speed}")};Text(world.date,Modifier.padding(top=12.dp),style=MaterialTheme.typography.labelSmall)}
   if(editor)Text("地图沙盘 · 编辑与导入只保存在地图沙盘，不改变游戏",Modifier.padding(horizontal=12.dp),style=MaterialTheme.typography.labelSmall)
   if(error.isNotBlank())Text(error,Modifier.padding(12.dp),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.error)
   key(editor) {

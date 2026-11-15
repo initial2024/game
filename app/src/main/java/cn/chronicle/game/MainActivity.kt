@@ -39,12 +39,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+private val LocalWorldSetting=staticCompositionLocalOf {"工业初兴"}
 private val Gold=Color(0xFFD9BB7A)
 private val Jade=Color(0xFF91C9BA)
 class MainActivity:ComponentActivity() {
  private var vm:GameViewModel?=null
  var mapController:MapWebController?=null
- override fun onCreate(savedInstanceState:Bundle?) { super.onCreate(savedInstanceState); enableEdgeToEdge(); setContent { val model:GameViewModel=viewModel();vm=model; Chronicle(model) } }
+ override fun onCreate(savedInstanceState:Bundle?) { super.onCreate(savedInstanceState); vm=androidx.lifecycle.ViewModelProvider(this)[GameViewModel::class.java];enableEdgeToEdge(); setContent { val model:GameViewModel=viewModel();vm=model; Chronicle(model) } }
  override fun onStart() {super.onStart();vm?.foreground(true)}
  override fun onStop() {vm?.foreground(false);super.onStop()}
  override fun onTrimMemory(level:Int) { super.onTrimMemory(level); if(level>=ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) { vm?.cancelAi(); vm?.models?.unloadAsync() } }
@@ -61,7 +62,7 @@ class MainActivity:ComponentActivity() {
  val schemes=listOf(darkColorScheme(primary=Gold,secondary=Jade,background=Color(0xFF101D1C),surface=Color(0xFF192B29),surfaceVariant=Color(0xFF253A35),surfaceContainer=Color(0xFF192B29),surfaceContainerHigh=Color(0xFF203631),surfaceContainerHighest=Color(0xFF29423B),primaryContainer=Color(0xFF3C4B34),secondaryContainer=Color(0xFF29463E),onPrimary=Color(0xFF17261F)), lightColorScheme(primary=Color(0xFF546839),secondary=Color(0xFF326759),background=Color(0xFFF6F3EA),surface=Color(0xFFFFFDF7)), darkColorScheme(primary=Color(0xFFC8BA86),secondary=Color(0xFFABC09B),background=Color(0xFF22291F),surface=Color(0xFF30392A)))
  MaterialTheme(colorScheme=schemes[theme.coerceIn(0,2)]) {
   val d=LocalDensity.current
-  CompositionLocalProvider(LocalDensity provides Density(d.density,d.fontScale*scale)) {
+  CompositionLocalProvider(LocalDensity provides Density(d.density,d.fontScale*scale),LocalWorldSetting provides (ui.world?.setting?:"工业初兴")) {
    var showMessage by remember {mutableStateOf(false)}
    fun ask(c:Command) { val w=ui.world?:return;val error=if(c.type=="CANCEL_TASK") null else Rules.validate(w,c); if(error!=null) vm.message(error) else { expected=w.revision;plan=Preview(listOf(c),RealtimeEngine.describe(c)+"。事务随连续时间推进，最多同时办理3项。") } }
    val pageState=rememberSaveableStateHolder()
@@ -94,15 +95,15 @@ class MainActivity:ComponentActivity() {
    }
    if(showMessage) AlertDialog(onDismissRequest={showMessage=false},title={Text("执行反馈")},text={Text(ui.message,Modifier.verticalScroll(rememberScrollState()))},confirmButton={TextButton(onClick={showMessage=false}){Text("关闭")}})
    if(new) NewDialog({new=false}) { a,b,c,e,f,g,h,i,j -> vm.newGame(a,b,c,e,f,g,h,i,j);new=false;tab=0 }
-   plan?.let { p -> AlertDialog(onDismissRequest={plan=null},title={Text("确认行动")},text={ Column(Modifier.verticalScroll(rememberScrollState())) { Text(p.description);p.commands.forEach { c -> Spacer(Modifier.height(8.dp));Text(RealtimeEngine.describe(c),color=MaterialTheme.colorScheme.primary) }; if(p.commands.size>1) Text("政策按各自耗时办理，先预留资金，完成时检查条件。",style=MaterialTheme.typography.bodySmall) } },confirmButton={TextButton(onClick={vm.submit(p.commands,expected);plan=null},enabled=p.commands.isNotEmpty()&&!ui.busy){Text("确认执行")}},dismissButton={TextButton(onClick={plan=null}){Text("返回")}}) }
+   plan?.let { p -> AlertDialog(onDismissRequest={plan=null},title={Text("确认行动")},text={ Column(Modifier.verticalScroll(rememberScrollState())) { Text(p.description);p.commands.forEach { c -> Spacer(Modifier.height(8.dp));Text(EraRules.render(RealtimeEngine.describe(c),ui.world?.setting?:"工业初兴"),color=MaterialTheme.colorScheme.primary) }; if(p.commands.size>1) Text("政策按各自耗时办理，先预留资金，完成时检查条件。",style=MaterialTheme.typography.bodySmall) } },confirmButton={TextButton(onClick={vm.submit(p.commands,expected);plan=null},enabled=p.commands.isNotEmpty()&&!ui.busy){Text("确认执行")}},dismissButton={TextButton(onClick={plan=null}){Text("返回")}}) }
   }
  }
 }
-@Composable private fun Welcome(start:()->Unit) { Column(Modifier.fillMaxSize().padding(28.dp),verticalArrangement=Arrangement.Center) { Mountains(); Spacer(Modifier.height(24.dp));Text("一纸诏令，\n山河自此不同。",style=MaterialTheme.typography.headlineLarge,fontFamily=FontFamily.Serif);Spacer(Modifier.height(16.dp));Text("工业初兴，旧制未退。经营财政、倾听众生，或换一身行装，亲赴澄江查访。\n\n无需联网或模型，每一步都有规则，每个决定都会留下记录。",color=MaterialTheme.colorScheme.onSurfaceVariant);Spacer(Modifier.height(24.dp));Button(onClick=start,modifier=Modifier.fillMaxWidth()) { Text("开启纪年") } } }
+@Composable private fun Welcome(start:()->Unit) { Column(Modifier.fillMaxSize().padding(28.dp),verticalArrangement=Arrangement.Center) { Mountains(); Spacer(Modifier.height(24.dp));Text("一纸诏令，\n山河自此不同。",style=MaterialTheme.typography.headlineLarge,fontFamily=FontFamily.Serif);Spacer(Modifier.height(16.dp));Text("古代王朝或工业初兴，由你选择。经营财政、倾听众生，或换一身行装，亲赴澄江查访。\n\n无需联网或模型，每一步都有规则，每个决定都会留下记录。",color=MaterialTheme.colorScheme.onSurfaceVariant);Spacer(Modifier.height(24.dp));Button(onClick=start,modifier=Modifier.fillMaxWidth()) { Text("开启纪年") } } }
 @Composable private fun Mountains() { val c=MaterialTheme.colorScheme.secondary; val g=MaterialTheme.colorScheme.primary; Canvas(Modifier.fillMaxWidth().height(100.dp)) { drawCircle(g.copy(alpha=.65f),15.dp.toPx(),Offset(size.width*.79f,size.height*.22f)); val p=Path().apply {moveTo(0f,size.height);lineTo(size.width*.2f,size.height*.45f);lineTo(size.width*.35f,size.height*.7f);lineTo(size.width*.53f,size.height*.1f);lineTo(size.width*.8f,size.height*.75f);lineTo(size.width,size.height*.4f);lineTo(size.width,size.height);close()};drawPath(p,c.copy(alpha=.3f)); drawLine(g.copy(alpha=.5f),Offset(0f,size.height),Offset(size.width,size.height),2f) } }
 @Composable private fun Page(content:@Composable ColumnScope.()->Unit) { Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),verticalArrangement=Arrangement.spacedBy(14.dp),content=content) }
 @Composable private fun Panel(title:String,subtitle:String?=null,content:@Composable ColumnScope.()->Unit) { Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface)) { Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) { Text(title,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold);subtitle?.let {Text(it,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.secondary)};content() } } }
-@Composable private fun ActionButton(c:Command,ask:(Command)->Unit) { OutlinedButton(onClick={ask(c)},modifier=Modifier.fillMaxWidth(),shape=RoundedCornerShape(12.dp),contentPadding=PaddingValues(12.dp)) { Text(Rules.label(c),Modifier.weight(1f));Text("${Rules.cost(c)} 万两",style=MaterialTheme.typography.labelMedium) } }
+@Composable private fun ActionButton(c:Command,ask:(Command)->Unit) { OutlinedButton(onClick={ask(c)},modifier=Modifier.fillMaxWidth(),shape=RoundedCornerShape(12.dp),contentPadding=PaddingValues(12.dp)) { Text(EraRules.label(c,LocalWorldSetting.current),Modifier.weight(1f));Text("${Rules.cost(c)} 万两",style=MaterialTheme.typography.labelMedium) } }
 @Composable private fun Story(w:World,ui:UiState,vm:GameViewModel,ask:(Command)->Unit,custom:(Preview)->Unit) {
  var text by rememberSaveable {mutableStateOf("")};var group by rememberSaveable {mutableStateOf("纪事")}
  Page {
@@ -122,7 +123,7 @@ class MainActivity:ComponentActivity() {
    }
    "行动" -> {
     Panel("可行之策","时间自动流动，政策和地方事务按日办理") {RealtimeEngine.suggestions(w).forEach {ActionButton(it,ask)}}
-    Fold("亲拟诏令") {OutlinedTextField(value=text,onValueChange={text=it.take(600)},label={Text("例如：兴修水渠、资助科研")},minLines=2,maxLines=4,modifier=Modifier.fillMaxWidth());Button(onClick={vm.parse(text,custom)},enabled=text.isNotBlank()&&!ui.busy&&!ui.generating,modifier=Modifier.fillMaxWidth()){Text("解析并预览")}}
+    Fold("亲拟诏令") {OutlinedTextField(value=text,onValueChange={text=it.take(600)},label={Text(if(w.setting==EraRules.ANCIENT)"例如：兴修水渠、资助格物" else "例如：兴修水渠、资助科研")},minLines=2,maxLines=4,modifier=Modifier.fillMaxWidth());Button(onClick={vm.parse(text,custom)},enabled=text.isNotBlank()&&!ui.busy&&!ui.generating,modifier=Modifier.fillMaxWidth()){Text("解析并预览")}}
    }
    else -> {
     Panel("正在办理","最多3项并行事务；取消退还80%预留资金") {
@@ -150,7 +151,7 @@ class MainActivity:ComponentActivity() {
     Text("债务 ${n.debt} · 税率 ${n.tax}%");Text("年度收入 ${n.income} / 支出 ${n.expense}")
     Row {TextButton(onClick={ask(Command("TAX_DOWN"))}){Text("减税")};TextButton(onClick={ask(Command("TAX_UP"))}){Text("增税")};TextButton(onClick={ask(Command("REPAY"))}){Text("还债")}}
    }
-   "产业" -> Panel("产业与科技","发展属性均为0–100") {
+   "产业" -> Panel(if(w.setting==EraRules.ANCIENT)"百工与格物" else "产业与科技","发展属性均为0–100") {
     Stat("农业",n.agriculture);Stat("商业",n.commerce);Stat(EraRules.industry(w),n.industry);Stat(if(w.setting==EraRules.ANCIENT)"格物" else "科技",n.technology);Stat("基础设施",n.infrastructure)
     Text("持续研究 ${n.research} 万两/季",style=MaterialTheme.typography.bodySmall)
     Row {TextButton(onClick={ask(Command("FACTORY"))}){Text("工厂")};TextButton(onClick={ask(Command("FARM"))}){Text("水利")};TextButton(onClick={ask(Command("RESEARCH"))}){Text("研发")};TextButton(onClick={ask(Command("ROAD"))}){Text("道路")}}
@@ -160,7 +161,7 @@ class MainActivity:ComponentActivity() {
     ActionButton(Command("RELIEF"),ask);ActionButton(Command("REFORM"),ask);ActionButton(Command("DRILL"),ask)
    }
    "项目" -> Panel("政策与在建项目") {
-    Text("当前方向：${w.strategy}");Choices(listOf("工业强国","富民治国","综合发展"),w.strategy,{ask(Command("STRATEGY",target=it))})
+    Text("当前方向：${w.strategy}");Choices(listOf(if(w.setting==EraRules.ANCIENT)"商工兴国" else "工业强国","富民治国","综合发展"),w.strategy,{ask(Command("STRATEGY",target=it))})
     if(w.projects.isEmpty())Text("暂无在建项目")
     w.projects.drop(projectPage*4).take(4).forEach {Text("${w.regions[it.region].name} · ${Rules.label(Command(it.kind))} · 剩余${it.remainingDays}日")}
     if(w.projects.size>4)Row {TextButton(onClick={projectPage--},enabled=projectPage>0){Text("上一页")};TextButton(onClick={projectPage++},enabled=(projectPage+1)*4<w.projects.size){Text("下一页")}}
@@ -176,7 +177,7 @@ class MainActivity:ComponentActivity() {
  var showMap by rememberSaveable {mutableStateOf(false)}
  var area by rememberSaveable {mutableIntStateOf(0)};var section by rememberSaveable {mutableIntStateOf(0)}
  var regionGroup by rememberSaveable {mutableStateOf("概览")};var personPage by rememberSaveable {mutableIntStateOf(0)};var selectedPerson by remember {mutableStateOf<Person?>(null)}
- if(showMap){WorldMapScreen(w,slot,{showMap=false},ask,{area=it;section=0;regionGroup="概览";showMap=false});return}
+ if(showMap){androidx.compose.ui.window.Dialog(onDismissRequest={showMap=false},properties=androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth=false,decorFitsSystemWindows=false)){Surface(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)){WorldMapScreen(w,slot,{showMap=false},ask,{area=it;section=0;regionGroup="概览";showMap=false})}}}
  Page {
   OutlinedButton(onClick={showMap=true},modifier=Modifier.fillMaxWidth()){Text("打开世界舆图 v4")}
   SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {listOf("地区","人物","列国","宗室").forEachIndexed {i,t->SegmentedButton(selected=section==i,onClick={section=i},shape=SegmentedButtonDefaults.itemShape(i,4)){Text(t)}}}
