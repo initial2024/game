@@ -4,6 +4,9 @@ package cn.chronicle.core
 data class EventTemplate(val id:String,val title:String,val cooldown:Int,val trigger:(World)->Boolean,val effect:(Nation)->Nation)
 object EventEngine {
  val templates=listOf(
+  EventTemplate("border_raid","敌对关系与薄弱驻军引来边境劫掠",8,{it.atmosphere=="烽火边疆" && it.neighbors.any {n->n.relation<30 && n.strength>it.nation.military+10}},{it.copy(treasury=(it.treasury-25).coerceAtLeast(0),military=it.military-2)}),
+  EventTemplate("gentry_obstruction","贺逢春联合旧势力阻挠监察",10,{it.people.any {p->p.id==9 && p.alive} && it.factions[1].support<45 && it.nation.corruption>40},{it.copy(administration=it.administration-2)}),
+  EventTemplate("peace_exchange","和平环境促进边市交流",12,{it.atmosphere=="和平建设" && it.neighbors.all {n->n.relation>=55} && it.nation.commerce<75},{it.copy(commerce=it.commerce+1)}),
   EventTemplate("tax_resist","商户抗税",6,{it.nation.tax>=30},{it.copy(commerce=it.commerce-2,morale=it.morale-2)}),
   EventTemplate("tax_relief","轻徭恢复市集",8,{it.nation.tax<=14 && it.nation.commerce<70},{it.copy(commerce=it.commerce+2)}),
   EventTemplate("debt_alarm","债息挤占预算",6,{it.nation.debt>600},{it.copy(stability=it.stability-2)}),

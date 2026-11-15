@@ -40,8 +40,13 @@ class StorageTest {
 class ScreenTest {
  @get:Rule val compose=createAndroidComposeRule<MainActivity>()
  private fun screenshot(name:String) {
-  val folder=File(InstrumentationRegistry.getInstrumentation().targetContext.getExternalFilesDir(null),"screenshots").apply {mkdirs()}
-  File(folder,"$name.png").outputStream().use {compose.onRoot().captureToImage().asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG,100,it)}
+  val context=InstrumentationRegistry.getInstrumentation().targetContext
+  val bitmap=compose.onRoot().captureToImage().asAndroidBitmap()
+  if(android.os.Build.VERSION.SDK_INT>=29) {
+   val values=android.content.ContentValues().apply {put(android.provider.MediaStore.Images.Media.DISPLAY_NAME,"$name.png");put(android.provider.MediaStore.Images.Media.MIME_TYPE,"image/png");put(android.provider.MediaStore.Images.Media.RELATIVE_PATH,"Pictures/ChronicleCI")}
+   val uri=context.contentResolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI,values)!!
+   context.contentResolver.openOutputStream(uri)!!.use {bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it)}
+  }
  }
  @Test fun newGamePolicyConfirmationAndNavigation() {
   compose.waitForIdle()
@@ -50,6 +55,7 @@ class ScreenTest {
   }
   compose.waitUntil(30000){compose.onAllNodesWithText("亲拟诏令").fetchSemanticsNodes().isNotEmpty()}
   screenshot("story")
+  if(compose.onAllNodesWithText("暂停时间").fetchSemanticsNodes().isNotEmpty())compose.onNodeWithText("暂停时间").performClick()
   compose.onNodeWithText("休养生息").performScrollTo().performClick()
   compose.onNodeWithText("确认执行").assertIsDisplayed().performClick()
   compose.waitUntil(30000){compose.onAllNodesWithText("确认执行").fetchSemanticsNodes().isEmpty()}

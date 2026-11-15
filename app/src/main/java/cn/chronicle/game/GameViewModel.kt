@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-data class UiState(val world:World?=null,val slot:Int=1,val slots:List<Slot> = emptyList(),val busy:Boolean=false,val message:String="",val archive:List<Entry> = emptyList(),val offset:Int=0,val aiText:String="",val generating:Boolean=false)
+data class UiState(val world:World?=null,val slot:Int=1,val slots:List<Slot> = emptyList(),val busy:Boolean=false,val message:String="",val archive:List<Entry> = emptyList(),val offset:Int=0,val aiText:String="",val generating:Boolean=false,val paused:Boolean=true,val speed:Int=1)
 class GameViewModel(app:Application):AndroidViewModel(app) {
  private val store=Store(app)
  private val lock=Mutex()
@@ -18,31 +18,53 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
  val state=mutable.asStateFlow()
  val models=ModelManager(app)
  private var generation:Job?=null
+ @Volatile private var foreground=true
+ fun foreground(active:Boolean) {foreground=active}
+ fun toggleClock() {mutable.value=mutable.value.copy(paused=!mutable.value.paused)}
+ fun changeSpeed() {val values=listOf(1,4,16,64);mutable.value=mutable.value.copy(speed=values[(values.indexOf(mutable.value.speed)+1)%values.size])}
+ init {
+  viewModelScope.launch(Dispatchers.IO) {
+   while(isActive) {
+    delay(2000)
+    if(!foreground || mutable.value.paused || mutable.value.busy || mutable.value.world==null || lock.isLocked)continue
+    lock.withLock {
+     if(!foreground || mutable.value.paused || mutable.value.busy)return@withLock
+     runCatching {
+      val current=mutable.value.world?:return@withLock
+      val out=RealtimeEngine.advance(current,mutable.value.speed)
+      val meaningful=out.entry.events.isNotEmpty()||out.entry.ledger.isNotEmpty()
+      store.commit(mutable.value.slot,current.revision,out,meaningful)
+      mutable.value=mutable.value.copy(world=out.world,slots=if(meaningful)store.slots() else mutable.value.slots)
+     }.onFailure {mutable.value=mutable.value.copy(paused=true,message="时间已暂停：${it.message}")}
+    }
+   }
+  }
+ }
  init { viewModelScope.launch(Dispatchers.IO) { runCatching { val slots=store.slots(); val id=slots.firstOrNull()?.id?:1; mutable.value=UiState(world=store.load(id),slot=id,slots=slots) }.onFailure { message("存档读取失败：${it.message}。请保留数据并导出排查。") } } }
  fun message(text:String) { mutable.value=mutable.value.copy(message=text) }
- fun newGame(name:String,ruler:String,strategy:String,difficulty:String,seed:String,era:String="启元") = task {
+ fun newGame(name:String,ruler:String,strategy:String,difficulty:String,seed:String,era:String="启元",scale:String="中等国家",atmosphere:String="均势博弈") = task {
   val id=(1..8).firstOrNull { n -> store.slots().none { it.id==n } } ?: error("8 个存档槽已满，请导出后保留现有游戏。")
   val number=seed.toLongOrNull() ?: error("世界种子须为 64 位整数。")
-  val w=NewGame.create(name,ruler,strategy,difficulty,number,era);store.create(id,w);mutable.value=mutable.value.copy(world=w,slot=id,slots=store.slots(),aiText="",archive=emptyList(),message="新纪年已建立。每次行动自动保存。")
+  val w=NewGame.create(name,ruler,strategy,difficulty,number,era,scale,atmosphere);store.create(id,w);mutable.value=mutable.value.copy(world=w,slot=id,slots=store.slots(),paused=false,aiText="",archive=emptyList(),message="新纪年已建立。每次行动自动保存。")
  }
  fun submit(commands:List<Command>,expected:Long) {
   if(mutable.value.busy || commands.isEmpty()) return
   cancelAi()
   task {
    val start=mutable.value.world ?: error("请先新建游戏")
-   require(start.revision==expected) { "局势已改变，请重新预览。" }
+   require(expected<=start.revision) { "局势已改变，请重新预览。" }
    // Preflight the entire bounded plan before any database mutation.
    var preview=start
-   commands.take(3).forEach { preview=Rules.apply(preview,it,preview.revision).world }
+   commands.take(3).forEach { preview=RealtimeEngine.submit(preview,it,preview.revision).world }
    for(c in commands.take(3)) {
-    val current=mutable.value.world!!; val out=Rules.apply(current,c,current.revision)
+    val current=mutable.value.world!!; val out=RealtimeEngine.submit(current,c,current.revision)
     store.commit(mutable.value.slot,current.revision,out)
     mutable.value=mutable.value.copy(world=out.world,slots=store.slots(),aiText="",message="已执行${Rules.label(c)}，自动存档完成。")
    }
    if(models.isLoaded) generate()
   }
  }
- fun load(id:Int)=task { cancelAi(); val w=store.load(id)?:error("存档不存在");mutable.value=mutable.value.copy(world=w,slot=id,aiText="",archive=emptyList(),offset=0,message="存档已读取。") }
+ fun load(id:Int)=task { cancelAi(); val w=store.load(id)?:error("存档不存在");mutable.value=mutable.value.copy(world=w,slot=id,paused=true,aiText="",archive=emptyList(),offset=0,message="存档已读取。") }
  fun manualSave()=task { val id=(1..8).firstOrNull { n->store.slots().none { it.id==n } } ?: error("没有空存档槽");store.copyTo(mutable.value.slot,id);mutable.value=mutable.value.copy(slots=store.slots(),message="已建立独立快照：槽 $id") }
  fun page(offset:Int)=task { val p=offset.coerceAtLeast(0);mutable.value=mutable.value.copy(archive=store.history(mutable.value.slot,p),offset=p) }
  suspend fun export():String=withContext(Dispatchers.IO) { lock.withLock { store.export(mutable.value.slot) } }
@@ -52,7 +74,7 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
   if(!models.isLoaded) {ready(IntentParser.parse(text));return}
   generation=viewModelScope.launch {
    mutable.value=mutable.value.copy(generating=true)
-   try {val result=withContext(Dispatchers.IO){models.interpret(text,w)};if(mutable.value.world?.revision==w.revision)ready(result)}
+   try {val result=withContext(Dispatchers.IO){models.interpret(text,w)};if(mutable.value.world?.recent?.lastOrNull()?.revision==w.recent.lastOrNull()?.revision)ready(result)}
    catch(e:CancellationException) { }
    catch(e:Exception) {ready(IntentParser.parse(text).copy(description="本地 AI 未能解析，已退回规则选项。"))}
    finally {mutable.value=mutable.value.copy(generating=false)}
@@ -64,7 +86,7 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
    mutable.value=mutable.value.copy(generating=true)
    try {
     val text=withContext(Dispatchers.IO) { withTimeout(45000) { models.narrate(MemoryEngine.context(w)) } }
-    if(mutable.value.slot==slot && mutable.value.world?.revision==w.revision) mutable.value=mutable.value.copy(aiText=if(w.journey?.revealed==false && listOf("陛下","皇帝","君主",w.ruler).any {text.contains(it)}) "本次演绎可能泄露隐藏身份，已丢弃。请参考规则叙事。" else text)
+    if(mutable.value.slot==slot && mutable.value.world?.recent?.lastOrNull()?.revision==w.recent.lastOrNull()?.revision) mutable.value=mutable.value.copy(aiText=if(w.journey?.revealed==false && listOf("陛下","皇帝","君主",w.ruler).any {text.contains(it)}) "本次演绎可能泄露隐藏身份，已丢弃。请参考规则叙事。" else text)
    } catch(e:CancellationException) { /* authoritative turn was already saved */ }
    catch(e:Exception) { message("AI 暂不可用，已保留规则叙事：${e.message}") }
    finally { if(mutable.value.slot==slot) mutable.value=mutable.value.copy(generating=false) }

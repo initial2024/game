@@ -63,13 +63,16 @@ jobs:
             adb shell mkdir -p /sdcard/Android/data/cn.chronicle.shanhe/files
             adb push "$RUNNER_TEMP/chronicle-model.gguf" /sdcard/Android/data/cn.chronicle.shanhe/files/qwen.gguf
             ./gradlew :app:connectedDebugAndroidTest
-            adb pull /sdcard/Android/data/cn.chronicle.shanhe/files/screenshots "$RUNNER_TEMP/chronicle-screenshots"
+            adb pull /sdcard/Pictures/ChronicleCI "$RUNNER_TEMP/chronicle-screenshots"
+            adb logcat -d -s System.out:I > "$RUNNER_TEMP/chronicle-model-output.log"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: android-instrumentation-report
           path: |
             app/build/reports/androidTests
+            app/build/outputs/androidTest-results
+            ${{ runner.temp }}/chronicle-model-output.log
             ${{ runner.temp }}/chronicle-screenshots
   signed-apk:
     if: github.event_name == 'workflow_dispatch' && inputs.signed_apk

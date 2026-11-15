@@ -52,14 +52,25 @@ class SimulationTest {
   assertFails {ModelCatalog.builtIn.first().copy(file="../bad.gguf").verify()}
   assertFails {ModelCatalog.builtIn.first().copy(license="unknown").verify()}
  }
+ @Test fun startModesAreReproducibleAndNeverEraseCorruption() {
+  for(scale in listOf("超级大国","中等国家","小国","随机")) for(mode in listOf("和平建设","均势博弈","烽火边疆")) {
+   val a=NewGame.create("测试","君主","综合发展","标准",42,scale=scale,atmosphere=mode)
+   val b=NewGame.create("测试","君主","综合发展","标准",42,scale=scale,atmosphere=mode)
+   assertEquals(a,b);assertTrue(a.nation.corruption>0);assertTrue(a.regions.any {it.corruption>0});Rules.verify(a)
+   var future=a;repeat(1000){future=run(future,Command("REST"));Rules.verify(future)}
+  }
+ }
  @Test fun thirtyDistinctValidatedEvents() {
-  assertEquals(30,EventEngine.templates.size);assertEquals(30,EventEngine.templates.map {it.id}.distinct().size)
+  assertTrue(EventEngine.templates.size>=30);assertEquals(EventEngine.templates.size,EventEngine.templates.map {it.id}.distinct().size)
   val fixtures=mutableListOf<World>()
   for(v in listOf(0,20,50,80,100)) {
    val n=Nation(treasury=v.toLong()*20,debt=v.toLong()*20,population=7000000,tax=if(v==0)5 else v.coerceAtMost(40),agriculture=v,industry=v,commerce=v,technology=v,infrastructure=v,administration=v,military=v,corruption=v,morale=v,stability=v,research=v.coerceAtMost(30),income=900,expense=100)
    fixtures+=game().copy(nation=n)
   }
   val base=game()
+  fixtures+=NewGame.create("边疆","君主","综合发展","标准",1847,atmosphere="烽火边疆").copy(nation=Nation(military=20))
+  fixtures+=NewGame.create("和平","君主","综合发展","标准",1847,atmosphere="和平建设")
+  fixtures+=base.copy(nation=Nation(corruption=60),factions=base.factions.map {it.copy(support=20)})
   fixtures+=base.copy(nation=base.nation.copy(commerce=70,industry=25))
   fixtures+=base.copy(nation=base.nation.copy(morale=80,technology=20))
   fixtures+=base.copy(nation=base.nation.copy(industry=65,infrastructure=25,technology=50,morale=85,stability=85,agriculture=70,commerce=55,administration=55,military=70))

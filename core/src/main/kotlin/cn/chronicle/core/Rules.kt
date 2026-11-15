@@ -51,9 +51,10 @@ object Rules {
   }
   return null
  }
- fun apply(w: World, c: Command, expectedRevision: Long): Outcome {
+ fun apply(w: World, c: Command, expectedRevision: Long, advanceDays:Boolean=true): Outcome {
   require(expectedRevision==w.revision) { "回合已改变，未重复执行。" }
   require(validate(w,c)==null) { validate(w,c) ?: "无效行动" }
+  val elapsed=if(advanceDays) duration(c) else 0
   val ledger=mutableListOf<String>(); val events=mutableListOf<String>()
   var x=w.copy(nation=w.nation.copy(treasury=w.nation.treasury-cost(c)))
   ledger += "${label(c)}支出：-${cost(c)} 万两"
@@ -101,16 +102,16 @@ object Rules {
   }
   if(c.type in FamilyEngine.types) x=FamilyEngine.execute(x,c,events)
   if(x.journey!=null) {
-   var j=x.journey!!.copy(spentDays=x.journey!!.spentDays+duration(c))
+   var j=x.journey!!.copy(spentDays=x.journey!!.spentDays+elapsed)
    if(j.exposure>=85 && !j.revealed) { j=j.copy(revealed=true); events+="调查动静与朝臣随行引起驿站核查，身份经印信验明确认。" }
    x=x.copy(journey=j)
   }
-  val oldQuarter=x.day/90; val newDay=x.day+duration(c)
+  val oldQuarter=x.day/90; val newDay=x.day+elapsed
   if(x.caseFile.remoteDays>0) {
-   val left=max(0,x.caseFile.remoteDays-duration(c)); x=x.copy(caseFile=x.caseFile.copy(remoteDays=left))
+   val left=max(0,x.caseFile.remoteDays-elapsed); x=x.copy(caseFile=x.caseFile.copy(remoteDays=left))
    if(left==0) { evidence(Evidence("ledger","监察使核验账册",50,true)); if(x.caseFile.guilty) evidence(Evidence("receipt","监察使复核收费凭据",30,true)); else evidence(Evidence("forgery","证人笔迹不符的伪证",0,false)); events+="监察使归报，材料已存入案卷；处分仍须另行决定。" }
   }
-  x=FamilyEngine.advance(x.copy(day=newDay),duration(c),events)
+  x=FamilyEngine.advance(x.copy(day=newDay),elapsed,events)
   repeat(newDay/90-oldQuarter) {
    x=EconomyEngine.quarter(x,ledger,events)
    x=CharacterEngine.quarter(x,events)
@@ -135,6 +136,8 @@ object Rules {
   require(w.people.size in 10..100 && w.people.map { it.id }.distinct().size==w.people.size)
   require(w.people.all { it.ageQuarters in 0..20000 && it.memories.size<=8 })
   require(w.regions.all { r -> r.official==-1 || w.people.any { it.id==r.official && it.alive } })
+  require(w.pending.size<=3 && w.pending.map {it.id}.distinct().size==w.pending.size && w.pending.all {it.remainingDays in 1..90 && it.escrow in 0L..1000L})
+  require(w.scale in listOf("超级大国","中等国家","小国") && w.atmosphere in listOf("和平建设","均势博弈","烽火边疆"))
   require(FamilyEngine.validName(w.era) && w.eraDay in 0..w.day)
   require(w.household.members.size<=100 && w.household.members.map {it.id}.distinct().size==w.household.members.size)
   require(w.household.members.all {FamilyEngine.validName(it.name) && it.bornDay<=w.day && it.relationship in 0..100 && it.health in 0..100})
@@ -147,14 +150,16 @@ object Rules {
 }
 
 object EconomyEngine {
- fun quarter(w:World,ledger:MutableList<String>,events:MutableList<String>):World {
+ fun quarter(w:World,ledger:MutableList<String>,events:MutableList<String>,advanceProjects:Boolean=true):World {
   var n=w.nation
   val base=100L+n.agriculture*2+n.commerce*2+n.industry*3
   val income=base*n.tax/100*(100-n.corruption/2)/100
   val familyCost=w.household.members.count {it.alive && it.role=="子女"}*3L + if(w.household.pregnancy!=null) 6L else 0L
-  val expense=35L+n.military/2+n.infrastructure/4+n.research+n.debt*2/100 + familyCost + if(w.difficulty=="艰难") 12 else 0
+  val borderCost=if(w.atmosphere=="烽火边疆" && w.neighbors.any {it.relation<40}) 15L else 0L
+  val expense=35L+n.military/2+n.infrastructure/4+n.research+n.debt*2/100 + familyCost + borderCost + if(w.difficulty=="艰难") 12 else 0
   var cash=n.treasury+income-expense; var debt=n.debt
   if(cash<0) { val need=-cash; val borrowed=min(need,max(0,2000-debt)); debt+=borrowed; cash+=borrowed; ledger+="赤字借款 $borrowed 万两"; if(cash<0) { events+="信用枯竭，削减预算并发生财政危机。"; n=n.copy(stability=n.stability-7,morale=n.morale-5,military=max(0,n.military-4),research=0); cash=0 } }
+  if(borderCost>0) ledger+="边境战备 -$borderCost 万两（计入季度经常支出）"
   ledger+="宗室照护与教育 -$familyCost 万两（计入季度经常支出）"
   ledger+="季度税收 +$income 万两；经常支出 -$expense 万两（含利息 ${n.debt*2/100}）"
   val food=n.agriculture*100000L
@@ -165,7 +170,7 @@ object EconomyEngine {
    infrastructure=n.infrastructure-if(w.turn%8==0) 1 else 0,
    morale=n.morale+(if(food<n.population) -2 else 0)+(if(n.tax>=32) -2 else 0),stability=n.stability+if(n.morale<25) -2 else if(n.morale>65 && n.stability<75) 1 else 0)
   ledger+="人口因粮食供需 ${if(growth>=0) "+" else ""}$growth 人；研发预算 ${n.research} 万两/季"
-  val completed=w.projects.filter { it.quarters<=1 }
+  val completed=if(advanceProjects) w.projects.filter { it.quarters<=1 } else emptyList()
   var regions=w.regions
   completed.forEach { p ->
    when(p.kind) { "FACTORY" -> n=n.copy(industry=n.industry+6,commerce=n.commerce+2); "FARM" -> n=n.copy(agriculture=n.agriculture+7); "ROAD" -> n=n.copy(infrastructure=n.infrastructure+7,commerce=n.commerce+2) }
@@ -173,7 +178,7 @@ object EconomyEngine {
    events+="${w.regions[p.region].name}${Rules.label(Command(p.kind))}完工，开始产生效果。"
   }
   regions=regions.map { it.copy(funds=(it.funds+income/8-10).coerceIn(0,100000),morale=(it.morale+if(it.reform>0 && it.morale<75) 1 else 0).coerceIn(0,100),population=n.population/4) }
-  return w.copy(nation=n,regions=regions,projects=w.projects.filter { it.quarters>1 }.map { it.copy(quarters=it.quarters-1) })
+  return w.copy(nation=n,regions=regions,projects=if(advanceProjects) w.projects.filter { it.quarters>1 }.map { it.copy(quarters=it.quarters-1,remainingDays=(it.remainingDays-90).coerceAtLeast(1)) } else w.projects)
  }
 }
 object CharacterEngine {

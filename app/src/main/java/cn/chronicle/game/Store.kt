@@ -24,11 +24,11 @@ class Store(context:Context,databaseName:String="chronicle.db"):SQLiteOpenHelper
   require(db.rawQuery("SELECT 1 FROM saves WHERE slot=?",arrayOf(slot.toString())).use { !it.moveToFirst() }) { "该存档槽已占用。" }
   put(db,slot,w)
  } }
- fun commit(slot:Int,expected:Long,out:Outcome) { Rules.verify(out.world); transaction { db ->
+ fun commit(slot:Int,expected:Long,out:Outcome,record:Boolean=true) { Rules.verify(out.world); transaction { db ->
   val current=db.rawQuery("SELECT revision FROM saves WHERE slot=?",arrayOf(slot.toString())).use { require(it.moveToFirst()); it.getLong(0) }
   require(current==expected && out.world.revision==expected+1) { "存档版本已改变，本次未执行。" }
   put(db,slot,out.world)
-  db.insertOrThrow("history",null,ContentValues().apply { put("slot",slot);put("revision",out.entry.revision);put("json",SaveJson.encodeToString(out.entry)) })
+  if(record) db.insertOrThrow("history",null,ContentValues().apply { put("slot",slot);put("revision",out.entry.revision);put("json",SaveJson.encodeToString(out.entry)) })
  } }
  fun copyTo(from:Int,to:Int) { require(to in 1..8 && from!=to); transaction { db ->
   require(load(to)==null) { "目标槽已占用。" }; val w=load(from) ?: error("源存档不存在"); put(db,to,w)
