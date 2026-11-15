@@ -19,3 +19,8 @@ if [[ "$runner_status" -ne 0 ]] || ! grep -Eq '^OK \([1-9][0-9]* tests?\)' "$rep
   echo 'Instrumentation did not report a successful test run.'
   exit 1
 fi
+
+if [[ "$classes" == *RealModelTest* ]]; then
+  grep -q 'REAL_MODEL ' "$report_dir/model-output.log"
+  grep -q 'REAL_INTENT_STRUCTURED_VALID=true' "$report_dir/model-output.log"
+fi

@@ -26,6 +26,6 @@ class RealtimeTest {
  @Test fun investigationCanCompleteDuringContinuousTime() {
   var w=submit(game(),Command("DEPART"));w=advance(w,7);w=submit(w,Command("INVESTIGATE"));w=advance(w,5);assertTrue(w.caseFile.evidence.any {it.id=="receipt"})
   w=submit(w,Command("REVEAL"));w=advance(w,1);w=submit(w,Command("AUDIT"));w=advance(w,5);w=submit(w,Command("TRIAL"));w=advance(w,3);assertTrue(w.caseFile.resolved)
-  w=submit(w,Command("RETURN"));w=advance(w,7);assertNull(w.journey);w=advance(w,90);assertNotEquals(3,w.regions[0].official)
+  w=submit(w,Command("RETURN"));w=advance(w,7);assertNull(w.journey);w=advance(w,90);assertNotEquals(3,w.regions[0].official);assertTrue(w.regions[0].official>=0);assertTrue(w.people.any {it.id==w.regions[0].official && it.alive})
  }
 }

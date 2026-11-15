@@ -43,7 +43,8 @@ class ScreenTest {
  @get:Rule val compose=createAndroidComposeRule<MainActivity>()
  private fun screenshot(name:String) {
   val context=InstrumentationRegistry.getInstrumentation().targetContext
-  val bitmap=compose.onAllNodes(isRoot()).onLast().captureToImage().asAndroidBitmap()
+  compose.waitForIdle()
+  val bitmap=requireNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
   if(android.os.Build.VERSION.SDK_INT>=29) {
    val values=android.content.ContentValues().apply {put(android.provider.MediaStore.Images.Media.DISPLAY_NAME,"$name.png");put(android.provider.MediaStore.Images.Media.MIME_TYPE,"image/png");put(android.provider.MediaStore.Images.Media.RELATIVE_PATH,"Pictures/ChronicleCI")}
    val uri=context.contentResolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI,values)!!
@@ -74,9 +75,9 @@ class ScreenTest {
   choose("依法审理");until {it.caseFile.resolved}
   choose("返回朝廷");until {it.journey==null}
   while(vm.state.value.speed!=64)compose.onNodeWithText("×${vm.state.value.speed}").performClick()
-  until {it.regions[0].official!=3}
-  val world=vm.state.value.world!!;assertEquals("免职候审",world.people[3].role);assertTrue(world.regions[0].corruption<58)
-  val store=Store(compose.activity);assertEquals(world,store.load(vm.state.value.slot));store.close();screenshot("tour-long-term-result")
+  until {it.regions[0].official>=0 && it.regions[0].official!=3 && it.people.any {p->p.id==it.regions[0].official && p.alive}}
+  val world=vm.state.value.world!!;assertTrue(world.day>=90);assertEquals("免职候审",world.people[3].role);assertTrue(world.regions[0].corruption<58)
+  val store=Store(compose.activity);assertEquals(world,store.load(vm.state.value.slot));store.close();compose.onNodeWithText("地方官：",substring=true).performScrollTo();screenshot("tour-long-term-result")
  }
  @Test fun newGamePolicyConfirmationAndNavigation() {
   val vm=ViewModelProvider(compose.activity)[GameViewModel::class.java]

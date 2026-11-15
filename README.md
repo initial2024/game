@@ -43,11 +43,11 @@ JDK 17、Android SDK 36、Build Tools 35.0.0、NDK 27.2.12479018、CMake 3.22.1�
 ./gradlew :app:connectedDebugAndroidTest
 ```
 
-仓库随附 llama.cpp b5046 的上游源码，原生库编译 ARM64 和 x86_64，支持 16 KB 页对齐。模型文件不在源代码或 APK 中。
+仓库随附 llama.cpp b5046 的上游源码，原生库编译 ARM64 和 x86_64，支持 16 KB 页对齐。可推理语言模型权重不在源代码或 APK 中；vendor保留了上游的小型词表测试文件。
 
 本地稳定签名构建使用三个环境变量：`CHRONICLE_KEYSTORE`、`CHRONICLE_STORE_PASSWORD`、`CHRONICLE_KEY_PASSWORD`，别名 `chronicle`。然后执行 `./gradlew :app:assembleRelease`。私钥位于单独的私密备份，不进入源码包。公开证书见 `development-cert.pem`。不要使用临时调试签名覆盖稳定签名版本。
 
-Actions 包含 JVM 测试、Android 模拟器测试和手动触发的稳定签名构建。稳定签名任务需要设置 `CHRONICLE_KEYSTORE_BASE64`、`CHRONICLE_STORE_PASSWORD`、`CHRONICLE_KEY_PASSWORD`，缺失时明确失败，绝不生成另一个身份冒充更新。
+Actions 包含 JVM 测试、Android界面与存档测试、真实GGUF专项测试及手动触发的稳定签名构建。常规推送先构建一次，再把同一组APK交给模拟器安装测试；真实模型专项可通过手动工作流的real_model选项或提交标记[full-model]启动，不在每次界面修复时重复大模型测试。稳定签名任务需要设置 `CHRONICLE_KEYSTORE_BASE64`、`CHRONICLE_STORE_PASSWORD`、`CHRONICLE_KEY_PASSWORD`，缺失时明确失败，绝不生成另一个身份冒充更新。
 
 使用用户指定的独立仓库 https://github.com/initial2024/game 。Actions 的实际结果与下载链接见交付报告；构建工作流不会自动公开发布 Release。
 
