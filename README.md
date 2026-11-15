@@ -2,6 +2,12 @@
 
 原创 Android 原生离线文字策略游戏。Kotlin + Compose，包名固定为 `cn.chronicle.shanhe`，minSdk 26 / targetSdk 36。没有 WebView、远程 AI API、分析 SDK 或存档上传功能。
 
+## 安装与实测
+
+[下载 0.1.1 ARM64 APK（约12 MiB）](https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.1.1-arm64.apk) · [交付与测试报告](docs/TESTING.md) · [实际界面截图](docs/SCREENSHOTS.md) · [绿色 Actions](https://github.com/initial2024/game/actions/runs/43721094983)
+
+固定开发签名，可覆盖此前同签名0.1.0直链包。模型独立下载，无模型可玩。不是完整P2，vivo真机验收尚未进行。
+
 ## 运行
 
 安装本次交付的 APK，即可在无网络、无模型状态新建游戏。国家、君主和纪元可在新建界面自由填写；世界 → 宗室中可改元、更名、设置自愿备孕和子女名字。默认国家「承熙」、君主「景衡」、种子 `1847` 可体验有罪案件；种子 `0` 会出现不可直接定罪的案件。

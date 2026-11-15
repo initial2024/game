@@ -1,0 +1,9 @@
+
+cn.chronicle.game.ScreenTest:..
+cn.chronicle.game.StorageTest:...
+
+Time: 39.157
+
+OK (5 tests)
+
+
