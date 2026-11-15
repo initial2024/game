@@ -67,9 +67,7 @@ jobs:
             echo "74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db  $RUNNER_TEMP/chronicle-model.gguf" | sha256sum -c -
             adb shell mkdir -p /sdcard/Android/data/cn.chronicle.shanhe/files
             adb push "$RUNNER_TEMP/chronicle-model.gguf" /sdcard/Android/data/cn.chronicle.shanhe/files/qwen.gguf
-            ./gradlew :app:connectedDebugAndroidTest
-            adb pull /sdcard/Pictures/ChronicleCI "$RUNNER_TEMP/chronicle-screenshots"
-            adb logcat -d -s System.out:I > "$RUNNER_TEMP/chronicle-model-output.log"
+            ./gradlew :app:connectedDebugAndroidTest; test_result=$?; adb pull /sdcard/Pictures/ChronicleCI "$RUNNER_TEMP/chronicle-screenshots"; adb logcat -d -s System.out:I > "$RUNNER_TEMP/chronicle-model-output.log"; exit "$test_result"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

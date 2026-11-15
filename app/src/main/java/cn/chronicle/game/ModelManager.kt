@@ -201,8 +201,8 @@ class ModelManager(private val app:Context) {
   Text("本地 AI 模型",style=MaterialTheme.typography.titleMedium);Text(state.status,style=MaterialTheme.typography.bodySmall)
   Button(onClick={open=true},modifier=Modifier.fillMaxWidth()){Text("搜索、下载与管理模型")}
  }}
- if(open) Dialog(onDismissRequest={open=false},properties=DialogProperties(usePlatformDefaultWidth=false)) {
-  Surface(modifier=Modifier.fillMaxSize().padding(12.dp),shape=RoundedCornerShape(20.dp)) {
+ if(open) Dialog(onDismissRequest={open=false},properties=DialogProperties(usePlatformDefaultWidth=false,decorFitsSystemWindows=false)) {
+  Surface(modifier=Modifier.fillMaxWidth().fillMaxHeight(.95f).padding(12.dp),shape=RoundedCornerShape(20.dp)) {
    Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
     Row {Text("离线模型中心",Modifier.weight(1f),style=MaterialTheme.typography.titleLarge);TextButton(onClick={open=false}){Text("完成")}}
     Text(state.status,style=MaterialTheme.typography.bodySmall)

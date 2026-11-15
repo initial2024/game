@@ -12,6 +12,8 @@ import java.nio.ByteOrder
 import kotlinx.coroutines.runBlocking
 import androidx.compose.ui.test.*
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.lifecycle.ViewModelProvider
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import org.junit.Rule
 
@@ -48,6 +50,32 @@ class ScreenTest {
    context.contentResolver.openOutputStream(uri)!!.use {bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it)}
   }
  }
+ @Test fun continuousJourneyEvidenceJudgmentAndReturn() {
+  val vm=ViewModelProvider(compose.activity)[GameViewModel::class.java]
+  compose.waitForIdle()
+  if(compose.onAllNodesWithText("开启纪年").fetchSemanticsNodes().isNotEmpty())compose.onNodeWithText("开启纪年").performClick()
+  else {compose.onNodeWithText("档案",useUnmergedTree=true).performClick();compose.onNodeWithText("新建").performScrollTo().performClick()}
+  compose.onNodeWithText("建立国家").performClick()
+  compose.waitUntil(30000){vm.state.value.world?.revision==0L}
+  fun pause() {if(!vm.state.value.paused)compose.onNodeWithText("暂停时间").performClick()}
+  fun choose(label:String) {compose.onNodeWithText(label).performScrollTo().performClick();compose.onNodeWithText("确认执行").performClick();compose.waitUntil(10000){!vm.state.value.busy}}
+  fun until(test:(World)->Boolean) {if(vm.state.value.paused)compose.onNodeWithText("继续时间").performClick();compose.waitUntil(60000){vm.state.value.world?.let(test)==true};pause()}
+  pause();while(vm.state.value.speed!=4)compose.onNodeWithText("×${vm.state.value.speed}").performClick()
+  compose.onNodeWithText("世界",useUnmergedTree=true).performClick();compose.onNodeWithText("地区",useUnmergedTree=true).performClick()
+  compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.SetProgress)).performScrollTo().performSemanticsAction(SemanticsActions.SetProgress){it(90f)}
+  choose("出发巡游");until {it.journey?.remainingTravel==0};screenshot("tour-arrived")
+  choose("探访场景");until {it.pending.none {p->p.command.type=="VISIT"}}
+  choose("暗访取证");until {it.caseFile.evidence.any {e->e.id=="receipt"}}
+  assertFalse(vm.state.value.world!!.journey!!.revealed)
+  choose("公开身份");until {it.journey?.revealed==true}
+  choose("核验账册");until {it.caseFile.evidence.any {e->e.id=="ledger"}};screenshot("tour-evidence")
+  choose("依法审理");until {it.caseFile.resolved}
+  choose("返回朝廷");until {it.journey==null}
+  while(vm.state.value.speed!=64)compose.onNodeWithText("×${vm.state.value.speed}").performClick()
+  until {it.regions[0].official!=3}
+  val world=vm.state.value.world!!;assertEquals("免职候审",world.people[3].role);assertTrue(world.regions[0].corruption<58)
+  val store=Store(compose.activity);assertEquals(world,store.load(vm.state.value.slot));store.close();screenshot("tour-long-term-result")
+ }
  @Test fun newGamePolicyConfirmationAndNavigation() {
   compose.waitForIdle()
   if(compose.onAllNodesWithText("开启纪年").fetchSemanticsNodes().isNotEmpty()) {
@@ -63,7 +91,7 @@ class ScreenTest {
   compose.onNodeWithText("世界",useUnmergedTree=true).performClick();compose.onNodeWithText("地区",useUnmergedTree=true).assertIsDisplayed();screenshot("world")
   compose.onNodeWithText("宗室",useUnmergedTree=true).performClick();compose.onNodeWithText("宗室与家族").assertIsDisplayed();screenshot("family")
   compose.onNodeWithText("档案",useUnmergedTree=true).performClick();compose.onNodeWithText("纪年存档").assertIsDisplayed();screenshot("archive")
-  compose.onNodeWithText("搜索、下载与管理模型").performScrollTo().performClick();compose.onNodeWithText("离线模型中心").assertIsDisplayed();compose.onNodeWithText("模型库",useUnmergedTree=true).performClick();screenshot("models");compose.onNodeWithText("完成").performClick()
+  compose.onNodeWithText("搜索、下载与管理模型").performScrollTo().performClick();compose.waitUntil(15000){runCatching {compose.onNodeWithText("离线模型中心").assertIsDisplayed();true}.getOrDefault(false)};compose.onNodeWithText("模型库",useUnmergedTree=true).performClick();screenshot("models");compose.onNodeWithText("完成").performClick()
  }
 }
 @RunWith(AndroidJUnit4::class)
