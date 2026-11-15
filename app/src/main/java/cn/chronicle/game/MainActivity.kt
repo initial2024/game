@@ -177,7 +177,7 @@ class MainActivity:ComponentActivity() {
  var showMap by rememberSaveable {mutableStateOf(false)}
  var area by rememberSaveable {mutableIntStateOf(0)};var section by rememberSaveable {mutableIntStateOf(0)}
  var regionGroup by rememberSaveable {mutableStateOf("概览")};var personPage by rememberSaveable {mutableIntStateOf(0)};var selectedPerson by remember {mutableStateOf<Person?>(null)}
- if(showMap){androidx.compose.ui.window.Dialog(onDismissRequest={showMap=false},properties=androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth=false,decorFitsSystemWindows=false)){Surface(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)){WorldMapScreen(w,slot,{showMap=false},ask,{area=it;section=0;regionGroup="概览";showMap=false})}}}
+ if(showMap){androidx.compose.ui.window.Dialog(onDismissRequest={showMap=false},properties=androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth=false,decorFitsSystemWindows=true)){Surface(Modifier.fillMaxSize()){WorldMapScreen(w,slot,{showMap=false},ask,{area=it;section=0;regionGroup="概览";showMap=false})}}}
  Page {
   OutlinedButton(onClick={showMap=true},modifier=Modifier.fillMaxWidth()){Text("打开世界舆图 v4")}
   SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {listOf("地区","人物","列国","宗室").forEachIndexed {i,t->SegmentedButton(selected=section==i,onClick={section=i},shape=SegmentedButtonDefaults.itemShape(i,4)){Text(t)}}}

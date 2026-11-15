@@ -87,6 +87,7 @@ class MapWebController(private val web:WebView,private val editor:Boolean,privat
  }
  fun export(ready:(String)->Unit){web.evaluateJavascript("JSON.stringify(ChronicleMap.exportScenario())"){raw->runCatching {val text=org.json.JSONTokener(raw).nextValue() as String;MapValidation.parse(text);text}.onSuccess(ready).onFailure {error("地图导出失败：${it.message}")}}}
  fun importPreview(scene:MapScenario){if(!editor)return;MapValidation.verify(scene);web.evaluateJavascript("ChronicleMap.applyScenario(JSON.parse(${MapBridgePolicy.quoted(SaveJson.encodeToString(scene))}));",null)}
+ fun boundsForTest():String {val p=IntArray(2);web.getLocationOnScreen(p);return JSONObject().put("width",web.width).put("height",web.height).put("x",p[0]).put("y",p[1]).toString()}
  fun evaluateForTest(js:String,ready:(String)->Unit){check(!destroyed);web.evaluateJavascript(js,ready)}
  fun pause(){if(!destroyed)web.onPause()}
  fun resume(){if(!destroyed)web.onResume()}

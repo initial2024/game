@@ -79,6 +79,8 @@ button[aria-pressed="false"]{opacity:.53}
 <div id="toolbar" aria-label="地图操作栏"><button id="mode" type="button">旋转</button><button id="reset" type="button">复位</button><button id="theme" type="button">主题</button><button id="font" type="button">字号</button><button id="layers" type="button">图层</button><button id="search" type="button">查找</button></div>
 <script>
 'use strict';
+// Insets belong to the native window; embedded WebView must not extend its CSS viewport into system bars.
+if(window.ChronicleHost)document.querySelector('meta[name=viewport]').content='width=device-width, initial-scale=1, interactive-widget=resizes-content';
 const nativeReadOnly=new URLSearchParams(location.search).get('native')==='1';
 window.addEventListener('error',e=>{window.__mapRenderError=e.message;console.error(e.message)});
 function hostMessage(type,detail={}){if(window.ChronicleHost)window.ChronicleHost.postMessage(JSON.stringify({type,...detail}));}

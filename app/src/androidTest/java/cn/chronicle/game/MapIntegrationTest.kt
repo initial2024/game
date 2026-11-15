@@ -37,7 +37,7 @@ class MapIntegrationTest {
   val query="(function(){const e=document.querySelector("+MapBridgePolicy.quoted(selector)+");if(!e)throw Error('missing element');const r=e.getBoundingClientRect();return JSON.stringify({x:r.x+r.width/2,y:r.y+r.height/2,width:innerWidth,height:innerHeight});})()"
   val p=JSONObject(JSONTokener(js(query)).nextValue() as String);assertTrue("DOM control outside viewport: $p",p.getDouble("y") in 0.0..p.getDouble("height"))
   val x=p.getDouble("x");val y=p.getDouble("y");val viewportWidth=p.getDouble("width")
-  println("MAP_TOUCH=$selector bounds=$p")
+  var nativeBounds="";compose.runOnUiThread {nativeBounds=compose.activity.mapController!!.boundsForTest()};println("MAP_TOUCH=$selector bounds=$p native=$nativeBounds node=${compose.onNodeWithTag("world-map-web").fetchSemanticsNode().boundsInWindow}")
   compose.onNodeWithTag("world-map-web").performTouchInput {val factor=width/viewportWidth;click(androidx.compose.ui.geometry.Offset((x*factor).toFloat(),(y*factor).toFloat()))}
 
  }
