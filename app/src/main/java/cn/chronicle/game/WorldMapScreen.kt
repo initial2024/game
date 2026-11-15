@@ -25,6 +25,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
+import androidx.webkit.WebSettingsCompat
 import cn.chronicle.core.*
 import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
@@ -85,6 +86,7 @@ class MapWebController(private val web:WebView,private val editor:Boolean,privat
  }
  fun export(ready:(String)->Unit){web.evaluateJavascript("JSON.stringify(ChronicleMap.exportScenario())"){raw->runCatching {val text=org.json.JSONTokener(raw).nextValue() as String;MapValidation.parse(text);text}.onSuccess(ready).onFailure {error("地图导出失败：${it.message}")}}}
  fun importPreview(scene:MapScenario){if(!editor)return;MapValidation.verify(scene);web.evaluateJavascript("ChronicleMap.applyScenario(JSON.parse(${MapBridgePolicy.quoted(SaveJson.encodeToString(scene))}));",null)}
+ fun screenPointForTest(x:Double,y:Double,width:Double):android.graphics.Point {val location=IntArray(2);web.getLocationOnScreen(location);val scale=web.width/width;return android.graphics.Point((location[0]+x*scale).toInt(),(location[1]+y*scale).toInt())}
  fun evaluateForTest(js:String,ready:(String)->Unit){check(!destroyed);web.evaluateJavascript(js,ready)}
  fun pause(){if(!destroyed)web.onPause()}
  fun resume(){if(!destroyed)web.onResume()}
@@ -93,10 +95,13 @@ class MapWebController(private val web:WebView,private val editor:Boolean,privat
 }
 
 @SuppressLint("SetJavaScriptEnabled")
+@Suppress("DEPRECATION")
 private fun createMapWebView(context:android.content.Context,editor:Boolean,error:(String)->Unit,selected:(String)->Unit,file:(Boolean)->Unit):Pair<WebView,MapWebController> {
- val web=WebView(context);val control=MapWebController(web,editor,error,selected,file)
+ val web=WebView(context);web.layoutParams=android.view.ViewGroup.LayoutParams(-1,-1);web.setBackgroundColor(android.graphics.Color.TRANSPARENT);val control=MapWebController(web,editor,error,selected,file)
  val loader=WebViewAssetLoader.Builder().addPathHandler("/assets/",WebViewAssetLoader.AssetsPathHandler(context)).build()
- with(web.settings){javaScriptEnabled=true;domStorageEnabled=true;allowFileAccess=false;allowContentAccess=false;@Suppress("DEPRECATION") allowFileAccessFromFileURLs=false;@Suppress("DEPRECATION") allowUniversalAccessFromFileURLs=false;mixedContentMode=WebSettings.MIXED_CONTENT_NEVER_ALLOW;setSupportMultipleWindows(false);javaScriptCanOpenWindowsAutomatically=false;setGeolocationEnabled(false);cacheMode=WebSettings.LOAD_NO_CACHE;mediaPlaybackRequiresUserGesture=true}
+ with(web.settings){javaScriptEnabled=true;domStorageEnabled=true;useWideViewPort=true;loadWithOverviewMode=false;textZoom=100;allowFileAccess=false;allowContentAccess=false;allowFileAccessFromFileURLs=false;allowUniversalAccessFromFileURLs=false;mixedContentMode=WebSettings.MIXED_CONTENT_NEVER_ALLOW;setSupportMultipleWindows(false);javaScriptCanOpenWindowsAutomatically=false;setGeolocationEnabled(false);cacheMode=WebSettings.LOAD_NO_CACHE;mediaPlaybackRequiresUserGesture=true}
+ if(WebViewFeature.isFeatureSupported(WebViewFeature.ALGORITHMIC_DARKENING))WebSettingsCompat.setAlgorithmicDarkeningAllowed(web.settings,false)
+ if(android.os.Build.VERSION.SDK_INT<33&&WebViewFeature.isFeatureSupported(WebViewFeature.FORCE_DARK))WebSettingsCompat.setForceDark(web.settings,WebSettingsCompat.FORCE_DARK_OFF)
  android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(web,false)
  web.webViewClient=object:WebViewClient(){
   override fun shouldOverrideUrlLoading(view:WebView,request:WebResourceRequest)=true
@@ -107,10 +112,12 @@ private fun createMapWebView(context:android.content.Context,editor:Boolean,erro
   override fun onPageFinished(view:WebView,url:String){if(MapBridgePolicy.trusted(url))control.pageReady()}
   override fun onRenderProcessGone(view:WebView,detail:RenderProcessGoneDetail):Boolean {control.destroy();error("地图渲染器已释放，请返回后重新打开。游戏存档仍在数据库中。");return true}
  }
- web.webChromeClient=object:WebChromeClient(){override fun onPermissionRequest(request:PermissionRequest){request.deny()};override fun onGeolocationPermissionsShowPrompt(origin:String,callback:GeolocationPermissions.Callback){callback.invoke(origin,false,false)}}
+ web.webChromeClient=object:WebChromeClient(){override fun onConsoleMessage(message:ConsoleMessage):Boolean {android.util.Log.i("ChronicleMap",message.message()+" line="+message.lineNumber());return true};override fun onPermissionRequest(request:PermissionRequest){request.deny()};override fun onGeolocationPermissionsShowPrompt(origin:String,callback:GeolocationPermissions.Callback){callback.invoke(origin,false,false)}}
  if(WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER))WebViewCompat.addWebMessageListener(web,"ChronicleHost",setOf(MapBridgePolicy.ORIGIN)){_,message,origin,main,_->control.receive(message.data?:"",origin,main)}
  else error("系统WebView版本过旧，安全选择通道不可用；请更新Android系统WebView。地图可浏览，地区治理仍可从原生列表打开。")
- web.loadUrl(MapBridgePolicy.PAGE+if(editor)"?editor=1" else "?native=1")
+ var requested=false
+ web.addOnLayoutChangeListener {_,left,top,right,bottom,_,_,_,_->if(right>left&&bottom>top){if(!requested){requested=true;web.loadUrl(MapBridgePolicy.PAGE+if(editor)"?editor=1" else "?native=1")}else web.post {if(MapBridgePolicy.trusted(web.url))web.evaluateJavascript("window.dispatchEvent(new Event('resize'));",null)}}}
+
  return web to control
 }
 private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapOf("Cache-Control" to "no-store"),ByteArrayInputStream(ByteArray(0)))

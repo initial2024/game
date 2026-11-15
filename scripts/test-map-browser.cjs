@@ -58,6 +58,7 @@ const server=http.createServer((req,res)=>{res.setHeader('Content-Type','text/ht
  assert.equal(await p.evaluate(()=>{try{ChronicleMap.patchScenario({meta:{title:'forged'}});return false}catch{return true}}),true);
  await p.locator('#search').click();await p.locator('input[type=search]').fill('月京');await p.locator('#panel button.listing').first().click();
  assert.ok(await p.evaluate(()=>hostEvents.some(e=>e.type==='place-select'&&e.placeId==='place-0')));assert.equal(await p.getByText('保存地点设定',{exact:true}).count(),0);
+ await p.evaluate(()=>{const s=ChronicleMap.exportScenario();ChronicleMap.applyWorldDelta({sceneId:s.id,revision:1,changes:{places:{'place-0':{name:'刷新城'}}}})});assert.equal(await p.locator('#panel .panel-head strong').textContent(),'刷新城');assert.equal(await p.evaluate(()=>hostEvents.filter(e=>e.type==='place-select').length),1);
  const custom={...demo,id:'custom-check',geography:{kind:'custom',landPolygons:[[[95,20],[125,20],[125,45],[95,45]]]},places:{...demo.places,'town-new':{name:'架空新城'}},meta:{title:'架空地理',era:'测试'}};
  await p.evaluate(s=>ChronicleMap.applyScenario(s),custom);assert.equal(await p.evaluate(()=>ChronicleMap.listPlaces().some(p=>p.id==='place-0')),false);
  await p.locator('#panel .close').click();await p.screenshot({path:'work/map-browser/integrated-custom.png'});

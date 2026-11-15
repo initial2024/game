@@ -33,17 +33,20 @@ class MapIntegrationTest {
  private fun scene()=JSONObject(JSONTokener(js("JSON.stringify(ChronicleMap.exportScenario())")).nextValue() as String)
  private fun ready(vm:GameViewModel){compose.waitUntil(30000){compose.activity.mapController?.readyRevision==vm.state.value.world?.revision}}
  private fun openMap(){compose.onNodeWithText("世界",useUnmergedTree=true).performClick();compose.onNodeWithText("打开世界舆图 v4").performScrollTo().performClick()}
- private fun cityClick(name:String){
-  val device=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-  assertTrue(device.wait(Until.hasObject(By.text("查找")),10000));device.findObject(By.text("查找")).click()
-  val search=device.wait(Until.findObject(By.clazz("android.widget.EditText")),10000);assertNotNull(search);search.text=name
-  val result=device.wait(Until.findObject(By.textStartsWith(name+" · ")),10000);assertNotNull(result);result.click()
-  compose.waitUntil(10000){compose.onAllNodesWithText("城邑名称").fetchSemanticsNodes().isNotEmpty()}
+ private fun touch(selector:String){
+  val query="(function(){const e=document.querySelector("+MapBridgePolicy.quoted(selector)+");if(!e)throw Error('missing element');e.scrollIntoView({block:'center'});const r=e.getBoundingClientRect();return JSON.stringify({x:r.x+r.width/2,y:r.y+r.height/2,width:innerWidth,height:innerHeight});})()"
+  val p=JSONObject(JSONTokener(js(query)).nextValue() as String);assertTrue("DOM control outside viewport: $p",p.getDouble("y") in 0.0..p.getDouble("height"));var point=android.graphics.Point()
+  compose.runOnUiThread {point=compose.activity.mapController!!.screenPointForTest(p.getDouble("x"),p.getDouble("y"),p.getDouble("width"))};assertTrue(UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).click(point.x,point.y))
  }
+ private fun cityClick(name:String){
+  touch("#search");js("(function(){const e=document.querySelector('input[type=search]');e.value="+MapBridgePolicy.quoted(name)+";e.dispatchEvent(new Event('input',{bubbles:true}));return true})()")
+  touch("#panel button.listing");compose.waitUntil(10000){compose.onAllNodesWithText("城邑名称").fetchSemanticsNodes().isNotEmpty()}
+ }
+
  @Test fun mapClickNativeOrderCommitRefreshAndSaveIsolation(){
   val vm=ViewModelProvider(compose.activity)[GameViewModel::class.java];compose.waitUntil(30000){vm.state.value.ready}
   vm.newGame("古代地图国","君主","综合发展","标准","1847",setting=EraRules.ANCIENT);compose.waitUntil(30000){vm.state.value.world?.name=="古代地图国"&&!vm.state.value.busy};if(!vm.state.value.paused)compose.runOnUiThread {vm.toggleClock()};vm.message("")
-  val a=vm.state.value.slot;openMap();ready(vm);assertEquals("game-slot-$a",scene().getString("id"));assertEquals("古代地图国",scene().getJSONArray("polities").getJSONObject(0).getString("name"));captureMap("map-native-ancient")
+  val a=vm.state.value.slot;openMap();ready(vm);println("MAP_RENDER_DIAGNOSTICS="+js("JSON.stringify({ua:navigator.userAgent,size:[innerWidth,innerHeight],body:[document.body.scrollWidth,document.body.scrollHeight],canvas:document.querySelector('#map').getBoundingClientRect().toJSON(),map:__tianxiaDiagnostics(),error:window.__mapRenderError||null})"));assertEquals("game-slot-$a",scene().getString("id"));assertEquals("古代地图国",scene().getJSONArray("polities").getJSONObject(0).getString("name"));captureMap("map-native-ancient")
   cityClick("澄江城");compose.onNodeWithText("城邑名称").performTextReplacement("澄江新城");compose.onNodeWithText("申请更名 · 5万两").performScrollTo().performClick();compose.onNodeWithText("确认执行").performClick();compose.waitUntil(10000){!vm.state.value.busy&&vm.state.value.world!!.pending.any {it.command.type=="CITY_RENAME"}}
   compose.onNodeWithTag("map-clock").performClick();compose.waitUntil(15000){vm.state.value.world?.cartography?.places?.get("city-r0")?.name=="澄江新城"};compose.onNodeWithTag("map-clock").performClick();ready(vm)
   assertEquals("澄江新城",scene().getJSONObject("places").getJSONObject("city-r0").getString("name"))

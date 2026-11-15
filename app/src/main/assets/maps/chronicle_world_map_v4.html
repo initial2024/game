@@ -80,6 +80,7 @@ button[aria-pressed="false"]{opacity:.53}
 <script>
 'use strict';
 const nativeReadOnly=new URLSearchParams(location.search).get('native')==='1';
+window.addEventListener('error',e=>{window.__mapRenderError=e.message;console.error(e.message)});
 function hostMessage(type,detail={}){if(window.ChronicleHost)window.ChronicleHost.postMessage(JSON.stringify({type,...detail}));}
 
 (()=>{
@@ -425,8 +426,8 @@ function centerPlace(p,z=2.5){cam.zoom=Math.max(1.8,Math.min(7,z));setCamera();c
 function setPanel(content){panel.hidden=false;panel.replaceChildren();const head=document.createElement('div');head.className='panel-head';const title=document.createElement('strong');title.textContent=content.title;const close=document.createElement('button');close.className='close';close.textContent='×';close.setAttribute('aria-label','关闭面板');close.onclick=()=>{panel.hidden=true;openPanel='';request()};head.append(title,close);panel.append(head,...content.children);openPanel=content.type;request()}
 function txt(tag,text,cls=''){const node=document.createElement(tag);node.textContent=text;if(cls)node.className=cls;return node}
 function openRelated(p){const group=groupIndex.get(p.adminId);if(group)showAdmin(group.id);else showAdmin(null)}
-function details(p){
- window.dispatchEvent(new CustomEvent("chronicle-map:place-select",{detail:{sceneId:scene.id,placeId:p.id}}));
+function details(p,notify=true){
+ if(notify)window.dispatchEvent(new CustomEvent("chronicle-map:place-select",{detail:{sceneId:scene.id,placeId:p.id}}));
  selected=p;const assigned=displayPlace(p),group=parentGroup(p);const children=[txt('span',typeOf(p),'tag')];const state=scene.placeStates[p.id]?.status||'active';children.push(txt('span',({active:'现存',planned:'规划中',ruined:'废墟',abandoned:'废弃',hidden:'已隐藏'})[state],'tag'));
  const own=ownerOf(p);if(own)children.push(txt('span',own,'tag'));
  children.push(txt('div',`稳定地点 ID：${p.id}`,'caption'));
@@ -529,7 +530,8 @@ el('draw-undo').onclick=()=>{if(territoryDraft?.polygon.length)territoryDraft.po
 el('draw-finish').onclick=()=>{if(!territoryDraft)return;try{const t={id:territoryDraft.id,name:'',polityId:'',status:'neutral',polygon:territoryDraft.polygon};patchScene({territories:[...scene.territories,t]});cancelDraw();showTerritories()}catch(e){alert('疆域尚未保存：'+e.message)}};
 function territoryAt(sx,sy){if(!layers.territories)return null;const pos=customGeography()?inverse(sx,sy,base):inverseSurface(sx,sy);if(!pos)return null;return [...scene.territories].reverse().find(t=>inside(pos[0],pos[1],projectedPolygon(t.polygon)))||null}
 function focusTerritory(t){const ring=projectedPolygon(t.polygon),x=ring.reduce((s,p)=>s+p[0],0)/ring.length,y=ring.reduce((s,p)=>s+p[1],0)/ring.length,z=customGeography()?base:elevation(x,y);cam.zoom=3;setCamera();cam.ox=0;cam.oy=0;const p=screen(x,y,z);cam.ox=W/2-p[0];cam.oy=H*.41-p[1];clamp();request()}
-function territoryDetails(t){window.dispatchEvent(new CustomEvent("chronicle-map:territory-select",{detail:{sceneId:scene.id,territoryId:t.id}}));const children=[txt('p',t.description||'由当前剧情提供的疆域几何。多边形仅用于可视化，不保证测绘精度。','notice-area'),txt('p',`稳定 ID：${t.id}`),txt('p',`当前归属：${ownership(t.polityId)||'无归属'}`),txt('p',`争议状态：${({controlled:'稳定控制',contested:'争议',neutral:'无主'})[t.status]}`)];
+let selectedTerritoryId="";
+function territoryDetails(t,notify=true){selectedTerritoryId=t.id;if(notify)window.dispatchEvent(new CustomEvent("chronicle-map:territory-select",{detail:{sceneId:scene.id,territoryId:t.id}}));const children=[txt('p',t.description||'由当前剧情提供的疆域几何。多边形仅用于可视化，不保证测绘精度。','notice-area'),txt('p',`稳定 ID：${t.id}`),txt('p',`当前归属：${ownership(t.polityId)||'无归属'}`),txt('p',`争议状态：${({controlled:'稳定控制',contested:'争议',neutral:'无主'})[t.status]}`)];
  const b=txt('button','定位此疆域');b.onclick=()=>{focusTerritory(t);panel.hidden=true;openPanel=''};children.push(b);setPanel({type:'territoryDetail',title:t.name||'未命名疆域',children});
  window.dispatchEvent(new CustomEvent('chronicle-map:territory-select',{detail:{sceneId:scene.id,territoryId:t.id}}))}
 function exampleWorld(){return {schema:UI_SCHEMA,id:'demo-fiction',revision:0,meta:{title:'虚构演示世界',era:'虚构历法 · 仅用于测试',seal:''},polities:[{id:'a',name:'玄岚',color:'#b75d45'},{id:'b',name:'临川',color:'#5a90a0'},{id:'c',name:'北辰',color:'#9b8657'}],places:{'place-0':{name:'月京',polityId:'a'},'place-1':{name:'河都',polityId:'b'}},placeStates:{'town-new':{status:'planned'},'town-old':{status:'ruined'}},extraPlaces:[{id:'town-new',lon:108.5,lat:30.5,type:'s'},{id:'town-old',lon:116.5,lat:32,type:'x'}],territories:[{id:'region-a',name:'苍岭原',polityId:'a',polygon:[[99,30],[106,28],[112,29],[115,35],[109,39],[102,37]],status:'controlled'},{id:'region-b',name:'河湾平野',polityId:'b',polygon:[[112,28],[121,29],[124,33],[118,37],[115,35]],status:'contested'},{id:'region-c',name:'北部山原',polityId:'c',polygon:[[104,40],[114,39],[119,43],[112,48],[105,46]],status:'controlled'}],groups:[{id:'region-a',name:'苍岭原',rank:'郡',polityId:'a',memberIds:['place-0','town-new']},{id:'region-b',name:'河湾平野',rank:'行省',polityId:'b',memberIds:['place-1','town-old']}],routes:[{id:'road-a',fromId:'place-0',toId:'town-new',kind:'road',status:'open'}]}}
@@ -539,7 +541,10 @@ function applyWorldDelta(delta){
  if(!Number.isSafeInteger(delta.revision)||delta.revision<=scene.revision)throw Error('版本过期、乱序或重放');
  const allowed=new Set(['meta','places','placeStates','territories','routes','groups','polities','extraPlaces','geography']);
  const changes=delta.changes;if(!changes||typeof changes!=='object'||Array.isArray(changes)||Object.keys(changes).some(k=>!allowed.has(k)))throw Error('增量包含不支持的字段');
+ const selectedId=selected?.id,refreshDetail=openPanel==='detail'&&!panel.hidden,refreshTerritory=openPanel==='territoryDetail'&&!panel.hidden;
  const result=patchScene({...changes,revision:delta.revision},true);
+ if(refreshDetail&&selectedId&&cityById.has(selectedId))details(cityById.get(selectedId),false);
+ if(refreshTerritory){const t=scene.territories.find(t=>t.id===selectedTerritoryId);if(t)territoryDetails(t,false);}
  window.dispatchEvent(new CustomEvent('chronicle-map:world-updated',{detail:{sceneId:scene.id,revision:scene.revision}}));return result
 }
 function togglePanel(type){if(openPanel===type&&!panel.hidden){panel.hidden=true;openPanel='';request()}else if(type==='search')showSearch();else if(type==='layers')showLayers();else if(type==='admin')showAdmin();else if(type==='scene')showScene();else if(type==='territory')showTerritories()}
