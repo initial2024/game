@@ -15,7 +15,25 @@ on:
 permissions:
   contents: read
 jobs:
+  browser-map:
+    if: ${{ !contains(github.event.head_commit.message, '[map-check]') && (github.event_name != 'pull_request' || !github.event.pull_request.draft) }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: CHROMIUM_PATH=$(node -e "process.stdout.write(require('playwright').chromium.executablePath())") node scripts/test-map-browser.cjs --baseline
+      - run: CHROMIUM_PATH=$(node -e "process.stdout.write(require('playwright').chromium.executablePath())") node scripts/test-map-browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: world-map-browser-report
+          path: work/map-browser
   build:
+    if: ${{ !contains(github.event.head_commit.message, '[map-check]') && (github.event_name != 'pull_request' || !github.event.pull_request.draft) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,7 +46,7 @@ jobs:
           packages: platform-tools
       - uses: gradle/actions/setup-gradle@v4
       - run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'
-      - run: ./gradlew :core:test :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest --stacktrace
+      - run: ./gradlew :core:test :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest :app:assembleRelease --stacktrace
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -43,6 +61,11 @@ jobs:
           name: chronicle-arm64-apk
           compression-level: 9
           path: app/build/outputs/apk/debug/app-arm64-v8a-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chronicle-arm64-unsigned-release
+          compression-level: 9
+          path: app/build/outputs/apk/release/app-arm64-v8a-release-unsigned.apk
   android-test:
     needs: build
     runs-on: ubuntu-latest
@@ -66,13 +89,17 @@ jobs:
           api-level: 35
           arch: x86_64
           profile: pixel_4
-          emulator-options: -no-window -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect
+          emulator-options: -no-window -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect -feature -Vulkan
           script: |
             adb shell wm size 390x844
             adb shell wm density 160
             adb install -r ci-artifacts/app/build/outputs/apk/debug/app-x86_64-debug.apk
             adb install -r ci-artifacts/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
             bash scripts/run-device-tests.sh cn.chronicle.game.ScreenTest,cn.chronicle.game.StorageTest "$RUNNER_TEMP/android-ui-storage-report"
+            adb shell am force-stop cn.chronicle.shanhe
+            bash scripts/run-device-tests.sh cn.chronicle.game.MapIntegrationTest "$RUNNER_TEMP/android-ui-storage-report/map"
+            adb shell am force-stop cn.chronicle.shanhe
+            bash scripts/run-device-tests.sh cn.chronicle.game.MapRestartTest "$RUNNER_TEMP/android-ui-storage-report/restart"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -102,7 +129,7 @@ jobs:
           api-level: 35
           arch: x86_64
           profile: pixel_4
-          emulator-options: -no-window -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect
+          emulator-options: -no-window -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect -feature -Vulkan
           script: |
             adb shell wm size 390x844
             adb shell wm density 160

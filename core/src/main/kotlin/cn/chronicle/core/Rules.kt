@@ -4,25 +4,28 @@ import kotlin.math.max
 import kotlin.math.min
 
 object Rules {
- val policies = listOf("FACTORY","FARM","RESEARCH","ROAD","TAX_DOWN","TAX_UP","DIPLOMACY","DRILL","RELIEF","REPAY","REFORM","REST")
- private val labels = mapOf("ERA" to "更改纪元", "RULER_NAME" to "君主更名", "CHILD_NAME_PLAN" to "预设子女名字", "NAME_CHILD" to "子女更名", "FAMILY_PLAN" to "设置备孕", "TRY_HEIR" to "自愿备孕", "FAMILY_TIME" to "陪伴家人", "STRATEGY" to "调整战略", "FACTORY" to "筹建工厂", "FARM" to "兴修水利", "RESEARCH" to "资助研究", "ROAD" to "修筑道路", "TAX_DOWN" to "减税惠民", "TAX_UP" to "提高税率", "DIPLOMACY" to "派遣使节", "DRILL" to "整训军队", "RELIEF" to "赈济百姓", "REPAY" to "偿还债务", "REFORM" to "考核改革", "REST" to "休养生息", "DEPART" to "出发巡游", "TRAVEL" to "继续行程", "VISIT" to "探访场景", "TALK" to "询问人物", "INVESTIGATE" to "暗访取证", "AUDIT" to "核验账册", "REVEAL" to "公开身份", "TRIAL" to "依法审理", "DISMISS" to "行政撤换", "CLOSE" to "撤销指控", "REMOTE" to "委派监察官", "RETURN" to "返回朝廷")
+ val policies = listOf("WORKSHOP","FACTORY","FARM","RESEARCH","ROAD","TAX_DOWN","TAX_UP","DIPLOMACY","DRILL","RELIEF","REPAY","REFORM","REST")
+ private val labels = mapOf("WORKSHOP" to "营造官营作坊", "CITY_FOUND" to "营建新邑", "CITY_RESTORE" to "修复旧城", "CITY_RENAME" to "城邑更名", "BORDER_TREATY" to "议定边地移交", "ERA" to "更改纪元", "RULER_NAME" to "君主更名", "CHILD_NAME_PLAN" to "预设子女名字", "NAME_CHILD" to "子女更名", "FAMILY_PLAN" to "设置备孕", "TRY_HEIR" to "自愿备孕", "FAMILY_TIME" to "陪伴家人", "STRATEGY" to "调整战略", "FACTORY" to "筹建工厂", "FARM" to "兴修水利", "RESEARCH" to "资助研究", "ROAD" to "修筑道路", "TAX_DOWN" to "减税惠民", "TAX_UP" to "提高税率", "DIPLOMACY" to "派遣使节", "DRILL" to "整训军队", "RELIEF" to "赈济百姓", "REPAY" to "偿还债务", "REFORM" to "考核改革", "REST" to "休养生息", "DEPART" to "出发巡游", "TRAVEL" to "继续行程", "VISIT" to "探访场景", "TALK" to "询问人物", "INVESTIGATE" to "暗访取证", "AUDIT" to "核验账册", "REVEAL" to "公开身份", "TRIAL" to "依法审理", "DISMISS" to "行政撤换", "CLOSE" to "撤销指控", "REMOTE" to "委派监察官", "RETURN" to "返回朝廷")
  fun label(c: Command)=if(c.type=="CANCEL_TASK") "撤销事务" else labels[c.type] ?: c.type
- fun cost(c: Command): Long = when(c.type) { "TRY_HEIR" -> 20; "FAMILY_TIME" -> 10; "FACTORY" -> 140; "FARM" -> 75; "RESEARCH" -> 65; "ROAD" -> 100; "DIPLOMACY" -> 35; "DRILL" -> 60; "RELIEF" -> 50; "REPAY" -> 80; "REFORM" -> 95; "DEPART" -> if(c.mode=="公开巡幸") 95 else if(c.mode=="秘密调查") 55 else 35; "TRAVEL" -> 8; "VISIT","TALK" -> 3; "INVESTIGATE" -> 12; "AUDIT" -> 20; "REVEAL" -> 10; "TRIAL" -> 25; "DISMISS" -> 20; "REMOTE" -> 65; "RETURN" -> 20; else -> 0 }
+ fun cost(c: Command): Long = when(c.type) { "WORKSHOP" -> 100; "CITY_FOUND" -> 120; "CITY_RESTORE" -> 80; "CITY_RENAME" -> 5; "BORDER_TREATY" -> 180; "TRY_HEIR" -> 20; "FAMILY_TIME" -> 10; "FACTORY" -> 140; "FARM" -> 75; "RESEARCH" -> 65; "ROAD" -> 100; "DIPLOMACY" -> 35; "DRILL" -> 60; "RELIEF" -> 50; "REPAY" -> 80; "REFORM" -> 95; "DEPART" -> if(c.mode=="公开巡幸") 95 else if(c.mode=="秘密调查") 55 else 35; "TRAVEL" -> 8; "VISIT","TALK" -> 3; "INVESTIGATE" -> 12; "AUDIT" -> 20; "REVEAL" -> 10; "TRIAL" -> 25; "DISMISS" -> 20; "REMOTE" -> 65; "RETURN" -> 20; else -> 0 }
  fun duration(c: Command)=when(c.type) { "ERA","RULER_NAME","CHILD_NAME_PLAN","NAME_CHILD","FAMILY_PLAN","STRATEGY" -> 0; "DEPART" -> 1; "TRAVEL" -> 7; "VISIT","TALK" -> 2; "INVESTIGATE","AUDIT" -> 5; "REVEAL","TRIAL","DISMISS","CLOSE" -> 1; "RETURN" -> 7; else -> 90 }
  fun suggestions(w: World): List<Command> {
   val j=w.journey
   if(j!=null) return if(j.remainingTravel>0) listOf(Command("TRAVEL"),Command("RETURN"),Command("REST")) else listOf(Command("INVESTIGATE"),Command("AUDIT"),Command("RETURN"))
-  return when(w.strategy) { "工业强国" -> listOf(Command("FACTORY"),Command("RESEARCH"),Command("REST")); "富民治国" -> listOf(Command("FARM"),Command("RELIEF"),Command("REST")); else -> listOf(Command("ROAD"),Command("DIPLOMACY"),Command("REST")) }
+  return when(w.strategy) { "工业强国","商工兴国" -> listOf(Command(EraRules.factory(w)),Command("RESEARCH"),Command("REST")); "富民治国" -> listOf(Command("FARM"),Command("RELIEF"),Command("REST")); else -> listOf(Command("ROAD"),Command("DIPLOMACY"),Command("REST")) }
  }
  fun validate(w: World, c: Command): String? {
   if(w.ended) return "本纪年已结束，请新建或读取存档。"
   if(w.day>900000) return "已达到本版纪年上限，请保留档案。"
+  if(c.type=="FACTORY" && w.setting==EraRules.ANCIENT)return "纯古代模式使用手工作坊，不可建设工业工厂。"
+  if(c.type=="WORKSHOP" && w.setting!=EraRules.ANCIENT)return "工业时代请使用工厂项目。"
   if(c.type !in labels) return "未知的行动类型。"
   if(c.region !in 0..3) return "目标地区不存在。"
   if(c.type in FamilyEngine.types) FamilyEngine.validate(w,c)?.let {return it}
+  if(c.type in MapActions.types) MapActions.validate(w,c)?.let {return it}
   if(w.nation.treasury<cost(c)) return "国库不足：需要 ${cost(c)} 万两。可休养、调整税率或削减研究。"
-  if(c.type in listOf("FACTORY","FARM","ROAD") && w.projects.any { it.kind==c.type && it.region==c.region }) return "该地区已有同类在建项目。"
-  if(c.type=="STRATEGY" && c.target !in listOf("工业强国","富民治国","综合发展")) return "发展方向无效。"
+  if(c.type in listOf("FACTORY","WORKSHOP","FARM","ROAD") && w.projects.any { it.kind==c.type && it.region==c.region }) return "该地区已有同类在建项目。"
+  if(c.type=="STRATEGY" && c.target !in listOf("工业强国","商工兴国","富民治国","综合发展")) return "发展方向无效。"
   if(c.type=="CLOSE" && w.caseFile.evidence.isEmpty()) return "尚无核查材料，无需结案。"
   if(c.type=="REPAY" && w.nation.debt==0L) return "当前没有债务。"
   if(c.type=="TAX_UP" && w.nation.tax>=40) return "税率已达 40% 上限。"
@@ -38,7 +41,7 @@ object Rules {
    if(c.type !in listOf("TRAVEL","RETURN") && w.journey.remainingTravel>0) return "仍在途中，尚未抵达。"
    if(c.type !in listOf("RETURN","TRAVEL","REVEAL") && w.journey.spentDays>=w.journey.budgetDays) return "停留期限已到，请返回朝廷。"
   }
-  if(c.type=="VISIT" && c.target !in listOf("集市","客栈","官府","农田","工厂","军营")) return "场景不存在。"
+  if(c.type=="VISIT" && c.target !in listOf("集市","客栈","官府","农田",if(w.setting==EraRules.ANCIENT)"作坊" else "工厂","军营")) return "场景不存在。"
   if(c.type=="TALK" && (c.target.toIntOrNull() !in 6..9 || w.people.none { it.id==c.target.toIntOrNull() && it.alive })) return "此地没有这位可交谈人物。"
   if(c.type in listOf("INVESTIGATE","AUDIT","TALK") && w.journey?.region!=0) return "本版案件与地方人物交互设于澄江。其他地区可巡视。"
   if(c.type=="REVEAL" && w.journey?.revealed==true) return "身份已经公开。"
@@ -64,7 +67,7 @@ object Rules {
   }
   when(c.type) {
    "STRATEGY" -> { x=x.copy(strategy=c.target); events+="国家发展方向调整为${c.target}；既有建设与历史继续保留。" }
-   "FACTORY","FARM","ROAD" -> { x=x.copy(projects=x.projects+Project(c.type,c.region,if(c.type=="FACTORY") 3 else 2)); events+="${x.regions[c.region].name}项目立项，完工前不增加产能。" }
+   "FACTORY","WORKSHOP","FARM","ROAD" -> { x=x.copy(projects=x.projects+Project(c.type,c.region,if(c.type in listOf("FACTORY","WORKSHOP")) 3 else 2)); events+="${x.regions[c.region].name}项目立项，完工前不增加产能。" }
    "RESEARCH" -> nation { it.copy(research=min(30,it.research+5),technology=it.technology+1) }
    "TAX_UP" -> nation { it.copy(tax=it.tax+3,morale=it.morale-4,commerce=it.commerce-2) }
    "TAX_DOWN" -> nation { it.copy(tax=it.tax-3,morale=it.morale+4,commerce=it.commerce+1) }
@@ -76,7 +79,7 @@ object Rules {
    "REST" -> nation { it.copy(morale=it.morale+1,research=max(0,it.research-2)) }
    "DEPART" -> { val public=c.mode=="公开巡幸"; x=x.copy(journey=Journey(c.region,c.mode,c.disguise,c.companion,c.regent,c.objective,c.days,7+c.region*3,exposure=if(public) 100 else if(c.companion==1) 35 else 8,revealed=public)); events+="由${x.people[c.regent].name}代理朝政；抵达后方可进入场景。" }
    "TRAVEL" -> x=x.copy(journey=x.journey!!.copy(remainingTravel=max(0,x.journey!!.remainingTravel-7),location=if(x.journey!!.remainingTravel<=7) "客栈" else "驿道"))
-   "VISIT" -> { x=x.copy(journey=x.journey!!.copy(location=c.target)); events+=when(c.target) { "集市" -> "商贩抱怨关卡另收费用，传闻尚待核查。"; "官府" -> if(x.journey!!.revealed) "官府验过印信，开放卷宗核查。" else "门吏将你视为${x.journey!!.disguise}，要求按章递交文书。"; "军营" -> "士兵谈及粮饷，请核对名册再下结论。"; "农田" -> "田间沟渠的损坏可被直接观察；农民口述仅作线索。"; "工厂" -> "工匠展示机具；扩产仍需项目资金与工期。"; else -> "旅人各执一词，流言并非证据。" } }
+   "VISIT" -> { x=x.copy(journey=x.journey!!.copy(location=c.target)); events+=when(c.target) { "集市" -> "商贩抱怨关卡另收费用，传闻尚待核查。"; "官府" -> if(x.journey!!.revealed) "官府验过印信，开放卷宗核查。" else "门吏将你视为${x.journey!!.disguise}，要求按章递交文书。"; "军营" -> "士兵谈及粮饷，请核对名册再下结论。"; "农田" -> "田间沟渠的损坏可被直接观察；农民口述仅作线索。"; "工厂","作坊" -> "工匠展示机具；扩产仍需项目资金与工期。"; else -> "旅人各执一词，流言并非证据。" } }
    "TALK" -> { val id=c.target.toInt(); val p=x.people[id]; val suspicion=if(x.journey!!.revealed) 0 else 7; val trust=if(x.journey!!.disguise=="商人" && id==6) 12 else 6
     x=x.copy(people=x.people.map { if(it.id==id) it.copy(trust=(it.trust+trust).coerceAtMost(100),suspicion=(it.suspicion+suspicion).coerceAtMost(100),memories=(it.memories+"第${x.day}日与${if(x.journey!!.revealed) "君主" else x.journey!!.disguise}交谈").takeLast(8)) else it });
     events+=if(id==9) "${p.name}声称知府一向清廉；他与地方特许经营存在利益联系。" else "${p.name}愿意提供线索，但仍需独立查证。"
@@ -101,6 +104,7 @@ object Rules {
    "RETURN" -> { x=x.copy(journey=null); events+="结束行程返回朝廷，地方决定与人物记忆继续保留。" }
   }
   if(c.type in FamilyEngine.types) x=FamilyEngine.execute(x,c,events)
+  if(c.type in MapActions.types) x=MapActions.execute(x,c,events)
   if(x.journey!=null) {
    var j=x.journey!!.copy(spentDays=x.journey!!.spentDays+elapsed)
    if(j.exposure>=85 && !j.revealed) { j=j.copy(revealed=true); events+="调查动静与朝臣随行引起驿站核查，身份经印信验明确认。" }
@@ -122,7 +126,7 @@ object Rules {
   x=clamped
   ledger+=delta(w.nation,x.nation)
   val text=buildString { append("${x.name} · ${x.date}\n"); append("${w.ruler}下令${label(c)}。 "); append(events.joinToString(" ")); if(events.isEmpty()) append("各司依章执行，成效记入本期账簿。") }
-  val entry=Entry(w.revision+1,x.turn,x.day,label(c),text,ledger,events,w.seed,commands=listOf(c))
+  val entry=Entry(w.revision+1,x.turn,x.day,EraRules.label(c,w.setting),EraRules.render(text,w.setting),ledger.map {EraRules.render(it,w.setting)},events.map {EraRules.render(it,w.setting)},w.seed,commands=listOf(c))
   x=x.copy(revision=w.revision+1,recent=(w.recent+entry).takeLast(12),summary=if(x.turn%8==0) "截至${x.date}，工业${x.nation.industry}，民心${x.nation.morale}；澄江案${x.caseFile.status}。" else x.summary)
   return Outcome(x,entry)
  }
@@ -131,6 +135,8 @@ object Rules {
   return w.copy(nation=n.copy(treasury=n.treasury.coerceIn(0,1000000),debt=n.debt.coerceIn(0,1000000),population=n.population.coerceIn(100000,100000000),tax=n.tax.coerceIn(5,40),morale=p(n.morale),stability=p(n.stability),administration=p(n.administration),corruption=p(n.corruption),agriculture=p(n.agriculture),commerce=p(n.commerce),industry=p(n.industry),technology=p(n.technology),infrastructure=p(n.infrastructure),military=p(n.military),research=n.research.coerceIn(0,30)),people=w.people.map { it.copy(loyalty=p(it.loyalty),hostility=p(it.hostility),trust=p(it.trust),fear=p(it.fear),suspicion=p(it.suspicion)) })
  }
  fun verify(w:World) {
+  w.cartography?.let(MapValidation::verify)
+  require(w.setting in listOf("古代王朝","工业初兴"))
   require(w.schema==1 && w.revision>=0 && w.day in 0..900090 && w.name.length in 1..24 && w.ruler.length in 1..24)
   require(w==bounded(w)); require(w.regions.size==4 && w.regions.map { it.id }==listOf(0,1,2,3))
   require(w.people.size in 10..100 && w.people.map { it.id }.distinct().size==w.people.size)
@@ -156,7 +162,9 @@ object EconomyEngine {
   val income=base*n.tax/100*(100-n.corruption/2)/100
   val familyCost=w.household.members.count {it.alive && it.role=="子女"}*3L + if(w.household.pregnancy!=null) 6L else 0L
   val borderCost=if(w.atmosphere=="烽火边疆" && w.neighbors.any {it.relation<40}) 15L else 0L
-  val expense=35L+n.military/2+n.infrastructure/4+n.research+n.debt*2/100 + familyCost + borderCost + if(w.difficulty=="艰难") 12 else 0
+  val mapCost=if(w.cartography?.territories?.any {it.id=="frontier-0"&&it.polityId=="nation"}==true)5L else 0L
+  if(mapCost>0)ledger+="边地条约驻防 -5 万两（计入季度经常支出）"
+  val expense=mapCost+35L+n.military/2+n.infrastructure/4+n.research+n.debt*2/100 + familyCost + borderCost + if(w.difficulty=="艰难") 12 else 0
   var cash=n.treasury+income-expense; var debt=n.debt
   if(cash<0) { val need=-cash; val borrowed=min(need,max(0,2000-debt)); debt+=borrowed; cash+=borrowed; ledger+="赤字借款 $borrowed 万两"; if(cash<0) { events+="信用枯竭，削减预算并发生财政危机。"; n=n.copy(stability=n.stability-7,morale=n.morale-5,military=max(0,n.military-4),research=0); cash=0 } }
   if(borderCost>0) ledger+="边境战备 -$borderCost 万两（计入季度经常支出）"
@@ -171,14 +179,16 @@ object EconomyEngine {
    morale=n.morale+(if(food<n.population) -2 else 0)+(if(n.tax>=32) -2 else 0),stability=n.stability+if(n.morale<25) -2 else if(n.morale>65 && n.stability<75) 1 else 0)
   ledger+="人口因粮食供需 ${if(growth>=0) "+" else ""}$growth 人；研发预算 ${n.research} 万两/季"
   val completed=if(advanceProjects) w.projects.filter { it.quarters<=1 } else emptyList()
+  var mapWorld=w
   var regions=w.regions
   completed.forEach { p ->
-   when(p.kind) { "FACTORY" -> n=n.copy(industry=n.industry+6,commerce=n.commerce+2); "FARM" -> n=n.copy(agriculture=n.agriculture+7); "ROAD" -> n=n.copy(infrastructure=n.infrastructure+7,commerce=n.commerce+2) }
-   regions=regions.map { if(it.id==p.region) it.copy(industry=min(100,it.industry+if(p.kind=="FACTORY") 8 else 0),agriculture=min(100,it.agriculture+if(p.kind=="FARM") 8 else 0)) else it }
+   if(p.kind in listOf("CITY_FOUND","CITY_RESTORE"))mapWorld=MapActions.complete(mapWorld,p,events)
+   when(p.kind) { "FACTORY","WORKSHOP" -> n=n.copy(industry=n.industry+6,commerce=n.commerce+2); "FARM" -> n=n.copy(agriculture=n.agriculture+7); "ROAD" -> n=n.copy(infrastructure=n.infrastructure+7,commerce=n.commerce+2) }
+   regions=regions.map { if(it.id==p.region) it.copy(industry=min(100,it.industry+if(p.kind in listOf("FACTORY","WORKSHOP")) 8 else 0),agriculture=min(100,it.agriculture+if(p.kind=="FARM") 8 else 0)) else it }
    events+="${w.regions[p.region].name}${Rules.label(Command(p.kind))}完工，开始产生效果。"
   }
   regions=regions.map { it.copy(funds=(it.funds+income/8-10).coerceIn(0,100000),morale=(it.morale+if(it.reform>0 && it.morale<75) 1 else 0).coerceIn(0,100),population=n.population/4) }
-  return w.copy(nation=n,regions=regions,projects=if(advanceProjects) w.projects.filter { it.quarters>1 }.map { it.copy(quarters=it.quarters-1,remainingDays=(it.remainingDays-90).coerceAtLeast(1)) } else w.projects)
+  return mapWorld.copy(nation=n,regions=regions,projects=if(advanceProjects) w.projects.filter { it.quarters>1 }.map { it.copy(quarters=it.quarters-1,remainingDays=(it.remainingDays-90).coerceAtLeast(1)) } else w.projects)
  }
 }
 object CharacterEngine {

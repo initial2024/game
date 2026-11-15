@@ -1,0 +1,76 @@
+--------- beginning of main
+11-15 16:45:26.252  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=16
+11-15 16:45:26.273  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=47
+11-15 16:45:26.319  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:45:31.428  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:45:31.530  2844  2862 I System.out: MAP_RENDER_DIAGNOSTICS="{\"ua\":\"Mozilla/5.0 (Linux; Android 15; Android SDK built for x86_64 Build/AE3A.240806.019; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/124.0.6367.219 Mobile Safari/537.36\",\"size\":[390,676],\"body\":[390,676],\"canvas\":{\"x\":0,\"y\":0,\"width\":390,\"height\":676,\"top\":0,\"right\":390,\"bottom\":676,\"left\":0},\"map\":{\"projectionErrorDegrees\":1.4210854715202004e-14,\"coastPolygons\":9,\"places\":172,\"countyPlaces\":59,\"foreignSeeds\":32,\"adminGroups\":22,\"sceneId\":\"game-slot-2\",\"namedPlaces\":8,\"referenceMode\":false,\"terrainTriangles\":1164,\"riverCount\":9,\"clippedBoundary\":-3500,\"cameraFinite\":true,\"lastRenderMs\":24.8,\"cameraZoom\":1.8,\"territories\":7,\"scenarioRoutes\":3,\"geographyMode\":\"builtin\",\"revision\":0},\"error\":null}"
+11-15 16:45:34.502  2844  2862 I System.out: MAP_TOUCH=#search bounds={"x":352.9140625,"y":645,"width":390,"height":676} native={"width":390,"height":676,"x":0,"y":120} node=Rect.fromLTRB(0.0, 96.0, 390.0, 772.0)
+11-15 16:45:34.640  2844  2862 I System.out: MAP_TOUCH=#panel button.listing bounds={"x":107.5,"y":518.5,"width":390,"height":676} native={"width":390,"height":676,"x":0,"y":120} node=Rect.fromLTRB(0.0, 96.0, 390.0, 772.0)
+11-15 16:45:34.844  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=67
+11-15 16:45:34.856  2844  2844 I ChronicleMap: Selected type=place-select place=city-r0
+11-15 16:45:34.871  2844  2862 I System.out: MAP_AFTER_CITY_TOUCH="{\"panel\":\"澄江城×府城现存古代地图国稳定地点 ID：city-r0参考坐标：109.00°、30.00°所属索引：澄江地区治理、官员档案与巡游入口。查看关联区域定位放大关闭\",\"events\":null,\"error\":null}"
+11-15 16:45:40.913  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:45:42.764  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:45:43.107  2844  2844 I ChronicleMap: Bridge origin=https://evil.test main=true length=67
+11-15 16:45:43.107  2844  2844 W ChronicleMap: Rejected origin or frame
+11-15 16:45:43.186  2844  2862 I System.out: MAP_TOUCH=#search bounds={"x":352.9140625,"y":597,"width":390,"height":628} native={"width":390,"height":628,"x":0,"y":168} node=Rect.fromLTRB(0.0, 144.0, 390.0, 772.0)
+11-15 16:45:43.310  2844  2862 I System.out: MAP_TOUCH=#panel button.listing bounds={"x":107.5,"y":470.5,"width":390,"height":628} native={"width":390,"height":628,"x":0,"y":168} node=Rect.fromLTRB(0.0, 144.0, 390.0, 772.0)
+11-15 16:45:43.362  2844  2862 I System.out: MAP_AFTER_CITY_TOUCH="{\"panel\":\"查找地点×全部基层节点其他城邑共 1 处匹配 · 可点击地点赋名或定位澄江新城 · 府城尚未命名的地点可按稳定 ID 查找；历史名称只有主动开启参考显示后才可搜索。\",\"events\":null,\"error\":null}"
+11-15 16:45:43.371  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=67
+11-15 16:45:43.373  2844  2844 I ChronicleMap: Selected type=place-select place=city-r0
+11-15 16:45:48.186  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:45:52.871  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:45:54.827  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:45:55.411  2844  2862 I System.out: MAP_TOUCH=#search bounds={"x":352.9140625,"y":597,"width":390,"height":628} native={"width":390,"height":628,"x":0,"y":168} node=Rect.fromLTRB(0.0, 144.0, 390.0, 772.0)
+11-15 16:45:55.469  2844  2862 I System.out: MAP_TOUCH=#panel button.listing bounds={"x":107.5,"y":470.5,"width":390,"height":628} native={"width":390,"height":628,"x":0,"y":168} node=Rect.fromLTRB(0.0, 144.0, 390.0, 772.0)
+11-15 16:45:55.489  2844  2862 I System.out: MAP_AFTER_CITY_TOUCH="{\"panel\":\"查找地点×全部基层节点其他城邑共 1 处匹配 · 可点击地点赋名或定位澄江新邑 · 新邑尚未命名的地点可按稳定 ID 查找；历史名称只有主动开启参考显示后才可搜索。\",\"events\":null,\"error\":null}"
+11-15 16:45:55.520  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=73
+11-15 16:45:55.522  2844  2844 I ChronicleMap: Selected type=place-select place=settlement-r0
+11-15 16:46:01.947  2844  2844 E chromium: [ERROR:aw_browser_terminator.cc(154)] Renderer process (2943) crash detected (code -1).
+11-15 16:46:02.583  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=16
+11-15 16:46:02.605  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=47
+11-15 16:46:02.637  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:46:02.969  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:46:06.382  2844  2844 E chromium: [ERROR:aw_browser_terminator.cc(154)] Renderer process (3321) crash detected (code -1).
+11-15 16:46:06.953  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=16
+11-15 16:46:06.971  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=47
+11-15 16:46:07.014  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:46:07.527  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:46:07.634  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:46:07.762  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:46:07.958  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:46:08.713  2844  2844 E chromium: [ERROR:aw_browser_terminator.cc(154)] Renderer process (3398) crash detected (code -1).
+11-15 16:46:09.222  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=16
+11-15 16:46:09.258  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=47
+11-15 16:46:09.360  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:46:09.659  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:46:10.029  2844  2844 E chromium: [ERROR:aw_browser_terminator.cc(154)] Renderer process (3422) crash detected (code -1).
+11-15 16:46:11.204  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=16
+11-15 16:46:11.231  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=47
+11-15 16:46:11.303  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:46:11.888  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:46:12.347  2844  2844 E chromium: [ERROR:aw_browser_terminator.cc(154)] Renderer process (3447) crash detected (code -1).
+11-15 16:46:13.059  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=16
+11-15 16:46:13.080  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=47
+11-15 16:46:13.125  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:46:13.572  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:46:13.809  2844  2844 E chromium: [ERROR:aw_browser_terminator.cc(154)] Renderer process (3470) crash detected (code -1).
+11-15 16:46:14.486  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=16
+11-15 16:46:14.531  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:46:14.897  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:46:15.225  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=16
+11-15 16:46:15.263  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=47
+11-15 16:46:16.312  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=54
+11-15 16:46:18.512  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=16
+11-15 16:46:18.542  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=47
+11-15 16:46:18.578  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:46:18.904  2844  2862 I System.out: MAP_NATIVE_CLOSED_LOOP=true slot=2 revision=5 status=active
+11-15 16:46:19.513  2844  2844 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:46:19.754  2844  2844 E chromium: [ERROR:aw_browser_terminator.cc(154)] Renderer process (3493) crash detected (code -1).
+11-15 16:46:26.220  3679  3763 E chromium: [1115/164626.220078:ERROR:variations_seed_loader.cc(37)] Seed missing signature.
+11-15 16:46:26.843  3679  3679 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=16
+11-15 16:46:26.883  3679  3679 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=47
+11-15 16:46:26.926  3679  3679 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:46:32.225  3679  3679 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-15 16:46:36.323  3679  3693 I System.out: MAP_PROCESS_RESTART_CONSISTENT=true revision=5
+11-15 16:46:37.172  3679  3679 E chromium: [ERROR:aw_browser_terminator.cc(154)] Renderer process (3768) crash detected (code -1).
