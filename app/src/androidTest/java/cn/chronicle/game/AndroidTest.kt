@@ -4,6 +4,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import cn.chronicle.core.*
 import org.junit.Test
+import org.junit.Before
 import org.junit.Assert.*
 import org.junit.runner.RunWith
 import java.io.File
@@ -41,9 +42,18 @@ class StorageTest {
 @RunWith(AndroidJUnit4::class)
 class ScreenTest {
  @get:Rule val compose=createAndroidComposeRule<MainActivity>()
+ private fun clearEmulatorLauncher() {
+  if(InstrumentationRegistry.getArguments().getString("ci_emulator")=="true") {
+   val descriptor=InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand("am force-stop com.android.launcher3")
+   java.io.FileInputStream(descriptor.fileDescriptor).use {it.readBytes()};descriptor.close()
+  }
+ }
+ @Before fun prepareEmulatorWindow() {clearEmulatorLauncher()}
  private fun screenshot(name:String) {
   val context=InstrumentationRegistry.getInstrumentation().targetContext
+  clearEmulatorLauncher()
   compose.waitForIdle()
+  compose.waitUntil(5000){InstrumentationRegistry.getInstrumentation().uiAutomation.rootInActiveWindow?.packageName?.toString()=="cn.chronicle.shanhe"}
   val bitmap=requireNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
   if(android.os.Build.VERSION.SDK_INT>=29) {
    val values=android.content.ContentValues().apply {put(android.provider.MediaStore.Images.Media.DISPLAY_NAME,"$name.png");put(android.provider.MediaStore.Images.Media.MIME_TYPE,"image/png");put(android.provider.MediaStore.Images.Media.RELATIVE_PATH,"Pictures/ChronicleCI")}

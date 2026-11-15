@@ -8,7 +8,7 @@ adb shell wm size >> "$report_dir/device.txt"
 adb shell wm density >> "$report_dir/device.txt"
 adb shell cat /proc/meminfo >> "$report_dir/device.txt"
 set +e
-adb shell am instrument -w -e class "$classes" cn.chronicle.shanhe.test/androidx.test.runner.AndroidJUnitRunner | tee "$report_dir/instrumentation.txt"
+adb shell am instrument -w -e ci_emulator true -e class "$classes" cn.chronicle.shanhe.test/androidx.test.runner.AndroidJUnitRunner | tee "$report_dir/instrumentation.txt"
 runner_status=${PIPESTATUS[0]}
 set -e
 if [[ "$classes" == *ScreenTest* ]]; then
