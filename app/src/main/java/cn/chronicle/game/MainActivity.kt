@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -60,11 +61,10 @@ class MainActivity:ComponentActivity() {
  MaterialTheme(colorScheme=schemes[theme.coerceIn(0,2)]) {
   val d=LocalDensity.current
   CompositionLocalProvider(LocalDensity provides Density(d.density,d.fontScale*scale)) {
-   val snack=remember { SnackbarHostState() }
-   LaunchedEffect(ui.message) { if(ui.message.isNotBlank()) snack.showSnackbar(ui.message) }
+   var showMessage by remember {mutableStateOf(false)}
    fun ask(c:Command) { val w=ui.world?:return;val error=if(c.type=="CANCEL_TASK") null else Rules.validate(w,c); if(error!=null) vm.message(error) else { expected=w.revision;plan=Preview(listOf(c),RealtimeEngine.describe(c)+"。事务随连续时间推进，最多同时办理3项。") } }
    val pageState=rememberSaveableStateHolder()
-   Scaffold(snackbarHost={SnackbarHost(snack)},bottomBar={
+   Scaffold(bottomBar={
     NavigationBar(containerColor=MaterialTheme.colorScheme.surface) { listOf("剧情" to Icons.Outlined.AutoStories,"朝政" to Icons.Outlined.AccountBalance,"世界" to Icons.Outlined.Public,"档案" to Icons.Outlined.Inventory2).forEachIndexed { i,(s,icon) -> NavigationBarItem(selected=tab==i,onClick={tab=i},icon={Icon(icon,s)},label={Text(s)},enabled=!ui.busy) } }
    }) { padding ->
     Column(Modifier.fillMaxSize().padding(padding)) {
@@ -80,7 +80,9 @@ class MainActivity:ComponentActivity() {
       TextButton(onClick={vm.changeSpeed()}){Text("×${ui.speed}")}
       Text(if(ui.paused)"时间已暂停" else "时间流动中",Modifier.weight(1f),style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.secondary)
      }
-     if(w==null) Welcome { new=true }
+     if(ui.message.isNotBlank()) Surface(Modifier.fillMaxWidth(),color=MaterialTheme.colorScheme.secondaryContainer) {Row(Modifier.padding(start=16.dp),verticalAlignment=Alignment.CenterVertically) {Text(ui.message,Modifier.weight(1f),maxLines=2,overflow=TextOverflow.Ellipsis,style=MaterialTheme.typography.bodySmall);TextButton(onClick={showMessage=true}){Text("详情")};IconButton(onClick={vm.message("")}){Icon(Icons.Outlined.Close,"关闭反馈")}}}
+     if(!ui.ready) Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){CircularProgressIndicator()}
+     else if(w==null) Welcome { new=true }
      else pageState.SaveableStateProvider(tab) { when(tab) {
       0 -> Story(w,ui,vm,::ask) { preview -> expected=w.revision;plan=preview }
       1 -> Court(w,::ask)
@@ -89,6 +91,7 @@ class MainActivity:ComponentActivity() {
      } }
     }
    }
+   if(showMessage) AlertDialog(onDismissRequest={showMessage=false},title={Text("执行反馈")},text={Text(ui.message,Modifier.verticalScroll(rememberScrollState()))},confirmButton={TextButton(onClick={showMessage=false}){Text("关闭")}})
    if(new) NewDialog({new=false}) { a,b,c,e,f,g,h,i -> vm.newGame(a,b,c,e,f,g,h,i);new=false;tab=0 }
    plan?.let { p -> AlertDialog(onDismissRequest={plan=null},title={Text("确认行动")},text={ Column(Modifier.verticalScroll(rememberScrollState())) { Text(p.description);p.commands.forEach { c -> Spacer(Modifier.height(8.dp));Text(RealtimeEngine.describe(c),color=MaterialTheme.colorScheme.primary) }; if(p.commands.size>1) Text("政策按各自耗时办理，先预留资金，完成时检查条件。",style=MaterialTheme.typography.bodySmall) } },confirmButton={TextButton(onClick={vm.submit(p.commands,expected);plan=null},enabled=p.commands.isNotEmpty()&&!ui.busy){Text("确认执行")}},dismissButton={TextButton(onClick={plan=null}){Text("返回")}}) }
   }

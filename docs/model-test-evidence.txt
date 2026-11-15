@@ -1,0 +1,10 @@
+Android 模拟器真实模型日志摘录；不是手机性能。
+Source: https://github.com/initial2024/game/actions/runs/43712503875
+Android 15 / API 35, x86_64, 2 virtual CPUs, KVM, 390x844 / 160dpi.
+Model: Qwen2.5-0.5B-Instruct Q4_K_M, SHA256 74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db
+PSS is one observed sample, not peak memory. Load and inference times are emulator measurements.
+
+11-15 12:15:09.397  2471  2486 I System.out: REAL_MODEL load_ms=298 inference_ms=11037 max_tokens=12 text=你好！
+11-15 12:16:05.142  2471  2486 I System.out: REAL_NARRATIVE text=澄江工厂在三季后建成，耗资140万两。
+11-15 12:16:54.598  2471  2486 I System.out: REAL_INTENT_STRUCTURED_VALID=true text={"commands":[{"type":"FARM","region":0}]}
+11-15 12:16:54.618  2471  2486 I System.out: ANDROID_OBSERVED_PSS_KIB=690398

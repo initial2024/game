@@ -52,6 +52,7 @@ class ScreenTest {
  }
  @Test fun continuousJourneyEvidenceJudgmentAndReturn() {
   val vm=ViewModelProvider(compose.activity)[GameViewModel::class.java]
+  compose.waitUntil(30000){vm.state.value.ready}
   compose.waitForIdle()
   val previousSlot=vm.state.value.slot;val hadWorld=vm.state.value.world!=null
   if(compose.onAllNodesWithText("开启纪年").fetchSemanticsNodes().isNotEmpty())compose.onNodeWithText("开启纪年").performClick()
@@ -59,7 +60,7 @@ class ScreenTest {
   compose.onNodeWithText("建立国家").performClick()
   compose.waitUntil(30000){vm.state.value.world!=null && !vm.state.value.busy && (!hadWorld || vm.state.value.slot!=previousSlot)}
   fun pause() {if(!vm.state.value.paused)compose.onNodeWithText("暂停时间").performClick()}
-  fun choose(label:String) {compose.onNodeWithText(label).performScrollTo().performClick();compose.onNodeWithText("确认执行").performClick();compose.waitUntil(10000){!vm.state.value.busy}}
+  fun choose(label:String) {compose.onNodeWithText(label).performScrollTo().performClick();compose.waitUntil(10000){compose.onAllNodesWithText("确认执行").fetchSemanticsNodes().isNotEmpty()};compose.onNodeWithText("确认执行").performClick();compose.waitUntil(10000){!vm.state.value.busy}}
   fun until(test:(World)->Boolean) {if(vm.state.value.paused)compose.onNodeWithText("继续时间").performClick();compose.waitUntil(60000){vm.state.value.world?.let(test)==true};pause()}
   pause();while(vm.state.value.speed!=4)compose.onNodeWithText("×${vm.state.value.speed}").performClick()
   compose.onNodeWithText("世界",useUnmergedTree=true).performClick();compose.onNodeWithText("地区",useUnmergedTree=true).performClick()
@@ -78,6 +79,8 @@ class ScreenTest {
   val store=Store(compose.activity);assertEquals(world,store.load(vm.state.value.slot));store.close();screenshot("tour-long-term-result")
  }
  @Test fun newGamePolicyConfirmationAndNavigation() {
+  val vm=ViewModelProvider(compose.activity)[GameViewModel::class.java]
+  compose.waitUntil(30000){vm.state.value.ready}
   compose.waitForIdle()
   if(compose.onAllNodesWithText("开启纪年").fetchSemanticsNodes().isNotEmpty()) {
    compose.onNodeWithText("开启纪年").performClick();compose.onNodeWithText("建立国家").performClick()
@@ -86,13 +89,14 @@ class ScreenTest {
   screenshot("story")
   if(compose.onAllNodesWithText("暂停时间").fetchSemanticsNodes().isNotEmpty())compose.onNodeWithText("暂停时间").performClick()
   compose.onNodeWithText("休养生息").performScrollTo().performClick()
+  compose.waitUntil(10000){compose.onAllNodesWithText("确认执行").fetchSemanticsNodes().isNotEmpty()}
   compose.onNodeWithText("确认执行").assertIsDisplayed().performClick()
   compose.waitUntil(30000){compose.onAllNodesWithText("确认执行").fetchSemanticsNodes().isEmpty()}
   compose.onNodeWithText("朝政",useUnmergedTree=true).performClick();compose.onNodeWithText("国库",useUnmergedTree=true).assertIsDisplayed();screenshot("court")
   compose.onNodeWithText("世界",useUnmergedTree=true).performClick();compose.onNodeWithText("地区",useUnmergedTree=true).assertIsDisplayed();screenshot("world")
   compose.onNodeWithText("宗室",useUnmergedTree=true).performClick();compose.onNodeWithText("宗室与家族").assertIsDisplayed();screenshot("family")
   compose.onNodeWithText("档案",useUnmergedTree=true).performClick();compose.onNodeWithText("纪年存档").assertIsDisplayed();screenshot("archive")
-  compose.onNodeWithText("搜索、下载与管理模型").performScrollTo().performClick();compose.waitUntil(15000){runCatching {compose.onNodeWithText("离线模型中心").assertIsDisplayed();true}.getOrDefault(false)};compose.onNodeWithText("模型库",useUnmergedTree=true).performClick();screenshot("models");compose.onNodeWithText("完成").performClick()
+  compose.onNodeWithContentDescription("关闭反馈").performClick();compose.onNodeWithText("搜索、下载与管理模型").performScrollTo().performClick();compose.waitUntil(15000){runCatching {compose.onNodeWithText("离线模型中心").assertIsDisplayed();true}.getOrDefault(false)};compose.onNodeWithText("模型库",useUnmergedTree=true).performClick();screenshot("models");compose.onNodeWithText("完成").performClick()
  }
 }
 @RunWith(AndroidJUnit4::class)

@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-data class UiState(val world:World?=null,val slot:Int=1,val slots:List<Slot> = emptyList(),val busy:Boolean=false,val message:String="",val archive:List<Entry> = emptyList(),val offset:Int=0,val aiText:String="",val generating:Boolean=false,val paused:Boolean=true,val speed:Int=1)
+data class UiState(val world:World?=null,val slot:Int=1,val slots:List<Slot> = emptyList(),val busy:Boolean=false,val message:String="",val archive:List<Entry> = emptyList(),val offset:Int=0,val aiText:String="",val generating:Boolean=false,val paused:Boolean=true,val speed:Int=1,val ready:Boolean=false)
 class GameViewModel(app:Application):AndroidViewModel(app) {
  private val store=Store(app)
  private val lock=Mutex()
@@ -41,7 +41,7 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
    }
   }
  }
- init { viewModelScope.launch(Dispatchers.IO) { runCatching { val slots=store.slots(); val id=slots.firstOrNull()?.id?:1; mutable.value=UiState(world=store.load(id),slot=id,slots=slots) }.onFailure { message("存档读取失败：${it.message}。请保留数据并导出排查。") } } }
+ init { viewModelScope.launch(Dispatchers.IO) { runCatching { val slots=store.slots(); val id=slots.firstOrNull()?.id?:1; mutable.value=UiState(world=store.load(id),slot=id,slots=slots,ready=true) }.onFailure { mutable.update {currentUi->currentUi.copy(ready=true)};message("存档读取失败：${it.message}。请保留数据并导出排查。") } } }
  fun message(text:String) { mutable.update { currentUi -> currentUi.copy(message=text) } }
  fun newGame(name:String,ruler:String,strategy:String,difficulty:String,seed:String,era:String="启元",scale:String="中等国家",atmosphere:String="均势博弈") = task {
   val id=(1..8).firstOrNull { n -> store.slots().none { it.id==n } } ?: error("8 个存档槽已满，请导出后保留现有游戏。")
