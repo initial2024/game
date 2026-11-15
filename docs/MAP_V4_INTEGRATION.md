@@ -23,7 +23,7 @@ World 增加可选 cartography 和 setting 字段，不改 SQLite 表结构，�
 
 MapSnapshotMapper 将数据库提交后发布的 World 映射为 chronicle-map-scenario/v2。sceneId 为当前槽位 game-slot-N，revision 使用游戏事务版本，不使用季数或现实时间。基础地名来自当前世界，四地区、三邻国与对应疆域均有稳定 ID，行政层级使用 groups 父子关系和 memberIds。
 
-MapDeltaDispatcher 属于单个 WebView 实例：首次/切换槽位/地理包变化发送全量 applyScenario；相同场景的新版本使用 applyWorldDelta。已发送版本不再重复发送，JS 再次检查 sceneId 与严格递增 revision。发送成功回调确认版本；失败重置发送器并报告错误，返回重开可从数据库全量恢复。不得在事务提交前推送推测结果。
+MapDeltaDispatcher 属于单个 WebView 实例：首次/切换槽位/地理包变化发送全量 applyScenario；相同场景的新版本使用 applyWorldDelta。已发送版本不再重复发送，JS 再次检查 sceneId 与严格递增 revision。JSON回调只确认数据已接收，0.2.1须再收到JS实际绘制状态并通过WebView可见状态回调后，才确认场景ID与版本就绪；失败重置发送器并报告错误，返回重开可从数据库全量恢复。不得在事务提交前推送推测结果。
 
 新增原生规则：
 

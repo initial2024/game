@@ -1,0 +1,8 @@
+
+cn.chronicle.game.MapRestartTest:.
+
+Time: 11.194
+
+OK (1 test)
+
+

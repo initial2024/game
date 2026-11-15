@@ -1,0 +1,6 @@
+--------- beginning of main
+11-15 15:22:33.638  2377  2403 I System.out: REAL_MODEL load_ms=616 inference_ms=14768 max_tokens=12 text=你好！
+11-15 15:23:44.590  2377  2403 I System.out: REAL_NARRATIVE text=澄江工厂在三季后建成，耗资140万两。
+11-15 15:24:47.775  2377  2403 I System.out: REAL_INTENT_STRUCTURED_VALID=true text={"commands":[{"type":"FARM","region":0}]}
+11-15 15:24:47.792  2377  2403 I System.out: ANDROID_OBSERVED_PSS_KIB=691286
+11-15 15:25:44.434  2377  2403 I System.out: ANDROID_PROCESS_RESIDENT VmHWM:	  793860 kB; VmRSS:	  774580 kB

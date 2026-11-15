@@ -1,10 +1,12 @@
 # 山河纪年 · Chronicle AI
 
-原创 Android 原生离线文字策略游戏。Kotlin + Compose，包名固定为 `cn.chronicle.shanhe`，minSdk 26 / targetSdk 36。没有 WebView、远程 AI API、分析 SDK 或存档上传功能。
+原创 Android 原生离线文字策略游戏。Kotlin + Compose，包名固定为 `cn.chronicle.shanhe`，minSdk 26 / targetSdk 36。游戏主体为原生 Compose，世界舆图使用本地受限 WebView。没有远程 AI API、分析 SDK 或存档自动上传功能。
 
 ## 安装与实测
 
-[下载 0.1.1 ARM64 APK（约12 MiB）](https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.1.1-arm64.apk) · [交付与测试报告](docs/TESTING.md) · [实际界面截图](docs/SCREENSHOTS.md) · [绿色 Actions](https://github.com/initial2024/game/actions/runs/43721094983)
+[下载0.2.1 ARM64 APK（约12.2 MiB）](https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.2.1-arm64.apk) · [地图与古代开局交付报告](docs/MAP_V4_TESTING.md) · [实测截图](docs/MAP_V4_SCREENSHOTS.md) · [开发 Draft PR](https://github.com/initial2024/game/pull/1)
+
+上一版：[0.1.1 ARM64 APK](https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.1.1-arm64.apk) · [0.1.1交付报告](docs/TESTING.md)。本版地图使用用户完成的v4原绘制器，接入说明见 docs/MAP_V4_INTEGRATION.md。
 
 固定开发签名，可覆盖此前同签名0.1.0直链包。模型独立下载，无模型可玩。不是完整P2，vivo真机验收尚未进行。
 
@@ -16,6 +18,14 @@
 - 朝政：财政、产业、民生、项目、趋势五类切换，每次展示一组。
 - 世界：地区再分概览、行旅、案卷、建设；人物分页，详情弹窗；宗室分家族、命名、名册。
 - 档案：存档、史书、模型、设置四类切换；存档每页4槽、历史每页5条，长文独立滚动。
+
+0.2.1修复重启地图首帧空白：完成Canvas绘制及WebView可见状态确认后，才报告地图就绪。
+
+## 地图与时代
+
+世界 → 打开世界舆图 v4，以当前 SQLite 存档驱动原有2.5D地图。选择城市进入原生地区与行动界面，真实办理城邑更名、新邑营建、旧城修复；疆域面板可在符合外交条件后提出和平移交条约。地图沙盘保留圈地、剧情槽位、JSON导入导出与主题，沙盘编辑不会改动游戏世界。
+
+新建可选古代王朝或工业初兴。古代默认使用手工作坊、格物、府城、驿道与冷兵器背景，不会因数值提高自动进入工业时代；工业初兴保留工厂与原有叙事。旧存档仍保持原时代。完整战争、继承与历代特定制度仍待扩展。
 
 ## 连续时间与开局模式
 

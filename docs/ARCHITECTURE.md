@@ -18,3 +18,5 @@ P1 验收尚需 ARM64/vivo Android 16 真机中文叙述与命令理解评估、
 
 
 连续时间的存档每次提交仍做版本比较。普通时钟变更只更新可信状态，不写一条无意义的历史；到达、竣工、分娩、政策完成和季度结算才形成档案。AI 按最近的重要事件版本过滤结果，纯时钟更新不会持续丢弃叙述。后台停止时间，不按真实离线时长追赶。
+
+地图使用独立 WorldMapScreen、MapSnapshotMapper 与 MapDeltaDispatcher。地图JS只读取地图表示并发送稳定ID选择，原生规则校验、SQLite提交完成后再发版本更新。原HTML编辑能力位于不影响游戏状态的沙盘。详见 MAP_V4_INTEGRATION.md。

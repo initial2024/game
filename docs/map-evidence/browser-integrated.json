@@ -1,0 +1,35 @@
+{
+  "browser": "141.0.7390.37",
+  "results": [
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "passed": true
+    },
+    {
+      "viewport": [
+        320,
+        720
+      ],
+      "passed": true
+    },
+    {
+      "viewport": [
+        844,
+        390
+      ],
+      "passed": true
+    },
+    {
+      "legacyMigration": true
+    },
+    {
+      "nativeReadOnly": true,
+      "selectionBridge": true,
+      "customGeography": true,
+      "invalidDeltaAtomic": true
+    }
+  ]
+}
