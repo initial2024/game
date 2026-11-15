@@ -43,7 +43,7 @@ object EventEngine {
   // Seed controls ordering among eligible events; no unbounded mutable RNG or wall clock.
   val eligible=templates.filter { it.trigger(w) && w.turn-(w.cooldowns[it.id]?:-1000)>=it.cooldown }
    .sortedBy { Math.floorMod(w.seed xor (w.turn*1103515245L) xor it.id.hashCode().toLong(),2147483647L) }.take(2)
-  eligible.forEach { t -> val old=x.nation; x=x.copy(nation=t.effect(x.nation),cooldowns=x.cooldowns+(t.id to w.turn)); events+=t.title; ledger+="事件 ${t.id}：${changes(old,x.nation)}；冷却 ${t.cooldown} 季" }
+  eligible.forEach { t -> val old=x.nation; x=x.copy(nation=t.effect(x.nation),cooldowns=x.cooldowns+(t.id to w.turn)); events+=EraRules.render(t.title,w.setting); ledger+="事件 ${t.id}：${changes(old,x.nation)}；冷却 ${t.cooldown} 季" }
   return x
  }
  private fun changes(a:Nation,b:Nation):String {
@@ -56,6 +56,7 @@ object MemoryEngine {
  fun context(w:World):String = buildString {
   val j=w.journey
   append("你是原创架空历史游戏的叙事员，只描述已结算事实，不能更改数值或创造证据。\n")
+  append("世界时代：${w.setting}。"+if(w.setting==EraRules.ANCIENT)"严格为农耕、手工作坊、驿道和冷兵器背景；禁止引入蒸汽、电力、火车、现代金融或现代武器。\n" else "工业化初期。\n")
   append("时间：${w.date}；国家：${w.name}；工业${w.nation.industry}，农业${w.nation.agriculture}，国库${w.nation.treasury}万两。\n")
   if(j!=null) {
    append("当前地点：${w.regions[j.region].name}${j.location}。NPC眼中的玩家身份：${if(j.revealed) "经印信确认的君主" else j.disguise}。")

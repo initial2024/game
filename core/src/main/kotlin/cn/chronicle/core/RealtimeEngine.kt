@@ -3,8 +3,10 @@ import kotlinx.serialization.Serializable
 
 @Serializable data class PendingOrder(val id:Long,val command:Command,val remainingDays:Int,val escrow:Long)
 object RealtimeEngine {
- private val immediate=setOf("ERA","RULER_NAME","CHILD_NAME_PLAN","NAME_CHILD","FAMILY_PLAN","STRATEGY","FACTORY","FARM","ROAD","DEPART","REMOTE","REPAY")
+ private val immediate=setOf("CITY_FOUND","CITY_RESTORE","ERA","RULER_NAME","CHILD_NAME_PLAN","NAME_CHILD","FAMILY_PLAN","STRATEGY","FACTORY","WORKSHOP","FARM","ROAD","DEPART","REMOTE","REPAY")
  fun duration(c:Command)=when(c.type) {
+  "CITY_RENAME" -> 1
+  "BORDER_TREATY" -> 90
   "CANCEL_TASK" -> 0
   in immediate -> 0
   "RESEARCH","DRILL","TRY_HEIR","REST" -> 30
@@ -18,7 +20,7 @@ object RealtimeEngine {
   else -> 1
  }
  fun describe(c:Command):String {
-  val time=when(c.type){"CANCEL_TASK"->"即刻撤销，返还80%预留资金";"FACTORY"->"即刻立项，约270日后完工";"FARM","ROAD"->"即刻立项，约180日后完工";"REMOTE"->"即刻委派，30日后归报";"DEPART"->"即刻出发，旅程随时间推进";else->if(duration(c)==0)"即刻登记" else "办理${duration(c)}日"}
+  val time=when(c.type){"CITY_FOUND"->"即刻立项，120日后验收";"CITY_RESTORE"->"即刻立项，90日后验收";"CANCEL_TASK"->"即刻撤销，返还80%预留资金";"FACTORY","WORKSHOP"->"即刻立项，约270日后完工";"FARM","ROAD"->"即刻立项，约180日后完工";"REMOTE"->"即刻委派，30日后归报";"DEPART"->"即刻出发，旅程随时间推进";else->if(duration(c)==0)"即刻登记" else "办理${duration(c)}日"}
   return "${Rules.label(c)} · ${Rules.cost(c)}万两 · $time"
  }
  fun suggestions(w:World):List<Command> {
@@ -85,7 +87,7 @@ object RealtimeEngine {
   return finish(w,x,"时光流转",ledger,events,record=ledger.isNotEmpty()||events.isNotEmpty(),commands=completed)
  }
  private fun finish(old:World,next:World,action:String,ledger:List<String>,events:List<String>,record:Boolean=true,commands:List<Command> = emptyList()):Outcome {
-  val entry=Entry(old.revision+1,next.turn,next.day,action,"${next.name} · ${next.date}\n${events.joinToString(" ").ifBlank {"朝政、生产与地方事务随时间推进。"}}",ledger,events,old.seed,commands=commands)
+  val entry=Entry(old.revision+1,next.turn,next.day,EraRules.render(action,old.setting),EraRules.render("${next.name} · ${next.date}\n${events.joinToString(" ").ifBlank {"朝政、生产与地方事务随时间推进。"}}",old.setting),ledger.map {EraRules.render(it,old.setting)},events.map {EraRules.render(it,old.setting)},old.seed,commands=commands)
   val world=next.copy(revision=old.revision+1,recent=if(record)(old.recent+entry).takeLast(12) else old.recent)
   Rules.verify(world);return Outcome(world,entry)
  }
@@ -93,12 +95,13 @@ object RealtimeEngine {
 
 object ProjectEngine {
  fun advance(w:World,events:MutableList<String>):World {
-  var n=w.nation;var regions=w.regions
+  var x=w;var n=w.nation;var regions=w.regions
   w.projects.filter {it.remainingDays<=1}.forEach {p->
-   val delta=when(p.kind) {"FACTORY"->{n=n.copy(industry=n.industry+6,commerce=n.commerce+2);"工业+6、商业+2"};"FARM"->{n=n.copy(agriculture=n.agriculture+7);"农业+7"};else->{n=n.copy(infrastructure=n.infrastructure+7,commerce=n.commerce+2);"基建+7、商业+2"}}
-   regions=regions.map {if(it.id==p.region)it.copy(industry=(it.industry+if(p.kind=="FACTORY")8 else 0).coerceAtMost(100),agriculture=(it.agriculture+if(p.kind=="FARM")8 else 0).coerceAtMost(100))else it}
+   if(p.kind in listOf("CITY_FOUND","CITY_RESTORE")){x=MapActions.complete(x,p,events);return@forEach}
+   val delta=when(p.kind) {"FACTORY","WORKSHOP"->{n=n.copy(industry=n.industry+6,commerce=n.commerce+2);"工业+6、商业+2"};"FARM"->{n=n.copy(agriculture=n.agriculture+7);"农业+7"};else->{n=n.copy(infrastructure=n.infrastructure+7,commerce=n.commerce+2);"基建+7、商业+2"}}
+   regions=regions.map {if(it.id==p.region)it.copy(industry=(it.industry+if(p.kind in listOf("FACTORY","WORKSHOP"))8 else 0).coerceAtMost(100),agriculture=(it.agriculture+if(p.kind=="FARM")8 else 0).coerceAtMost(100))else it}
    events+="${w.regions[p.region].name}${Rules.label(Command(p.kind))}竣工：$delta（受百分制上限约束）。"
   }
-  return w.copy(nation=n,regions=regions,projects=w.projects.filter {it.remainingDays>1}.map {it.copy(remainingDays=it.remainingDays-1,quarters=((it.remainingDays-1+89)/90))})
+  return x.copy(nation=n,regions=regions,projects=w.projects.filter {it.remainingDays>1}.map {it.copy(remainingDays=it.remainingDays-1,quarters=((it.remainingDays-1+89)/90))})
  }
 }

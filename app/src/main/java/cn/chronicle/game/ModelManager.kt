@@ -165,12 +165,12 @@ class ModelManager(private val app:Context) {
  }
  suspend fun interpret(text:String,w:World):Preview=gate.withLock {
   require(isLoaded)
-  val prompt="<|im_start|>system\n把玩家命令映射到政策。只输出JSON，不要Markdown。格式：{\"commands\":[{\"type\":\"FARM\",\"region\":0}]}。type只允许FACTORY,FARM,RESEARCH,ROAD,TAX_DOWN,TAX_UP,DIPLOMACY,DRILL,RELIEF,REPAY,REFORM,REST。region为0至3。最多3项。不理解就输出{\"commands\":[]}。不要承诺成功，不要凭空加资源。<|im_end|>\n<|im_start|>user\n${text.take(400)}<|im_end|>\n<|im_start|>assistant\n"
+  val prompt="<|im_start|>system\n把玩家命令映射到政策。只输出JSON，不要Markdown。格式：{\"commands\":[{\"type\":\"FARM\",\"region\":0}]}。时代：${w.setting}。古代用WORKSHOP代表手工作坊，禁止FACTORY；工业用FACTORY，禁止WORKSHOP。type只允许WORKSHOP,FACTORY,FARM,RESEARCH,ROAD,TAX_DOWN,TAX_UP,DIPLOMACY,DRILL,RELIEF,REPAY,REFORM,REST。region为0至3。最多3项。不理解就输出{\"commands\":[]}。不要承诺成功，不要凭空加资源。<|im_end|>\n<|im_start|>user\n${text.take(400)}<|im_end|>\n<|im_start|>assistant\n"
   var last:Exception?=null
   repeat(2) {
    try {val output=NativeBridge.generate(prompt.toByteArray(),160,18000).toString(Charsets.UTF_8);return@withLock AiValidation.parse(output,w)}catch(e:Exception){last=e}
   }
-  val fallback=IntentParser.parse(text);fallback.copy(description="模型输出未通过严格校验（${last?.message?.take(70)}），已退回规则解析。\n${fallback.description}",uncertain=true)
+  val fallback=EraRules.parse(text,w);fallback.copy(description="模型输出未通过严格校验（${last?.message?.take(70)}），已退回规则解析。\n${fallback.description}",uncertain=true)
  }
  fun cancel() {if(isLoaded || mutable.value.working) runCatching {NativeBridge.cancel()}}
  fun unloadAsync() {cancel();scope.launch {gate.withLock {runCatching {NativeBridge.unload()};mutable.value=mutable.value.copy(loaded=false);update("模型已卸载，内存已释放")}}}

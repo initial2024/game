@@ -14,6 +14,7 @@ import kotlinx.coroutines.sync.withLock
 data class UiState(val world:World?=null,val slot:Int=1,val slots:List<Slot> = emptyList(),val busy:Boolean=false,val message:String="",val archive:List<Entry> = emptyList(),val offset:Int=0,val aiText:String="",val generating:Boolean=false,val paused:Boolean=true,val speed:Int=1,val ready:Boolean=false)
 class GameViewModel(app:Application):AndroidViewModel(app) {
  private val store=Store(app)
+ private val resumePrefs=app.getSharedPreferences("resume-world",0)
  private val lock=Mutex()
  private val mutable=MutableStateFlow(UiState())
  val state=mutable.asStateFlow()
@@ -41,12 +42,12 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
    }
   }
  }
- init { viewModelScope.launch(Dispatchers.IO) { runCatching { val slots=store.slots(); val id=slots.firstOrNull()?.id?:1; mutable.value=UiState(world=store.load(id),slot=id,slots=slots,ready=true) }.onFailure { mutable.update {currentUi->currentUi.copy(ready=true)};message("存档读取失败：${it.message}。请保留数据并导出排查。") } } }
+ init { viewModelScope.launch(Dispatchers.IO) { runCatching { val slots=store.slots(); val remembered=resumePrefs.getInt("slot",1); val id=slots.firstOrNull {it.id==remembered}?.id?:slots.firstOrNull()?.id?:1; mutable.value=UiState(world=store.load(id),slot=id,slots=slots,ready=true) }.onFailure { mutable.update {currentUi->currentUi.copy(ready=true)};message("存档读取失败：${it.message}。请保留数据并导出排查。") } } }
  fun message(text:String) { mutable.update { currentUi -> currentUi.copy(message=text) } }
- fun newGame(name:String,ruler:String,strategy:String,difficulty:String,seed:String,era:String="启元",scale:String="中等国家",atmosphere:String="均势博弈") = task {
+ fun newGame(name:String,ruler:String,strategy:String,difficulty:String,seed:String,era:String="启元",scale:String="中等国家",atmosphere:String="均势博弈",setting:String="工业初兴") = task {
   val id=(1..8).firstOrNull { n -> store.slots().none { it.id==n } } ?: error("8 个存档槽已满，请导出后保留现有游戏。")
   val number=seed.toLongOrNull() ?: error("世界种子须为 64 位整数。")
-  val w=NewGame.create(name,ruler,strategy,difficulty,number,era,scale,atmosphere);store.create(id,w);mutable.update { currentUi -> currentUi.copy(world=w,slot=id,slots=store.slots(),paused=false,aiText="",archive=emptyList(),message="新纪年已建立。每次行动自动保存。") }
+  val w=NewGame.create(name,ruler,strategy,difficulty,number,era,scale,atmosphere,setting);store.create(id,w);resumePrefs.edit().putInt("slot",id).commit();mutable.update { currentUi -> currentUi.copy(world=w,slot=id,slots=store.slots(),paused=false,aiText="",archive=emptyList(),message="新纪年已建立。每次行动自动保存。") }
  }
  fun submit(commands:List<Command>,expected:Long) {
   if(mutable.value.busy || commands.isEmpty()) return
@@ -65,19 +66,19 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
    if(models.isLoaded) generate()
   }
  }
- fun load(id:Int)=task { cancelAi(); val w=store.load(id)?:error("存档不存在");mutable.update { currentUi -> currentUi.copy(world=w,slot=id,paused=true,aiText="",archive=emptyList(),offset=0,message="存档已读取。") } }
+ fun load(id:Int)=task { cancelAi(); val w=store.load(id)?:error("存档不存在");resumePrefs.edit().putInt("slot",id).commit();mutable.update { currentUi -> currentUi.copy(world=w,slot=id,paused=true,aiText="",archive=emptyList(),offset=0,message="存档已读取。") } }
  fun manualSave()=task { val id=(1..8).firstOrNull { n->store.slots().none { it.id==n } } ?: error("没有空存档槽");store.copyTo(mutable.value.slot,id);mutable.update { currentUi -> currentUi.copy(slots=store.slots(),message="已建立独立快照：槽 $id") } }
  fun page(offset:Int)=task { val p=offset.coerceAtLeast(0);mutable.update { currentUi -> currentUi.copy(archive=store.history(mutable.value.slot,p,5),offset=p) } }
  suspend fun export():String=withContext(Dispatchers.IO) { lock.withLock { store.export(mutable.value.slot) } }
  fun import(text:String)=task { val id=(1..8).firstOrNull { n->store.slots().none { it.id==n } }?:error("没有空槽");store.import(text,id);mutable.update { currentUi -> currentUi.copy(slots=store.slots(),message="导入完成，位于槽 $id。") } }
  fun parse(text:String,ready:(Preview)->Unit) {
   cancelAi();val w=mutable.value.world?:return
-  if(!models.isLoaded) {ready(IntentParser.parse(text));return}
+  if(!models.isLoaded) {ready(EraRules.parse(text,w));return}
   generation=viewModelScope.launch {
    mutable.update { currentUi -> currentUi.copy(generating=true) }
    try {val result=withContext(Dispatchers.IO){models.interpret(text,w)};if(mutable.value.world?.recent?.lastOrNull()?.revision==w.recent.lastOrNull()?.revision)ready(result)}
    catch(e:CancellationException) { }
-   catch(e:Exception) {ready(IntentParser.parse(text).copy(description="本地 AI 未能解析，已退回规则选项。"))}
+   catch(e:Exception) {ready(EraRules.parse(text,w).copy(description="本地 AI 未能解析，已退回规则选项。"))}
    finally {mutable.update { currentUi -> currentUi.copy(generating=false) }}
   }
  }
@@ -87,7 +88,7 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
    mutable.update { currentUi -> currentUi.copy(generating=true) }
    try {
     val text=withContext(Dispatchers.IO) { withTimeout(45000) { models.narrate(MemoryEngine.context(w)) } }
-    if(mutable.value.slot==slot && mutable.value.world?.recent?.lastOrNull()?.revision==w.recent.lastOrNull()?.revision) mutable.update { currentUi -> currentUi.copy(aiText=if(w.journey?.revealed==false && listOf("陛下","皇帝","君主",w.ruler).any {text.contains(it)}) "本次演绎可能泄露隐藏身份，已丢弃。请参考规则叙事。" else text) }
+    if(mutable.value.slot==slot && mutable.value.world?.recent?.lastOrNull()?.revision==w.recent.lastOrNull()?.revision) mutable.update { currentUi -> currentUi.copy(aiText=if(w.setting==EraRules.ANCIENT&&listOf("蒸汽","电力","火车","机枪","飞机","铁路").any(text::contains)) "本次演绎超出古代时代范围，已保留规则叙事。" else if(w.journey?.revealed==false && listOf("陛下","皇帝","君主",w.ruler).any {text.contains(it)}) "本次演绎可能泄露隐藏身份，已丢弃。请参考规则叙事。" else text) }
    } catch(e:CancellationException) { /* authoritative turn was already saved */ }
    catch(e:Exception) { message("AI 暂不可用，已保留规则叙事：${e.message}") }
    finally { if(mutable.value.slot==slot) mutable.update { currentUi -> currentUi.copy(generating=false) } }

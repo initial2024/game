@@ -7,3 +7,7 @@ local.properties
 *.gguf
 .externalNativeBuild/
 .cxx/
+
+work/
+node_modules/
+*.p12

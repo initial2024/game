@@ -4,7 +4,7 @@ android {
  compileSdk = 36
  ndkVersion = "27.2.12479018"
  externalNativeBuild { cmake { path = file("src/main/cpp/CMakeLists.txt"); version = "3.22.1" } }
- defaultConfig { applicationId = "cn.chronicle.shanhe"; minSdk = 26; targetSdk = 36; versionCode = 2; versionName = "0.1.1-dev"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"; externalNativeBuild { cmake { cppFlags += "-O2"; arguments += listOf("-DANDROID_STL=c++_shared", "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON") } } }
+ defaultConfig { applicationId = "cn.chronicle.shanhe"; minSdk = 26; targetSdk = 36; versionCode = 3; versionName = "0.2.0-dev"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"; externalNativeBuild { cmake { cppFlags += "-O2"; arguments += listOf("-DANDROID_STL=c++_shared", "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON") } } }
  buildFeatures { compose = true }
  packaging { jniLibs.useLegacyPackaging = true }
  splits { abi { isEnable = true; reset(); include("arm64-v8a", "x86_64"); isUniversalApk = false } }
@@ -20,6 +20,7 @@ android {
 }
 dependencies {
  implementation(project(":core"))
+ implementation("androidx.webkit:webkit:1.13.0")
  implementation(platform("androidx.compose:compose-bom:2025.05.01"))
  implementation("androidx.activity:activity-compose:1.10.1")
  implementation("androidx.compose.material3:material3")
@@ -28,6 +29,7 @@ dependencies {
  implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.0")
  implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
  androidTestImplementation("androidx.test:runner:1.6.2")
+ androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
  androidTestImplementation("androidx.test.ext:junit:1.2.1")
  androidTestImplementation(platform("androidx.compose:compose-bom:2025.05.01"))
  androidTestImplementation("androidx.compose.ui:ui-test-junit4")
