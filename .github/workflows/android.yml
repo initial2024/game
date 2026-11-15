@@ -16,7 +16,7 @@ permissions:
   contents: read
 jobs:
   browser-map:
-    if: ${{ !contains(github.event.head_commit.message, '[map-check]') }}
+    if: ${{ !contains(github.event.head_commit.message, '[map-check]') && (github.event_name != 'pull_request' || !github.event.pull_request.draft) }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -33,7 +33,7 @@ jobs:
           name: world-map-browser-report
           path: work/map-browser
   build:
-    if: ${{ !contains(github.event.head_commit.message, '[map-check]') }}
+    if: ${{ !contains(github.event.head_commit.message, '[map-check]') && (github.event_name != 'pull_request' || !github.event.pull_request.draft) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
