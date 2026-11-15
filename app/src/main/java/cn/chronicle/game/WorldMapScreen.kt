@@ -60,6 +60,8 @@ class MapWebController(private val web:WebView,private val editor:Boolean,privat
  private var loaded=false
  private var sending=false
  private var destroyed=false
+ val isEditor:Boolean get()=editor
+ val isPageReady:Boolean get()=loaded&&!destroyed
  @Volatile var readyRevision:Long=-1;private set
  var rejectedMessages:Int=0;private set
  fun update(world:World,slot:Int){if(editor||destroyed)return;snapshot=MapSnapshotMapper.scene(world,slot);flush()}
