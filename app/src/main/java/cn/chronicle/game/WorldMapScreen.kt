@@ -76,7 +76,8 @@ class MapWebController(private val web:WebView,private val editor:Boolean,privat
   }
  }
  fun receive(text:String,origin:Uri,main:Boolean){
-  if(destroyed||!main||origin.toString().trimEnd('/')!=MapBridgePolicy.ORIGIN||!MapBridgePolicy.trusted(web.url)){rejectedMessages++;return}
+  android.util.Log.i("ChronicleMap","Bridge origin=$origin main=$main length=${text.length}")
+  if(destroyed||!main||origin.toString().trimEnd('/')!=MapBridgePolicy.ORIGIN||!MapBridgePolicy.trusted(web.url)){android.util.Log.w("ChronicleMap","Rejected origin or frame");rejectedMessages++;return}
   if(text=="{\"type\":\"ready\"}"){pageReady();return}
   if(text=="{\"type\":\"request-export\"}"){fileRequest(false);return}
   if(editor&&text=="{\"type\":\"request-import\"}"){fileRequest(true);return}
@@ -133,12 +134,13 @@ private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapO
  Column(Modifier.fillMaxSize()) {
   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){TextButton(onClick={if(editor)editor=false else onClose()}){Text(if(editor)"返回游戏地图" else "返回地区列表")};TextButton(onClick={editor=!editor;selection=null}){Text(if(editor)"查看游戏" else "地图沙盘")}}
   if(!editor)Row(Modifier.fillMaxWidth()){TextButton(onClick={gameVm.toggleClock()},modifier=Modifier.testTag("map-clock")){Text(if(clock.paused)"继续时间" else "暂停时间")};TextButton(onClick={gameVm.changeSpeed()},modifier=Modifier.testTag("map-speed")){Text("×${clock.speed}")};Text(world.date,Modifier.padding(top=12.dp),style=MaterialTheme.typography.labelSmall)}
+  if(clock.message.isNotBlank())Row(Modifier.padding(horizontal=12.dp)){Text(clock.message,Modifier.weight(1f),maxLines=2,style=MaterialTheme.typography.labelSmall);TextButton(onClick={gameVm.message("")}){Text("收起反馈")}}
   if(editor)Text("地图沙盘 · 编辑与导入只保存在地图沙盘，不改变游戏",Modifier.padding(horizontal=12.dp),style=MaterialTheme.typography.labelSmall)
   if(error.isNotBlank())Text(error,Modifier.padding(12.dp),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.error)
   key(editor) {
    var owned by remember {mutableStateOf<MapWebController?>(null)}
    AndroidView(factory={ctx->
-    val (web,c)=createMapWebView(ctx,editor,{error=it},{raw->runCatching {MapBridgePolicy.selection(raw,currentWorld,currentSlot)}.onSuccess {selection=it}.onFailure {error="已拒绝无效地图选择。"}},{isImport->if(isImport)import.launch(arrayOf("application/json","text/plain"))else controller?.export {text->exportData=text;export.launch("chronicle-map.json")}})
+    val (web,c)=createMapWebView(ctx,editor,{error=it},{raw->runCatching {MapBridgePolicy.selection(raw,currentWorld,currentSlot)}.onSuccess {android.util.Log.i("ChronicleMap","Selected type=${it.type} place=${it.placeId}");selection=it}.onFailure {android.util.Log.w("ChronicleMap","Selection validation failed",it);error="已拒绝无效地图选择。"}},{isImport->if(isImport)import.launch(arrayOf("application/json","text/plain"))else controller?.export {text->exportData=text;export.launch("chronicle-map.json")}})
     owned=c;controller=c;activity?.mapController=c;MapWebController.created();web
    },modifier=Modifier.weight(1f).fillMaxWidth().testTag("world-map-web"),update={owned?.update(world,slot)})
    DisposableEffect(owned,lifecycle){val c=owned;val observer=LifecycleEventObserver {_,event->if(event==Lifecycle.Event.ON_STOP)c?.pause()else if(event==Lifecycle.Event.ON_START)c?.resume()};lifecycle.addObserver(observer);onDispose {lifecycle.removeObserver(observer)}}
