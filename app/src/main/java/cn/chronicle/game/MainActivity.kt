@@ -82,7 +82,7 @@ class MainActivity:ComponentActivity() {
      } }
     }
    }
-   if(new) NewDialog({new=false}) { a,b,c,e,f -> vm.newGame(a,b,c,e,f);new=false;tab=0 }
+   if(new) NewDialog({new=false}) { a,b,c,e,f,g -> vm.newGame(a,b,c,e,f,g);new=false;tab=0 }
    plan?.let { p -> AlertDialog(onDismissRequest={plan=null},title={Text("确认行动")},text={ Column(Modifier.verticalScroll(rememberScrollState())) { Text(p.description);p.commands.forEach { c -> Spacer(Modifier.height(8.dp));Text("${Rules.label(c)}  ·  ${Rules.cost(c)} 万两 / ${Rules.duration(c)} 日",color=MaterialTheme.colorScheme.primary) }; if(p.commands.size>1) Text("每项政策独立推进时间，组合不是同一季度免费叠加。",style=MaterialTheme.typography.bodySmall) } },confirmButton={TextButton(onClick={vm.submit(p.commands,expected);plan=null},enabled=p.commands.isNotEmpty()&&!ui.busy){Text("确认执行")}},dismissButton={TextButton(onClick={plan=null}){Text("返回")}}) }
   }
  }
@@ -122,7 +122,8 @@ class MainActivity:ComponentActivity() {
 @Composable private fun WorldPage(w:World,ask:(Command)->Unit) {
  var area by rememberSaveable {mutableIntStateOf(0)};var section by rememberSaveable {mutableIntStateOf(0)}
  Page {
-  SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {listOf("地区","人物","列国").forEachIndexed {i,s->SegmentedButton(selected=section==i,onClick={section=i},shape=SegmentedButtonDefaults.itemShape(i,3)){Text(s)}}}
+  SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {listOf("地区","人物","列国","宗室").forEachIndexed {i,s->SegmentedButton(selected=section==i,onClick={section=i},shape=SegmentedButtonDefaults.itemShape(i,4)){Text(s)}}}
+  if(section==3) {FamilyPanel(w,ask);return@Page}
   when(section) {
    0 -> { Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {w.regions.forEach {r->FilterChip(selected=area==r.id,onClick={area=r.id},label={Text(r.name)})} }
     val r=w.regions[area]
@@ -166,13 +167,42 @@ class MainActivity:ComponentActivity() {
   Fold("关于与玩法") {Text("山河纪年 0.1 · 原创架空历史\n原生 Kotlin / Compose · 离线优先\n包名 cn.chronicle.shanhe\n\n每回合三个月。巡游活动按日消耗时间，季度交界结算国政。\n\nP0 规则版：四地区、项目经济、30 个事件、澄江案件三条处理路线。AI 叙述不参与数值结算。\n\n后续版本：更丰富的战争、地区案件与制度改革。当前不含领土战争或无限制自由指令。");Text("本应用不发送游戏通知，不上传存档。",style=MaterialTheme.typography.bodySmall)}
  }
 }
-@Composable private fun NewDialog(close:()->Unit,start:(String,String,String,String,String)->Unit) {
- var name by rememberSaveable {mutableStateOf("承熙")};var ruler by rememberSaveable {mutableStateOf("景衡")};var strategy by rememberSaveable {mutableStateOf("综合发展")};var difficulty by rememberSaveable {mutableStateOf("标准")};var seed by rememberSaveable {mutableStateOf("1847")}
- AlertDialog(onDismissRequest=close,title={Text("开启新的纪年")},text={Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(10.dp)){OutlinedTextField(value=name,onValueChange={name=it.take(24)},label={Text("国号")},singleLine=true);OutlinedTextField(value=ruler,onValueChange={ruler=it.take(24)},label={Text("君主")},singleLine=true);Choices(listOf("工业强国","富民治国","综合发展"),strategy,{strategy=it});Choices(listOf("宽裕","标准","艰难"),difficulty,{difficulty=it});OutlinedTextField(value=seed,onValueChange={seed=it.take(20)},label={Text("世界种子（整数）")},singleLine=true);TextButton(onClick={seed=java.security.SecureRandom().nextInt(1000000).toString()}){Text("随机种子")}}},confirmButton={TextButton(onClick={start(name,ruler,strategy,difficulty,seed)},enabled=name.isNotBlank()&&ruler.isNotBlank()&&seed.toLongOrNull()!=null){Text("建立国家")}},dismissButton={TextButton(onClick=close){Text("取消")}})
+@Composable private fun NewDialog(close:()->Unit,start:(String,String,String,String,String,String)->Unit) {
+ var era by rememberSaveable {mutableStateOf("启元")};var name by rememberSaveable {mutableStateOf("承熙")};var ruler by rememberSaveable {mutableStateOf("景衡")};var strategy by rememberSaveable {mutableStateOf("综合发展")};var difficulty by rememberSaveable {mutableStateOf("标准")};var seed by rememberSaveable {mutableStateOf("1847")}
+ AlertDialog(onDismissRequest=close,title={Text("开启新的纪年")},text={Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(10.dp)){OutlinedTextField(value=name,onValueChange={name=it.take(24)},label={Text("国号")},singleLine=true);OutlinedTextField(value=ruler,onValueChange={ruler=it.take(24)},label={Text("君主")},singleLine=true);OutlinedTextField(value=era,onValueChange={era=it.take(16)},label={Text("纪元名称")},singleLine=true);Choices(listOf("工业强国","富民治国","综合发展"),strategy,{strategy=it});Choices(listOf("宽裕","标准","艰难"),difficulty,{difficulty=it});OutlinedTextField(value=seed,onValueChange={seed=it.take(20)},label={Text("世界种子（整数）")},singleLine=true);TextButton(onClick={seed=java.security.SecureRandom().nextInt(1000000).toString()}){Text("随机种子")}}},confirmButton={TextButton(onClick={start(name,ruler,strategy,difficulty,seed,era)},enabled=name.isNotBlank()&&ruler.isNotBlank()&&FamilyEngine.validName(era)&&seed.toLongOrNull()!=null){Text("建立国家")}},dismissButton={TextButton(onClick=close){Text("取消")}})
 }
 
 private fun readBoundedSave(input:java.io.InputStream):String {
  val out=java.io.ByteArrayOutputStream();val buffer=ByteArray(32768)
  while(true) {val n=input.read(buffer);if(n<0)break;require(out.size()+n<=8*1024*1024){"文件超过8MB"};out.write(buffer,0,n)}
  return out.toString("UTF-8")
+}
+
+@Composable private fun FamilyPanel(w:World,ask:(Command)->Unit) {
+ val h=w.household
+ var ruler by rememberSaveable(w.ruler){mutableStateOf(w.ruler)};var era by rememberSaveable(w.era){mutableStateOf(w.era)}
+ var childName by rememberSaveable(h.nextChildName){mutableStateOf(h.nextChildName)}
+ Panel("宗室与家族","所有命名、备孕与出生结果都会登记并自动保存") {
+  Text("君主：${w.ruler} · 纪元：${w.era}")
+  Row {Switch(checked=h.allowPregnancy,onCheckedChange={ask(Command("FAMILY_PLAN",target=if(it)"允许" else "暂停"))});Text(" 允许新的自愿备孕",Modifier.padding(top=12.dp))}
+  Text("仅成年、自愿且健康与关系条件合适的伴侣可备孕。暂停新安排不改变已有孕期。",style=MaterialTheme.typography.bodySmall)
+  h.pregnancy?.let {Text("已登记孕期：预计还需 ${it.remainingDays} 日 · 预备名 ${it.childName}",color=MaterialTheme.colorScheme.primary)}?:Text("当前没有登记孕期")
+  ActionButton(Command("TRY_HEIR"),ask);ActionButton(Command("FAMILY_TIME"),ask)
+ }
+ Fold("君主姓名与纪元") {
+  OutlinedTextField(value=ruler,onValueChange={ruler=it.take(16)},label={Text("君主姓名")},singleLine=true,modifier=Modifier.fillMaxWidth())
+  TextButton(onClick={ask(Command("RULER_NAME",target=ruler))},enabled=FamilyEngine.validName(ruler)){Text("登记新姓名")}
+  OutlinedTextField(value=era,onValueChange={era=it.take(16)},label={Text("纪元")},singleLine=true,modifier=Modifier.fillMaxWidth())
+  TextButton(onClick={ask(Command("ERA",target=era))},enabled=FamilyEngine.validName(era)){Text("确认改元")}
+  Text("改元从当前年份记元年，原始日期和历史文本不重写。",style=MaterialTheme.typography.bodySmall)
+ }
+ Fold("子女命名",true) {
+  OutlinedTextField(value=childName,onValueChange={childName=it.take(16)},label={Text("下一次备孕的预备名")},singleLine=true,modifier=Modifier.fillMaxWidth())
+  TextButton(onClick={ask(Command("CHILD_NAME_PLAN",target=childName))},enabled=FamilyEngine.validName(childName)){Text("保存预备名")}
+  Text("子女出生后仍可更名；已登记孕期保留当时的预备名。",style=MaterialTheme.typography.bodySmall)
+  val children=h.members.filter {it.role=="子女" && it.alive}
+  if(children.isEmpty())Text("暂无在世子女")
+  children.forEach {p->var name by rememberSaveable(p.id){mutableStateOf(p.name)};Text("${p.name} · ${(w.day-p.bornDay)/360}岁");OutlinedTextField(value=name,onValueChange={name=it.take(16)},label={Text("子女姓名")},singleLine=true,modifier=Modifier.fillMaxWidth());TextButton(onClick={ask(Command("NAME_CHILD",target="${p.id}|$name"))},enabled=FamilyEngine.validName(name)){Text("为${p.name}更名")}}
+ }
+ Fold("家族名册") {h.members.takeLast(12).forEach {p->Text("${p.name} · ${p.role} · ${(w.day-p.bornDay)/360}岁 · ${if(p.alive) "在世" else "已故"}");Text("关系 ${p.relationship} / 健康 ${p.health}${if(p.role=="成年伴侣") " / 自愿意愿${if(p.willing) "已确认" else "未确认"}" else ""}",style=MaterialTheme.typography.bodySmall)}}
 }

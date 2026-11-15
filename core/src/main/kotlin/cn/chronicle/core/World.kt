@@ -37,9 +37,10 @@ val SaveJson = Json { encodeDefaults = true; ignoreUnknownKeys = false; isLenien
  val nation: Nation = Nation(), val regions: List<Region>, val people: List<Person>,
  val factions: List<Faction>, val neighbors: List<Neighbor>, val projects: List<Project> = emptyList(),
  val cooldowns: Map<String, Int> = emptyMap(), val journey: Journey? = null, val caseFile: CaseFile,
- val recent: List<Entry> = emptyList(), val summary: String = "", val ended: Boolean = false) {
+ val recent: List<Entry> = emptyList(), val summary: String = "", val ended: Boolean = false,
+ val era:String="启元",val eraDay:Int=0,val household:Household=Household()) {
  val turn: Int get() = day / 90
- val date: String get() = "启元${1 + day / 360}年 · ${listOf("春", "夏", "秋", "冬")[(day / 90) % 4]} · 第${day % 90 + 1}日"
+ val date: String get() = "${era}${1 + day / 360 - eraDay / 360}年 · ${listOf("春", "夏", "秋", "冬")[(day / 90) % 4]} · 第${day % 90 + 1}日"
 }
 @Serializable data class Command(val type: String, val region: Int = 0, val mode: String = "微服私访",
  val disguise: String = "商人", val companion: Int = 2, val regent: Int = 0,
@@ -49,11 +50,12 @@ data class Preview(val commands: List<Command>, val description: String, val unc
 data class Outcome(val world: World, val entry: Entry)
 
 object NewGame {
- fun create(name: String, ruler: String, strategy: String, difficulty: String, seed: Long): World {
+ fun create(name: String, ruler: String, strategy: String, difficulty: String, seed: Long, era:String="启元"): World {
+  require(FamilyEngine.validName(era))
   require(name.isNotBlank() && name.length <= 24 && ruler.isNotBlank() && ruler.length <= 24)
   val n = Nation(treasury = when(difficulty) { "艰难" -> 380; "宽裕" -> 900; else -> 620 },
    industry = if(strategy == "工业强国") 28 else 22, agriculture = if(strategy == "富民治国") 50 else 42)
-  return World(name=name, ruler=ruler, strategy=strategy, difficulty=difficulty, seed=seed, nation=n,
+  return World(name=name, ruler=ruler, strategy=strategy, difficulty=difficulty, seed=seed, nation=n,era=era,
    regions=listOf(Region(0,"澄江",800000,120,52,28,55,58,54,3),Region(1,"砺山",600000,90,28,40,62,35,58,4),Region(2,"云泽",900000,110,64,12,65,26,66,5),Region(3,"朔原",500000,70,32,18,48,38,51,1)),
    people=listOf(Person(0,"沈知衡","首辅",0,180,76,72,"渐进改革","维持朝局"),Person(1,"韩砺","边军统领",2,164,74,68,"军备优先","整顿军需"),Person(2,"顾清禾","监察使",0,128,82,80,"依法核查","核验地方账目"),Person(3,"陆敬川","澄江知府",1,176,63,52,"保护商绅","维护地方税源"),Person(4,"许闻舟","砺山督办",1,144,71,61,"实业兴邦","扩建矿场"),Person(5,"陶晚晴","云泽农政官",0,116,75,76,"以民为本","修复水渠"),
     Person(6,"孟阿棠","澄江商人",1,108,58,45,"互市公平","取消额外摊派"),Person(7,"周伯","澄江农民",0,220,44,50,"安稳务农","追回赈济欠款"),Person(8,"石远","澄江士兵",2,96,62,63,"军纪严明","足额领取军饷"),Person(9,"贺逢春","澄江乡绅",1,196,68,35,"维护旧制","保住地方特许")),

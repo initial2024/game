@@ -5,10 +5,10 @@ import kotlin.math.min
 
 object Rules {
  val policies = listOf("FACTORY","FARM","RESEARCH","ROAD","TAX_DOWN","TAX_UP","DIPLOMACY","DRILL","RELIEF","REPAY","REFORM","REST")
- private val labels = mapOf("STRATEGY" to "调整战略", "FACTORY" to "筹建工厂", "FARM" to "兴修水利", "RESEARCH" to "资助研究", "ROAD" to "修筑道路", "TAX_DOWN" to "减税惠民", "TAX_UP" to "提高税率", "DIPLOMACY" to "派遣使节", "DRILL" to "整训军队", "RELIEF" to "赈济百姓", "REPAY" to "偿还债务", "REFORM" to "考核改革", "REST" to "休养生息", "DEPART" to "出发巡游", "TRAVEL" to "继续行程", "VISIT" to "探访场景", "TALK" to "询问人物", "INVESTIGATE" to "暗访取证", "AUDIT" to "核验账册", "REVEAL" to "公开身份", "TRIAL" to "依法审理", "DISMISS" to "行政撤换", "CLOSE" to "撤销指控", "REMOTE" to "委派监察官", "RETURN" to "返回朝廷")
+ private val labels = mapOf("ERA" to "更改纪元", "RULER_NAME" to "君主更名", "CHILD_NAME_PLAN" to "预设子女名字", "NAME_CHILD" to "子女更名", "FAMILY_PLAN" to "设置备孕", "TRY_HEIR" to "自愿备孕", "FAMILY_TIME" to "陪伴家人", "STRATEGY" to "调整战略", "FACTORY" to "筹建工厂", "FARM" to "兴修水利", "RESEARCH" to "资助研究", "ROAD" to "修筑道路", "TAX_DOWN" to "减税惠民", "TAX_UP" to "提高税率", "DIPLOMACY" to "派遣使节", "DRILL" to "整训军队", "RELIEF" to "赈济百姓", "REPAY" to "偿还债务", "REFORM" to "考核改革", "REST" to "休养生息", "DEPART" to "出发巡游", "TRAVEL" to "继续行程", "VISIT" to "探访场景", "TALK" to "询问人物", "INVESTIGATE" to "暗访取证", "AUDIT" to "核验账册", "REVEAL" to "公开身份", "TRIAL" to "依法审理", "DISMISS" to "行政撤换", "CLOSE" to "撤销指控", "REMOTE" to "委派监察官", "RETURN" to "返回朝廷")
  fun label(c: Command)=labels[c.type] ?: c.type
- fun cost(c: Command): Long = when(c.type) { "FACTORY" -> 140; "FARM" -> 75; "RESEARCH" -> 65; "ROAD" -> 100; "DIPLOMACY" -> 35; "DRILL" -> 60; "RELIEF" -> 50; "REPAY" -> 80; "REFORM" -> 95; "DEPART" -> if(c.mode=="公开巡幸") 95 else if(c.mode=="秘密调查") 55 else 35; "TRAVEL" -> 8; "VISIT","TALK" -> 3; "INVESTIGATE" -> 12; "AUDIT" -> 20; "REVEAL" -> 10; "TRIAL" -> 25; "DISMISS" -> 20; "REMOTE" -> 65; "RETURN" -> 20; else -> 0 }
- fun duration(c: Command)=when(c.type) { "STRATEGY" -> 0; "DEPART" -> 1; "TRAVEL" -> 7; "VISIT","TALK" -> 2; "INVESTIGATE","AUDIT" -> 5; "REVEAL","TRIAL","DISMISS","CLOSE" -> 1; "RETURN" -> 7; else -> 90 }
+ fun cost(c: Command): Long = when(c.type) { "TRY_HEIR" -> 20; "FAMILY_TIME" -> 10; "FACTORY" -> 140; "FARM" -> 75; "RESEARCH" -> 65; "ROAD" -> 100; "DIPLOMACY" -> 35; "DRILL" -> 60; "RELIEF" -> 50; "REPAY" -> 80; "REFORM" -> 95; "DEPART" -> if(c.mode=="公开巡幸") 95 else if(c.mode=="秘密调查") 55 else 35; "TRAVEL" -> 8; "VISIT","TALK" -> 3; "INVESTIGATE" -> 12; "AUDIT" -> 20; "REVEAL" -> 10; "TRIAL" -> 25; "DISMISS" -> 20; "REMOTE" -> 65; "RETURN" -> 20; else -> 0 }
+ fun duration(c: Command)=when(c.type) { "ERA","RULER_NAME","CHILD_NAME_PLAN","NAME_CHILD","FAMILY_PLAN","STRATEGY" -> 0; "DEPART" -> 1; "TRAVEL" -> 7; "VISIT","TALK" -> 2; "INVESTIGATE","AUDIT" -> 5; "REVEAL","TRIAL","DISMISS","CLOSE" -> 1; "RETURN" -> 7; else -> 90 }
  fun suggestions(w: World): List<Command> {
   val j=w.journey
   if(j!=null) return if(j.remainingTravel>0) listOf(Command("TRAVEL"),Command("RETURN"),Command("REST")) else listOf(Command("INVESTIGATE"),Command("AUDIT"),Command("RETURN"))
@@ -19,6 +19,7 @@ object Rules {
   if(w.day>900000) return "已达到本版纪年上限，请保留档案。"
   if(c.type !in labels) return "未知的行动类型。"
   if(c.region !in 0..3) return "目标地区不存在。"
+  if(c.type in FamilyEngine.types) FamilyEngine.validate(w,c)?.let {return it}
   if(w.nation.treasury<cost(c)) return "国库不足：需要 ${cost(c)} 万两。可休养、调整税率或削减研究。"
   if(c.type in listOf("FACTORY","FARM","ROAD") && w.projects.any { it.kind==c.type && it.region==c.region }) return "该地区已有同类在建项目。"
   if(c.type=="STRATEGY" && c.target !in listOf("工业强国","富民治国","综合发展")) return "发展方向无效。"
@@ -98,6 +99,7 @@ object Rules {
    "CLOSE" -> { x=x.copy(caseFile=x.caseFile.copy(resolved=true,status=if(x.caseFile.guilty) "证据不足" else "发现伪证",resolution="撤销指控")); nation { it.copy(stability=it.stability+2,morale=it.morale+if(x.caseFile.guilty) -3 else 3) }; events+="保留核查记录，不作刑事处罚。" }
    "RETURN" -> { x=x.copy(journey=null); events+="结束行程返回朝廷，地方决定与人物记忆继续保留。" }
   }
+  if(c.type in FamilyEngine.types) x=FamilyEngine.execute(x,c,events)
   if(x.journey!=null) {
    var j=x.journey!!.copy(spentDays=x.journey!!.spentDays+duration(c))
    if(j.exposure>=85 && !j.revealed) { j=j.copy(revealed=true); events+="调查动静与朝臣随行引起驿站核查，身份经印信验明确认。" }
@@ -108,7 +110,7 @@ object Rules {
    val left=max(0,x.caseFile.remoteDays-duration(c)); x=x.copy(caseFile=x.caseFile.copy(remoteDays=left))
    if(left==0) { evidence(Evidence("ledger","监察使核验账册",50,true)); if(x.caseFile.guilty) evidence(Evidence("receipt","监察使复核收费凭据",30,true)); else evidence(Evidence("forgery","证人笔迹不符的伪证",0,false)); events+="监察使归报，材料已存入案卷；处分仍须另行决定。" }
   }
-  x=x.copy(day=newDay)
+  x=FamilyEngine.advance(x.copy(day=newDay),duration(c),events)
   repeat(newDay/90-oldQuarter) {
    x=EconomyEngine.quarter(x,ledger,events)
    x=CharacterEngine.quarter(x,events)
@@ -133,6 +135,10 @@ object Rules {
   require(w.people.size in 10..100 && w.people.map { it.id }.distinct().size==w.people.size)
   require(w.people.all { it.ageQuarters in 0..20000 && it.memories.size<=8 })
   require(w.regions.all { r -> r.official==-1 || w.people.any { it.id==r.official && it.alive } })
+  require(FamilyEngine.validName(w.era) && w.eraDay in 0..w.day)
+  require(w.household.members.size<=100 && w.household.members.map {it.id}.distinct().size==w.household.members.size)
+  require(w.household.members.all {FamilyEngine.validName(it.name) && it.bornDay<=w.day && it.relationship in 0..100 && it.health in 0..100})
+  require(w.household.pregnancy==null || (w.household.pregnancy.remainingDays in 1..270 && w.household.members.any {it.id==w.household.pregnancy.parent && it.alive && (w.day-it.bornDay)/360>=18}))
   require(w.recent.size<=12 && w.projects.size<=12 && w.neighbors.size==3 && w.factions.size==3)
   require(w.caseFile.evidence.size<=8 && w.caseFile.evidence.map { it.id }.distinct().size==w.caseFile.evidence.size)
   require(w.caseFile.evidence.all { it.strength in 0..50 && it.id in listOf("ledger","receipt","witness","forgery") })
@@ -145,9 +151,11 @@ object EconomyEngine {
   var n=w.nation
   val base=100L+n.agriculture*2+n.commerce*2+n.industry*3
   val income=base*n.tax/100*(100-n.corruption/2)/100
-  val expense=35L+n.military/2+n.infrastructure/4+n.research+n.debt*2/100 + if(w.difficulty=="艰难") 12 else 0
+  val familyCost=w.household.members.count {it.alive && it.role=="子女"}*3L + if(w.household.pregnancy!=null) 6L else 0L
+  val expense=35L+n.military/2+n.infrastructure/4+n.research+n.debt*2/100 + familyCost + if(w.difficulty=="艰难") 12 else 0
   var cash=n.treasury+income-expense; var debt=n.debt
   if(cash<0) { val need=-cash; val borrowed=min(need,max(0,2000-debt)); debt+=borrowed; cash+=borrowed; ledger+="赤字借款 $borrowed 万两"; if(cash<0) { events+="信用枯竭，削减预算并发生财政危机。"; n=n.copy(stability=n.stability-7,morale=n.morale-5,military=max(0,n.military-4),research=0); cash=0 } }
+  ledger+="宗室照护与教育 -$familyCost 万两（计入季度经常支出）"
   ledger+="季度税收 +$income 万两；经常支出 -$expense 万两（含利息 ${n.debt*2/100}）"
   val food=n.agriculture*100000L
   val growth=(n.population*(if(food>n.population) 3 else -2)/1000)

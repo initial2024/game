@@ -20,10 +20,10 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
  private var generation:Job?=null
  init { viewModelScope.launch(Dispatchers.IO) { runCatching { val slots=store.slots(); val id=slots.firstOrNull()?.id?:1; mutable.value=UiState(world=store.load(id),slot=id,slots=slots) }.onFailure { message("存档读取失败：${it.message}。请保留数据并导出排查。") } } }
  fun message(text:String) { mutable.value=mutable.value.copy(message=text) }
- fun newGame(name:String,ruler:String,strategy:String,difficulty:String,seed:String) = task {
+ fun newGame(name:String,ruler:String,strategy:String,difficulty:String,seed:String,era:String="启元") = task {
   val id=(1..8).firstOrNull { n -> store.slots().none { it.id==n } } ?: error("8 个存档槽已满，请导出后保留现有游戏。")
   val number=seed.toLongOrNull() ?: error("世界种子须为 64 位整数。")
-  val w=NewGame.create(name,ruler,strategy,difficulty,number);store.create(id,w);mutable.value=mutable.value.copy(world=w,slot=id,slots=store.slots(),aiText="",archive=emptyList(),message="新纪年已建立。每次行动自动保存。")
+  val w=NewGame.create(name,ruler,strategy,difficulty,number,era);store.create(id,w);mutable.value=mutable.value.copy(world=w,slot=id,slots=store.slots(),aiText="",archive=emptyList(),message="新纪年已建立。每次行动自动保存。")
  }
  fun submit(commands:List<Command>,expected:Long) {
   if(mutable.value.busy || commands.isEmpty()) return

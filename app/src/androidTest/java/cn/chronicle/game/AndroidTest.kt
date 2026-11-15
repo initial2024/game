@@ -55,7 +55,9 @@ class ScreenTest {
   compose.waitUntil(30000){compose.onAllNodesWithText("确认执行").fetchSemanticsNodes().isEmpty()}
   compose.onNodeWithText("朝政",useUnmergedTree=true).performClick();compose.onNodeWithText("国库",useUnmergedTree=true).assertIsDisplayed();screenshot("court")
   compose.onNodeWithText("世界",useUnmergedTree=true).performClick();compose.onNodeWithText("地区",useUnmergedTree=true).assertIsDisplayed();screenshot("world")
+  compose.onNodeWithText("宗室",useUnmergedTree=true).performClick();compose.onNodeWithText("宗室与家族").assertIsDisplayed();screenshot("family")
   compose.onNodeWithText("档案",useUnmergedTree=true).performClick();compose.onNodeWithText("纪年存档").assertIsDisplayed();screenshot("archive")
+  compose.onNodeWithText("搜索、下载与管理模型").performScrollTo().performClick();compose.onNodeWithText("离线模型中心").assertIsDisplayed();compose.onNodeWithText("模型库",useUnmergedTree=true).performClick();screenshot("models");compose.onNodeWithText("完成").performClick()
  }
 }
 @RunWith(AndroidJUnit4::class)
