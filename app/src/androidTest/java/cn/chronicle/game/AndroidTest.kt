@@ -1,0 +1,69 @@
+package cn.chronicle.game
+
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import cn.chronicle.core.*
+import org.junit.Test
+import org.junit.Assert.*
+import org.junit.runner.RunWith
+import java.io.File
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import kotlinx.coroutines.runBlocking
+import androidx.compose.ui.test.*
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import org.junit.Rule
+
+@RunWith(AndroidJUnit4::class)
+class StorageTest {
+ @Test fun transactionRestartIsolationAndArchiveIntegrity() {
+  val context=InstrumentationRegistry.getInstrumentation().targetContext
+  context.deleteDatabase("chronicle-verification.db") // Test-only database; never the user's game database.
+  var store=Store(context,"chronicle-verification.db");val w=NewGame.create("测试","君主","综合发展","标准",1847)
+  store.create(1,w);val out=Rules.apply(w,Command("FACTORY"),0);store.commit(1,0,out)
+  try {store.commit(1,0,out);fail("duplicate commit accepted")}catch(_:IllegalArgumentException){}
+  store.copyTo(1,2);store.close();store=Store(context,"chronicle-verification.db")
+  assertEquals(out.world,store.load(1));assertEquals(out.world,store.load(2))
+  val next=Rules.apply(out.world,Command("REST"),1);store.commit(1,1,next);assertEquals(1L,store.load(2)!!.revision)
+  val exported=store.export(1);store.import(exported,3);assertEquals(next.world,store.load(3));assertEquals(2,store.history(3).size)
+  try {store.import(exported.replace("测试","篡改"),4);fail("corruption accepted")}catch(_:IllegalArgumentException){}
+  store.close()
+ }
+ @Test fun corruptModelHeaderRejected() {
+  val f=File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir,"invalid.gguf");f.writeBytes(ByteArray(64))
+  try {ModelManager.checkHeader(f);fail("invalid GGUF accepted")}catch(_:IllegalArgumentException){}finally {f.delete()}
+ }
+ @Test fun nativeLibraryIsLoadable() {NativeBridge.unload()}
+}
+@RunWith(AndroidJUnit4::class)
+class ScreenTest {
+ @get:Rule val compose=createAndroidComposeRule<MainActivity>()
+ @Test fun newGamePolicyConfirmationAndNavigation() {
+  compose.waitForIdle()
+  if(compose.onAllNodesWithText("开启纪年").fetchSemanticsNodes().isNotEmpty()) {
+   compose.onNodeWithText("开启纪年").performClick();compose.onNodeWithText("建立国家").performClick()
+  }
+  compose.waitUntil(30000){compose.onAllNodesWithText("亲拟诏令").fetchSemanticsNodes().isNotEmpty()}
+  compose.onNodeWithText("休养生息").performScrollTo().performClick()
+  compose.onNodeWithText("确认执行").assertIsDisplayed().performClick()
+  compose.waitUntil(30000){compose.onAllNodesWithText("确认执行").fetchSemanticsNodes().isEmpty()}
+  compose.onNodeWithText("朝政",useUnmergedTree=true).performClick();compose.onNodeWithText("国库",useUnmergedTree=true).assertIsDisplayed()
+  compose.onNodeWithText("世界",useUnmergedTree=true).performClick();compose.onNodeWithText("地区",useUnmergedTree=true).assertIsDisplayed()
+  compose.onNodeWithText("档案",useUnmergedTree=true).performClick();compose.onNodeWithText("纪年存档").assertIsDisplayed()
+ }
+}
+@RunWith(AndroidJUnit4::class)
+class RealModelTest {
+ @Test fun actualGgufInferenceOnAndroid() {
+  val model=File(InstrumentationRegistry.getInstrumentation().targetContext.getExternalFilesDir(null),"qwen.gguf")
+  org.junit.Assume.assumeTrue("Requires explicit model deployment",model.exists())
+  ModelManager.checkHeader(model)
+  assertEquals(ModelManager.SHA,ModelManager.hash(model))
+  val start=System.nanoTime();assertTrue(NativeBridge.load(model.path,2,512));val loadMs=(System.nanoTime()-start)/1000000
+  val prompt="<|im_start|>user\n用中文说你好。<|im_end|>\n<|im_start|>assistant\n".toByteArray()
+  val before=System.nanoTime();val output=NativeBridge.generate(prompt,12,300000).toString(Charsets.UTF_8)
+  val ms=(System.nanoTime()-before)/1000000
+  assertTrue(output.isNotBlank());println("REAL_MODEL load_ms=$loadMs inference_ms=$ms max_tokens=12 text=$output")
+  NativeBridge.unload()
+ }
+}

@@ -104,7 +104,7 @@ class MainActivity:ComponentActivity() {
    if(w.recent.isNotEmpty()) { TextButton(onClick={ledger=!ledger}) {Text(if(ledger) "收起结算账簿" else "查看结算账簿")};if(ledger) w.recent.last().ledger.forEach {Text(it,style=MaterialTheme.typography.bodySmall)} }
   }
   Panel("本期可行之策","标准政策推进一季度；巡游行动按日计时") { Rules.suggestions(w).forEach {ActionButton(it,ask)} }
-  Panel("亲拟诏令","规则解析仅执行明确列出的政策，复杂条款会提示") { OutlinedTextField(value=text,onValueChange={text=it.take(600)},label={Text("例如：兴修水渠、资助科研")},minLines=2,maxLines=4,modifier=Modifier.fillMaxWidth());Button(onClick={custom(IntentParser.parse(text))},enabled=text.isNotBlank()&&!ui.busy,modifier=Modifier.fillMaxWidth()) {Text("解析并预览")} }
+  Panel("亲拟诏令","规则解析仅执行明确列出的政策，复杂条款会提示") { OutlinedTextField(value=text,onValueChange={text=it.take(600)},label={Text("例如：兴修水渠、资助科研")},minLines=2,maxLines=4,modifier=Modifier.fillMaxWidth());Button(onClick={vm.parse(text,custom)},enabled=text.isNotBlank()&&!ui.busy&&!ui.generating,modifier=Modifier.fillMaxWidth()) {Text("解析并预览")} }
  }
 }
 @Composable private fun BadgeText(s:String) { Text(s,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.secondary,modifier=Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.secondary.copy(alpha=.1f)).padding(horizontal=8.dp,vertical=6.dp)) }
@@ -115,7 +115,7 @@ class MainActivity:ComponentActivity() {
   Panel("国库", "资金单位：万两 · 人口单位：人 · 其他发展属性 0–100") { Text("${n.treasury} 万两",style=MaterialTheme.typography.headlineLarge,color=MaterialTheme.colorScheme.primary);Text("债务 ${n.debt} · 税率 ${n.tax}%");Text("年度折算：收入 ${n.income} / 支出 ${n.expense}",style=MaterialTheme.typography.bodySmall);Text("年度财政为最近季度的四倍估算。",style=MaterialTheme.typography.labelSmall);Row {TextButton(onClick={ask(Command("TAX_DOWN"))}){Text("减税")};TextButton(onClick={ask(Command("TAX_UP"))}){Text("增税")};TextButton(onClick={ask(Command("REPAY"))}){Text("还债")}} }
   Fold("产业与科技",true) { Stat("农业",n.agriculture);Stat("商业",n.commerce);Stat("工业",n.industry);Stat("科技",n.technology);Stat("基础设施",n.infrastructure);Text("研究经费 ${n.research} 万两/季");Row {TextButton(onClick={ask(Command("FACTORY"))}){Text("工厂")};TextButton(onClick={ask(Command("FARM"))}){Text("水利")};TextButton(onClick={ask(Command("RESEARCH"))}){Text("研发")};TextButton(onClick={ask(Command("ROAD"))}){Text("道路")}} }
   Fold("人口与朝政") {Text("全国人口 ${n.population}");Stat("民心",n.morale);Stat("稳定",n.stability);Stat("行政",n.administration);Stat("中央腐败",n.corruption);Stat("军队实力",n.military);ActionButton(Command("RELIEF"),ask);ActionButton(Command("REFORM"),ask);ActionButton(Command("DRILL"),ask)}
-  Fold("政策与在建项目") {Text("方向：${w.strategy}（随时可采用其他政策）");if(w.projects.isEmpty()) Text("暂无在建项目");w.projects.forEach {Text("${w.regions[it.region].name} · ${Rules.label(Command(it.kind))} · 剩余 ${it.quarters} 季")};Text("研究预算持续生效；休养每季削减 2 万两研究预算。",style=MaterialTheme.typography.bodySmall)}
+  Fold("政策与在建项目") {Text("方向：${w.strategy}");Choices(listOf("工业强国","富民治国","综合发展"),w.strategy,{ask(Command("STRATEGY",target=it))});if(w.projects.isEmpty()) Text("暂无在建项目");w.projects.forEach {Text("${w.regions[it.region].name} · ${Rules.label(Command(it.kind))} · 剩余 ${it.quarters} 季")};Text("研究预算持续生效；休养每季削减 2 万两研究预算。",style=MaterialTheme.typography.bodySmall)}
   Fold("近期变化") { w.recent.takeLast(4).reversed().forEach { Text("第${it.turn+1}回合 · ${it.action}",color=MaterialTheme.colorScheme.secondary);it.ledger.takeLast(3).forEach {l->Text(l,style=MaterialTheme.typography.bodySmall)} } }
  }
 }
@@ -157,7 +157,7 @@ class MainActivity:ComponentActivity() {
 @Composable private fun Archive(ui:UiState,vm:GameViewModel,new:()->Unit,theme:Int,onTheme:(Int)->Unit,scale:Float,onScale:(Float)->Unit) {
  val ctx=LocalContext.current;val scope=rememberCoroutineScope()
  val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) {uri->if(uri!=null) scope.launch {runCatching {val text=vm.export();withContext(Dispatchers.IO){ctx.contentResolver.openOutputStream(uri)?.use {it.write(text.toByteArray())}?:error("文件无法打开")}}.onSuccess {vm.message("存档已导出到你选择的位置。")}.onFailure {vm.message(it.message?:"导出失败")} }}
- val import=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {uri->if(uri!=null) scope.launch {runCatching {withContext(Dispatchers.IO){ctx.contentResolver.openInputStream(uri)?.use { val b=it.readNBytes(8*1024*1024+1);require(b.size<=8*1024*1024){"文件超过8MB"};b.toString(Charsets.UTF_8)}?:error("文件无法打开")}}.onSuccess {vm.import(it)}.onFailure {vm.message(it.message?:"导入失败")} }}
+ val import=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {uri->if(uri!=null) scope.launch {runCatching {withContext(Dispatchers.IO){ctx.contentResolver.openInputStream(uri)?.use { readBoundedSave(it)}?:error("文件无法打开")}}.onSuccess {vm.import(it)}.onFailure {vm.message(it.message?:"导入失败")} }}
  Page {
   Panel("纪年存档","每次行动事务自动保存 · 最多 8 个相互隔离的槽位") {ui.slots.forEach {slot->OutlinedButton(onClick={vm.load(slot.id)},enabled=!ui.busy,modifier=Modifier.fillMaxWidth()) {Text("${if(slot.id==ui.slot) "●" else "○"} 槽 ${slot.id} · ${slot.name} · 第${slot.turn+1}回合")}};Row {TextButton(onClick=new){Text("新建")};TextButton(onClick={vm.manualSave()}){Text("手动快照")}};Row {TextButton(onClick={export.launch("山河纪年-槽${ui.slot}.json")}){Text("导出本地文件")};TextButton(onClick={import.launch(arrayOf("application/json","text/*"))}){Text("导入空槽")}} }
   Fold("史官档案") {Button(onClick={vm.page(0)}){Text("查询最新记录")};ui.archive.forEach {entry->Fold("${entry.day}日 · ${entry.action}") {Text(entry.narrative);entry.ledger.forEach {Text(it,style=MaterialTheme.typography.bodySmall)};Text("种子 ${entry.seed} · 决策 ${entry.revision}",style=MaterialTheme.typography.labelSmall)}};Row {TextButton(onClick={vm.page(ui.offset-20)},enabled=ui.offset>0){Text("上一页")};TextButton(onClick={vm.page(ui.offset+20)},enabled=ui.archive.size==20){Text("更早记录")}}}
@@ -169,4 +169,10 @@ class MainActivity:ComponentActivity() {
 @Composable private fun NewDialog(close:()->Unit,start:(String,String,String,String,String)->Unit) {
  var name by rememberSaveable {mutableStateOf("承熙")};var ruler by rememberSaveable {mutableStateOf("景衡")};var strategy by rememberSaveable {mutableStateOf("综合发展")};var difficulty by rememberSaveable {mutableStateOf("标准")};var seed by rememberSaveable {mutableStateOf("1847")}
  AlertDialog(onDismissRequest=close,title={Text("开启新的纪年")},text={Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(10.dp)){OutlinedTextField(value=name,onValueChange={name=it.take(24)},label={Text("国号")},singleLine=true);OutlinedTextField(value=ruler,onValueChange={ruler=it.take(24)},label={Text("君主")},singleLine=true);Choices(listOf("工业强国","富民治国","综合发展"),strategy,{strategy=it});Choices(listOf("宽裕","标准","艰难"),difficulty,{difficulty=it});OutlinedTextField(value=seed,onValueChange={seed=it.take(20)},label={Text("世界种子（整数）")},singleLine=true);TextButton(onClick={seed=java.security.SecureRandom().nextInt(1000000).toString()}){Text("随机种子")}}},confirmButton={TextButton(onClick={start(name,ruler,strategy,difficulty,seed)},enabled=name.isNotBlank()&&ruler.isNotBlank()&&seed.toLongOrNull()!=null){Text("建立国家")}},dismissButton={TextButton(onClick=close){Text("取消")}})
+}
+
+private fun readBoundedSave(input:java.io.InputStream):String {
+ val out=java.io.ByteArrayOutputStream();val buffer=ByteArray(32768)
+ while(true) {val n=input.read(buffer);if(n<0)break;require(out.size()+n<=8*1024*1024){"文件超过8MB"};out.write(buffer,0,n)}
+ return out.toString("UTF-8")
 }

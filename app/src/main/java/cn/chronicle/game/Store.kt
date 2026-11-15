@@ -11,7 +11,7 @@ import java.security.MessageDigest
 
 @Serializable data class SaveEnvelope(val format:Int=1,val world:String,val history:List<Entry>,val sha256:String)
 data class Slot(val id:Int,val name:String,val turn:Int,val revision:Long)
-class Store(context:Context):SQLiteOpenHelper(context,"chronicle.db",null,1) {
+class Store(context:Context,databaseName:String="chronicle.db"):SQLiteOpenHelper(context,databaseName,null,1) {
  override fun onCreate(db:SQLiteDatabase) {
   db.execSQL("CREATE TABLE saves(slot INTEGER PRIMARY KEY,revision INTEGER NOT NULL,name TEXT NOT NULL,turn INTEGER NOT NULL,json TEXT NOT NULL)")
   db.execSQL("CREATE TABLE history(slot INTEGER NOT NULL,revision INTEGER NOT NULL,json TEXT NOT NULL,PRIMARY KEY(slot,revision))")

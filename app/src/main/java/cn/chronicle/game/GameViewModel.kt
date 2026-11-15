@@ -47,13 +47,24 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
  fun page(offset:Int)=task { val p=offset.coerceAtLeast(0);mutable.value=mutable.value.copy(archive=store.history(mutable.value.slot,p),offset=p) }
  suspend fun export():String=withContext(Dispatchers.IO) { lock.withLock { store.export(mutable.value.slot) } }
  fun import(text:String)=task { val id=(1..8).firstOrNull { n->store.slots().none { it.id==n } }?:error("没有空槽");store.import(text,id);mutable.value=mutable.value.copy(slots=store.slots(),message="导入完成，位于槽 $id。") }
+ fun parse(text:String,ready:(Preview)->Unit) {
+  cancelAi();val w=mutable.value.world?:return
+  if(!models.isLoaded) {ready(IntentParser.parse(text));return}
+  generation=viewModelScope.launch {
+   mutable.value=mutable.value.copy(generating=true)
+   try {val result=withContext(Dispatchers.IO){models.interpret(text,w)};if(mutable.value.world?.revision==w.revision)ready(result)}
+   catch(e:CancellationException) { }
+   catch(e:Exception) {ready(IntentParser.parse(text).copy(description="本地 AI 未能解析，已退回规则选项。"))}
+   finally {mutable.value=mutable.value.copy(generating=false)}
+  }
+ }
  fun generate() {
   cancelAi();val w=mutable.value.world?:return;val slot=mutable.value.slot
   generation=viewModelScope.launch {
    mutable.value=mutable.value.copy(generating=true)
    try {
     val text=withContext(Dispatchers.IO) { withTimeout(45000) { models.narrate(MemoryEngine.context(w)) } }
-    if(mutable.value.slot==slot && mutable.value.world?.revision==w.revision) mutable.value=mutable.value.copy(aiText=text)
+    if(mutable.value.slot==slot && mutable.value.world?.revision==w.revision) mutable.value=mutable.value.copy(aiText=if(w.journey?.revealed==false && listOf("陛下","皇帝","君主",w.ruler).any {text.contains(it)}) "本次演绎可能泄露隐藏身份，已丢弃。请参考规则叙事。" else text)
    } catch(e:CancellationException) { /* authoritative turn was already saved */ }
    catch(e:Exception) { message("AI 暂不可用，已保留规则叙事：${e.message}") }
    finally { if(mutable.value.slot==slot) mutable.value=mutable.value.copy(generating=false) }

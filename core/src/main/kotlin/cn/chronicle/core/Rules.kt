@@ -5,10 +5,10 @@ import kotlin.math.min
 
 object Rules {
  val policies = listOf("FACTORY","FARM","RESEARCH","ROAD","TAX_DOWN","TAX_UP","DIPLOMACY","DRILL","RELIEF","REPAY","REFORM","REST")
- private val labels = mapOf("FACTORY" to "筹建工厂", "FARM" to "兴修水利", "RESEARCH" to "资助研究", "ROAD" to "修筑道路", "TAX_DOWN" to "减税惠民", "TAX_UP" to "提高税率", "DIPLOMACY" to "派遣使节", "DRILL" to "整训军队", "RELIEF" to "赈济百姓", "REPAY" to "偿还债务", "REFORM" to "考核改革", "REST" to "休养生息", "DEPART" to "出发巡游", "TRAVEL" to "继续行程", "VISIT" to "探访场景", "TALK" to "询问人物", "INVESTIGATE" to "暗访取证", "AUDIT" to "核验账册", "REVEAL" to "公开身份", "TRIAL" to "依法审理", "DISMISS" to "行政撤换", "CLOSE" to "撤销指控", "REMOTE" to "委派监察官", "RETURN" to "返回朝廷")
+ private val labels = mapOf("STRATEGY" to "调整战略", "FACTORY" to "筹建工厂", "FARM" to "兴修水利", "RESEARCH" to "资助研究", "ROAD" to "修筑道路", "TAX_DOWN" to "减税惠民", "TAX_UP" to "提高税率", "DIPLOMACY" to "派遣使节", "DRILL" to "整训军队", "RELIEF" to "赈济百姓", "REPAY" to "偿还债务", "REFORM" to "考核改革", "REST" to "休养生息", "DEPART" to "出发巡游", "TRAVEL" to "继续行程", "VISIT" to "探访场景", "TALK" to "询问人物", "INVESTIGATE" to "暗访取证", "AUDIT" to "核验账册", "REVEAL" to "公开身份", "TRIAL" to "依法审理", "DISMISS" to "行政撤换", "CLOSE" to "撤销指控", "REMOTE" to "委派监察官", "RETURN" to "返回朝廷")
  fun label(c: Command)=labels[c.type] ?: c.type
  fun cost(c: Command): Long = when(c.type) { "FACTORY" -> 140; "FARM" -> 75; "RESEARCH" -> 65; "ROAD" -> 100; "DIPLOMACY" -> 35; "DRILL" -> 60; "RELIEF" -> 50; "REPAY" -> 80; "REFORM" -> 95; "DEPART" -> if(c.mode=="公开巡幸") 95 else if(c.mode=="秘密调查") 55 else 35; "TRAVEL" -> 8; "VISIT","TALK" -> 3; "INVESTIGATE" -> 12; "AUDIT" -> 20; "REVEAL" -> 10; "TRIAL" -> 25; "DISMISS" -> 20; "REMOTE" -> 65; "RETURN" -> 20; else -> 0 }
- fun duration(c: Command)=when(c.type) { "DEPART" -> 1; "TRAVEL" -> 7; "VISIT","TALK" -> 2; "INVESTIGATE","AUDIT" -> 5; "REVEAL","TRIAL","DISMISS","CLOSE" -> 1; "RETURN" -> 7; else -> 90 }
+ fun duration(c: Command)=when(c.type) { "STRATEGY" -> 0; "DEPART" -> 1; "TRAVEL" -> 7; "VISIT","TALK" -> 2; "INVESTIGATE","AUDIT" -> 5; "REVEAL","TRIAL","DISMISS","CLOSE" -> 1; "RETURN" -> 7; else -> 90 }
  fun suggestions(w: World): List<Command> {
   val j=w.journey
   if(j!=null) return if(j.remainingTravel>0) listOf(Command("TRAVEL"),Command("RETURN"),Command("REST")) else listOf(Command("INVESTIGATE"),Command("AUDIT"),Command("RETURN"))
@@ -21,6 +21,8 @@ object Rules {
   if(c.region !in 0..3) return "目标地区不存在。"
   if(w.nation.treasury<cost(c)) return "国库不足：需要 ${cost(c)} 万两。可休养、调整税率或削减研究。"
   if(c.type in listOf("FACTORY","FARM","ROAD") && w.projects.any { it.kind==c.type && it.region==c.region }) return "该地区已有同类在建项目。"
+  if(c.type=="STRATEGY" && c.target !in listOf("工业强国","富民治国","综合发展")) return "发展方向无效。"
+  if(c.type=="CLOSE" && w.caseFile.evidence.isEmpty()) return "尚无核查材料，无需结案。"
   if(c.type=="REPAY" && w.nation.debt==0L) return "当前没有债务。"
   if(c.type=="TAX_UP" && w.nation.tax>=40) return "税率已达 40% 上限。"
   if(c.type=="TAX_DOWN" && w.nation.tax<=5) return "税率已达 5% 下限。"
@@ -36,7 +38,7 @@ object Rules {
    if(c.type !in listOf("RETURN","TRAVEL","REVEAL") && w.journey.spentDays>=w.journey.budgetDays) return "停留期限已到，请返回朝廷。"
   }
   if(c.type=="VISIT" && c.target !in listOf("集市","客栈","官府","农田","工厂","军营")) return "场景不存在。"
-  if(c.type=="TALK" && c.target.toIntOrNull() !in 6..9) return "此地没有这位可交谈人物。"
+  if(c.type=="TALK" && (c.target.toIntOrNull() !in 6..9 || w.people.none { it.id==c.target.toIntOrNull() && it.alive })) return "此地没有这位可交谈人物。"
   if(c.type in listOf("INVESTIGATE","AUDIT","TALK") && w.journey?.region!=0) return "本版案件与地方人物交互设于澄江。其他地区可巡视。"
   if(c.type=="REVEAL" && w.journey?.revealed==true) return "身份已经公开。"
   if(c.type=="AUDIT" && w.journey?.revealed!=true) return "正式核验官府账册需要出示印信，或委派监察官。"
@@ -59,6 +61,7 @@ object Rules {
    if(x.caseFile.evidence.none { it.id==e.id }) x=x.copy(caseFile=x.caseFile.copy(evidence=x.caseFile.evidence+e, status="存在嫌疑"))
   }
   when(c.type) {
+   "STRATEGY" -> { x=x.copy(strategy=c.target); events+="国家发展方向调整为${c.target}；既有建设与历史继续保留。" }
    "FACTORY","FARM","ROAD" -> { x=x.copy(projects=x.projects+Project(c.type,c.region,if(c.type=="FACTORY") 3 else 2)); events+="${x.regions[c.region].name}项目立项，完工前不增加产能。" }
    "RESEARCH" -> nation { it.copy(research=min(30,it.research+5),technology=it.technology+1) }
    "TAX_UP" -> nation { it.copy(tax=it.tax+3,morale=it.morale-4,commerce=it.commerce-2) }
@@ -111,7 +114,9 @@ object Rules {
    x=CharacterEngine.quarter(x,events)
    x=EventEngine.quarter(x,ledger,events)
   }
-  x=bounded(x)
+  val clamped=bounded(x)
+  if(clamped!=x) ledger+="部分属性触及规定边界，超出部分未计入。"
+  x=clamped
   ledger+=delta(w.nation,x.nation)
   val text=buildString { append("${x.name} · ${x.date}\n"); append("${w.ruler}下令${label(c)}。 "); append(events.joinToString(" ")); if(events.isEmpty()) append("各司依章执行，成效记入本期账簿。") }
   val entry=Entry(w.revision+1,x.turn,x.day,label(c),text,ledger,events,w.seed)

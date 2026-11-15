@@ -38,6 +38,11 @@ class SimulationTest {
  @Test fun noOmniscientIdentityOrTruthInPrompt() {val w=arrive();val p=MemoryEngine.context(w);assertTrue(p.contains("NPC眼中的玩家身份：商人"));assertFalse(p.contains("景衡"));assertFalse(p.contains("guilty"));assertFalse(p.contains("陆敬川贪污"));assertTrue(p.length<=4500)}
  @Test fun invalidTextFallsBack() {assertTrue(IntentParser.parse("立即统一世界").commands.isEmpty());val p=IntentParser.parse("财政盈余的三分之一投入钢铁工业，同时引入民间资本");assertTrue(p.uncertain);assertEquals(listOf(Command("FACTORY")),p.commands)}
  @Test fun strictJsonAndBounds() {assertFails {SaveJson.decodeFromString<Command>("{\"type\":\"REST\",\"money\":99999}")};assertFails {Rules.verify(game().copy(nation=Nation(treasury=-1)))} }
+ @Test fun aiStructuredOutputMustMapToLegalPolicies() {
+  val w=game()
+  assertEquals("FARM",AiValidation.parse("{\"commands\":[{\"type\":\"FARM\",\"region\":0}]}",w).commands.single().type)
+  listOf("{\"commands\":[{\"type\":\"GIVE_MONEY\"}]}","{\"commands\":[{\"type\":\"REST\",\"treasury\":99999}]}","{\"commands\":[]}","{\"commands\":[{\"type\":\"FARM\",\"region\":9}]}").forEach {bad->assertFails {AiValidation.parse(bad,w)}}
+ }
  @Test fun thirtyDistinctValidatedEvents() {
   assertEquals(30,EventEngine.templates.size);assertEquals(30,EventEngine.templates.map {it.id}.distinct().size)
   val fixtures=mutableListOf<World>()
