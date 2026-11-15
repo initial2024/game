@@ -13,7 +13,7 @@
 
 可覆盖此前同签名0.1.0/0.1.1/0.2.0直链包。由 [GitHub Actions](https://github.com/initial2024/game/actions/runs/43735828356/job/132878112990) 构建 release，再在私密环境使用既有开发证书签名；私钥未提交。正式签名按用户安排后续接入。
 
-[本次接入说明](https://github.com/initial2024/game/blob/feature/world-map-v4/docs/MAP_V4_INTEGRATION.md)。vivo Android16 / ARM64真机验收、完整战争与继承仍未完成；模拟器结果不代表手机性能。
+[本次接入说明](https://github.com/initial2024/game/blob/feature/world-map-v4/docs/MAP_V4_INTEGRATION.md) · [完整测试报告](https://github.com/initial2024/game/blob/feature/world-map-v4/docs/MAP_V4_TESTING.md) · [实际截图](https://github.com/initial2024/game/blob/feature/world-map-v4/docs/MAP_V4_SCREENSHOTS.md)。vivo Android16 / ARM64真机验收、完整战争与继承仍未完成；模拟器结果不代表手机性能。
 
 历史包：[0.1.1](https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.1.1-arm64.apk)。map-check开头的文件仅用于x86_64模拟器成对验收，不是手机安装包。
 
