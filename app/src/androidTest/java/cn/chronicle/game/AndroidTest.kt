@@ -11,6 +11,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlinx.coroutines.runBlocking
 import androidx.compose.ui.test.*
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import org.junit.Rule
 
@@ -38,18 +39,23 @@ class StorageTest {
 @RunWith(AndroidJUnit4::class)
 class ScreenTest {
  @get:Rule val compose=createAndroidComposeRule<MainActivity>()
+ private fun screenshot(name:String) {
+  val folder=File(InstrumentationRegistry.getInstrumentation().targetContext.getExternalFilesDir(null),"screenshots").apply {mkdirs()}
+  File(folder,"$name.png").outputStream().use {compose.onRoot().captureToImage().asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG,100,it)}
+ }
  @Test fun newGamePolicyConfirmationAndNavigation() {
   compose.waitForIdle()
   if(compose.onAllNodesWithText("开启纪年").fetchSemanticsNodes().isNotEmpty()) {
    compose.onNodeWithText("开启纪年").performClick();compose.onNodeWithText("建立国家").performClick()
   }
   compose.waitUntil(30000){compose.onAllNodesWithText("亲拟诏令").fetchSemanticsNodes().isNotEmpty()}
+  screenshot("story")
   compose.onNodeWithText("休养生息").performScrollTo().performClick()
   compose.onNodeWithText("确认执行").assertIsDisplayed().performClick()
   compose.waitUntil(30000){compose.onAllNodesWithText("确认执行").fetchSemanticsNodes().isEmpty()}
-  compose.onNodeWithText("朝政",useUnmergedTree=true).performClick();compose.onNodeWithText("国库",useUnmergedTree=true).assertIsDisplayed()
-  compose.onNodeWithText("世界",useUnmergedTree=true).performClick();compose.onNodeWithText("地区",useUnmergedTree=true).assertIsDisplayed()
-  compose.onNodeWithText("档案",useUnmergedTree=true).performClick();compose.onNodeWithText("纪年存档").assertIsDisplayed()
+  compose.onNodeWithText("朝政",useUnmergedTree=true).performClick();compose.onNodeWithText("国库",useUnmergedTree=true).assertIsDisplayed();screenshot("court")
+  compose.onNodeWithText("世界",useUnmergedTree=true).performClick();compose.onNodeWithText("地区",useUnmergedTree=true).assertIsDisplayed();screenshot("world")
+  compose.onNodeWithText("档案",useUnmergedTree=true).performClick();compose.onNodeWithText("纪年存档").assertIsDisplayed();screenshot("archive")
  }
 }
 @RunWith(AndroidJUnit4::class)

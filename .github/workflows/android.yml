@@ -61,11 +61,14 @@ jobs:
             adb shell mkdir -p /sdcard/Android/data/cn.chronicle.shanhe/files
             adb push "$RUNNER_TEMP/chronicle-model.gguf" /sdcard/Android/data/cn.chronicle.shanhe/files/qwen.gguf
             ./gradlew :app:connectedDebugAndroidTest
+            adb pull /sdcard/Android/data/cn.chronicle.shanhe/files/screenshots "$RUNNER_TEMP/chronicle-screenshots"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: android-instrumentation-report
-          path: app/build/reports/androidTests
+          path: |
+            app/build/reports/androidTests
+            ${{ runner.temp }}/chronicle-screenshots
   signed-apk:
     if: github.event_name == 'workflow_dispatch' && inputs.signed_apk
     needs: build

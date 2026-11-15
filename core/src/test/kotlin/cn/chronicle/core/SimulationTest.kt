@@ -43,6 +43,15 @@ class SimulationTest {
   assertEquals("FARM",AiValidation.parse("{\"commands\":[{\"type\":\"FARM\",\"region\":0}]}",w).commands.single().type)
   listOf("{\"commands\":[{\"type\":\"GIVE_MONEY\"}]}","{\"commands\":[{\"type\":\"REST\",\"treasury\":99999}]}","{\"commands\":[]}","{\"commands\":[{\"type\":\"FARM\",\"region\":9}]}").forEach {bad->assertFails {AiValidation.parse(bad,w)}}
  }
+ @Test fun modelCatalogAndHardwareAdviceAreConservative() {
+  ModelCatalog.builtIn.forEach {it.verify()}
+  assertNull(ModelCatalog.recommend(800L*1048576,8L*1024*1048576,8,true).model)
+  assertNull(ModelCatalog.recommend(4000L*1048576,8L*1024*1048576,8,false).model)
+  val low=ModelCatalog.recommend(1500L*1048576,4000L*1048576,8,true)
+  assertEquals(ModelCatalog.builtIn[1],low.model);assertEquals(512,low.context);assertEquals(4,low.threads)
+  assertFails {ModelCatalog.builtIn.first().copy(file="../bad.gguf").verify()}
+  assertFails {ModelCatalog.builtIn.first().copy(license="unknown").verify()}
+ }
  @Test fun thirtyDistinctValidatedEvents() {
   assertEquals(30,EventEngine.templates.size);assertEquals(30,EventEngine.templates.map {it.id}.distinct().size)
   val fixtures=mutableListOf<World>()
