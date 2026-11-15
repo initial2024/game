@@ -53,10 +53,11 @@ class ScreenTest {
  @Test fun continuousJourneyEvidenceJudgmentAndReturn() {
   val vm=ViewModelProvider(compose.activity)[GameViewModel::class.java]
   compose.waitForIdle()
+  val previousSlot=vm.state.value.slot;val hadWorld=vm.state.value.world!=null
   if(compose.onAllNodesWithText("开启纪年").fetchSemanticsNodes().isNotEmpty())compose.onNodeWithText("开启纪年").performClick()
   else {compose.onNodeWithText("档案",useUnmergedTree=true).performClick();compose.onNodeWithText("新建").performScrollTo().performClick()}
   compose.onNodeWithText("建立国家").performClick()
-  compose.waitUntil(30000){vm.state.value.world?.revision==0L}
+  compose.waitUntil(30000){vm.state.value.world!=null && !vm.state.value.busy && (!hadWorld || vm.state.value.slot!=previousSlot)}
   fun pause() {if(!vm.state.value.paused)compose.onNodeWithText("暂停时间").performClick()}
   fun choose(label:String) {compose.onNodeWithText(label).performScrollTo().performClick();compose.onNodeWithText("确认执行").performClick();compose.waitUntil(10000){!vm.state.value.busy}}
   fun until(test:(World)->Boolean) {if(vm.state.value.paused)compose.onNodeWithText("继续时间").performClick();compose.waitUntil(60000){vm.state.value.world?.let(test)==true};pause()}

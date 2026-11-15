@@ -9,11 +9,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import cn.chronicle.core.*
@@ -201,10 +201,9 @@ class ModelManager(private val app:Context) {
   Text("本地 AI 模型",style=MaterialTheme.typography.titleMedium);Text(state.status,style=MaterialTheme.typography.bodySmall)
   Button(onClick={open=true},modifier=Modifier.fillMaxWidth()){Text("搜索、下载与管理模型")}
  }}
- if(open) Dialog(onDismissRequest={open=false},properties=DialogProperties(usePlatformDefaultWidth=false,decorFitsSystemWindows=false)) {
-  Surface(modifier=Modifier.fillMaxWidth().fillMaxHeight(.95f).padding(12.dp),shape=RoundedCornerShape(20.dp)) {
-   Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
-    Row {Text("离线模型中心",Modifier.weight(1f),style=MaterialTheme.typography.titleLarge);TextButton(onClick={open=false}){Text("完成")}}
+ val panelHeight=(LocalConfiguration.current.screenHeightDp-240).coerceIn(160,480).dp
+ if(open) AlertDialog(onDismissRequest={open=false},properties=DialogProperties(usePlatformDefaultWidth=false),modifier=Modifier.padding(10.dp),title={Text("离线模型中心")},confirmButton={TextButton(onClick={open=false}){Text("完成")}},text={
+   Column(Modifier.fillMaxWidth().height(panelHeight),verticalArrangement=Arrangement.spacedBy(10.dp)) {
     Text(state.status,style=MaterialTheme.typography.bodySmall)
     if(state.working) {LinearProgressIndicator(progress={state.progress},modifier=Modifier.fillMaxWidth());TextButton(onClick={manager.pauseDownload()}){Text("暂停下载")}}
     SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {listOf("推荐","模型库","设置").forEachIndexed {i,t->SegmentedButton(selected=section==i,onClick={section=i},shape=SegmentedButtonDefaults.itemShape(i,3)){Text(t)}}}
@@ -245,7 +244,6 @@ class ModelManager(private val app:Context) {
     }
     Row {TextButton(onClick={manager.load()},enabled=state.exists&&!state.working&&!state.loaded){Text("加载已安装")};TextButton(onClick={vm.cancelAi();manager.unloadAsync()},enabled=state.loaded){Text("卸载内存")};TextButton(onClick={manager.delete()},enabled=!state.working){Text("移除文件")}}
    }
-  }
- }
+  })
  install?.let {spec->AlertDialog(onDismissRequest={install=null},title={Text("安装模型")},text={Text("${spec.label}\n下载 ${spec.bytes/1048576} MiB，许可 ${spec.license}。文件经 SHA-256 校验后自动安装到游戏私有目录。\n\n完成前保留已安装文件；切换模型会替换未完成的下载。${if(autoLoad) "完成后尝试加载，内存不足则继续规则模式。" else "安装后可手动加载。"}")},confirmButton={TextButton(onClick={manager.download(spec,autoLoad);install=null}){Text("下载并安装")}},dismissButton={TextButton(onClick={install=null}){Text("取消")}})}
 }
