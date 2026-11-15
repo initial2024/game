@@ -31,7 +31,7 @@ val SaveJson = Json { encodeDefaults = true; ignoreUnknownKeys = false; isLenien
  val remainingTravel: Int, val spentDays: Int = 0, val exposure: Int = 0, val revealed: Boolean = false,
  val location: String = "驿道")
 @Serializable data class Entry(val revision: Long, val turn: Int, val day: Int, val action: String,
- val narrative: String, val ledger: List<String>, val events: List<String>, val seed: Long)
+ val narrative: String, val ledger: List<String>, val events: List<String>, val seed: Long,val commands:List<Command> = emptyList())
 @Serializable data class World(val schema: Int = 1, val name: String, val ruler: String, val strategy: String,
  val difficulty: String, val seed: Long, val revision: Long = 0, val day: Int = 0,
  val nation: Nation = Nation(), val regions: List<Region>, val people: List<Person>,

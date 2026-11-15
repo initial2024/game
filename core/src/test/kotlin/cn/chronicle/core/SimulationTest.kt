@@ -40,6 +40,8 @@ class SimulationTest {
  @Test fun strictJsonAndBounds() {assertFails {SaveJson.decodeFromString<Command>("{\"type\":\"REST\",\"money\":99999}")};assertFails {Rules.verify(game().copy(nation=Nation(treasury=-1)))} }
  @Test fun aiStructuredOutputMustMapToLegalPolicies() {
   val w=game()
+  val richIncome=w.copy(nation=w.nation.copy(treasury=200,industry=100,commerce=100,agriculture=100,tax=40,corruption=0))
+  assertFails {AiValidation.parse("{\"commands\":[{\"type\":\"ROAD\",\"region\":0},{\"type\":\"FARM\",\"region\":1},{\"type\":\"FACTORY\",\"region\":2}]}",richIncome)}
   assertEquals("FARM",AiValidation.parse("{\"commands\":[{\"type\":\"FARM\",\"region\":0}]}",w).commands.single().type)
   listOf("{\"commands\":[{\"type\":\"GIVE_MONEY\"}]}","{\"commands\":[{\"type\":\"REST\",\"treasury\":99999}]}","{\"commands\":[]}","{\"commands\":[{\"type\":\"FARM\",\"region\":9}]}").forEach {bad->assertFails {AiValidation.parse(bad,w)}}
  }

@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 object RealtimeEngine {
  private val immediate=setOf("ERA","RULER_NAME","CHILD_NAME_PLAN","NAME_CHILD","FAMILY_PLAN","STRATEGY","FACTORY","FARM","ROAD","DEPART","REMOTE","REPAY")
  fun duration(c:Command)=when(c.type) {
+  "CANCEL_TASK" -> 0
   in immediate -> 0
   "RESEARCH","DRILL","TRY_HEIR","REST" -> 30
   "REFORM" -> 60
@@ -17,7 +18,7 @@ object RealtimeEngine {
   else -> 1
  }
  fun describe(c:Command):String {
-  val time=when(c.type){"FACTORY"->"即刻立项，约270日后完工";"FARM","ROAD"->"即刻立项，约180日后完工";"REMOTE"->"即刻委派，30日后归报";"DEPART"->"即刻出发，旅程随时间推进";else->if(duration(c)==0)"即刻登记" else "办理${duration(c)}日"}
+  val time=when(c.type){"CANCEL_TASK"->"即刻撤销，返还80%预留资金";"FACTORY"->"即刻立项，约270日后完工";"FARM","ROAD"->"即刻立项，约180日后完工";"REMOTE"->"即刻委派，30日后归报";"DEPART"->"即刻出发，旅程随时间推进";else->if(duration(c)==0)"即刻登记" else "办理${duration(c)}日"}
   return "${Rules.label(c)} · ${Rules.cost(c)}万两 · $time"
  }
  fun suggestions(w:World):List<Command> {
@@ -29,7 +30,7 @@ object RealtimeEngine {
   if(c.type=="CANCEL_TASK") {
    val task=w.pending.find {it.id==c.target.toLongOrNull()}?:error("事务已完成或不存在。")
    val refund=task.escrow*4/5
-   return finish(w,w.copy(pending=w.pending.filter {it.id!=task.id},nation=w.nation.copy(treasury=(w.nation.treasury+refund).coerceAtMost(1000000))),"撤销${Rules.label(task.command)}",listOf("退还预留资金 $refund 万两；准备费用 ${task.escrow-refund} 万两不退还。"),listOf("撤销尚未完成的事务。"))
+   return finish(w,w.copy(pending=w.pending.filter {it.id!=task.id},nation=w.nation.copy(treasury=(w.nation.treasury+refund).coerceAtMost(1000000))),"撤销${Rules.label(task.command)}",listOf("退还预留资金 $refund 万两；准备费用 ${task.escrow-refund} 万两不退还。"),listOf("撤销尚未完成的事务。"),commands=listOf(c))
   }
   require(c.type!="TRAVEL"){"旅程会随连续时间自动推进，无需按次赶路。"}
   require(Rules.validate(w,c)==null){Rules.validate(w,c)?:"指令无效"}
@@ -38,11 +39,11 @@ object RealtimeEngine {
   require(w.pending.none {it.command.type==c.type || (c.type in listOf("TAX_UP","TAX_DOWN") && it.command.type in listOf("TAX_UP","TAX_DOWN"))}){"同类事务正在办理，不能重复排程。"}
   val cost=Rules.cost(c)
   val task=PendingOrder(w.revision+1,c,duration(c),cost)
-  return finish(w,w.copy(pending=w.pending+task,nation=w.nation.copy(treasury=w.nation.treasury-cost)),"安排${Rules.label(c)}",listOf("预留资金 -$cost 万两，办理 ${task.remainingDays} 日；取消退还80%预留资金。"),listOf("${Rules.label(c)}已交付办理，时间连续推进，完成后另行记录结果。"))
+  return finish(w,w.copy(pending=w.pending+task,nation=w.nation.copy(treasury=w.nation.treasury-cost)),"安排${Rules.label(c)}",listOf("预留资金 -$cost 万两，办理 ${task.remainingDays} 日；取消退还80%预留资金。"),listOf("${Rules.label(c)}已交付办理，时间连续推进，完成后另行记录结果。"),commands=listOf(c))
  }
  fun advance(w:World,days:Int):Outcome {
   require(days in 1..90 && w.day+days<=900090)
-  var x=w;val ledger=mutableListOf<String>();val events=mutableListOf<String>()
+  var x=w;val ledger=mutableListOf<String>();val events=mutableListOf<String>();val completed=mutableListOf<Command>()
   repeat(days) {
    x=x.copy(day=x.day+1)
    x.journey?.let {j->
@@ -64,6 +65,7 @@ object RealtimeEngine {
    val due=x.pending.filter {it.remainingDays<=1}
    x=x.copy(pending=x.pending.filter {it.remainingDays>1}.map {it.copy(remainingDays=it.remainingDays-1)})
    due.forEach {task->
+    completed+=task.command
     val funded=x.copy(nation=x.nation.copy(treasury=x.nation.treasury+task.escrow))
     val error=Rules.validate(funded,task.command)
     if(error==null) {
@@ -80,10 +82,10 @@ object RealtimeEngine {
    }
    x=Rules.bounded(x)
   }
-  return finish(w,x,"时光流转",ledger,events,record=ledger.isNotEmpty()||events.isNotEmpty())
+  return finish(w,x,"时光流转",ledger,events,record=ledger.isNotEmpty()||events.isNotEmpty(),commands=completed)
  }
- private fun finish(old:World,next:World,action:String,ledger:List<String>,events:List<String>,record:Boolean=true):Outcome {
-  val entry=Entry(old.revision+1,next.turn,next.day,action,"${next.name} · ${next.date}\n${events.joinToString(" ").ifBlank {"朝政、生产与地方事务随时间推进。"}}",ledger,events,old.seed)
+ private fun finish(old:World,next:World,action:String,ledger:List<String>,events:List<String>,record:Boolean=true,commands:List<Command> = emptyList()):Outcome {
+  val entry=Entry(old.revision+1,next.turn,next.day,action,"${next.name} · ${next.date}\n${events.joinToString(" ").ifBlank {"朝政、生产与地方事务随时间推进。"}}",ledger,events,old.seed,commands=commands)
   val world=next.copy(revision=old.revision+1,recent=if(record)(old.recent+entry).takeLast(12) else old.recent)
   Rules.verify(world);return Outcome(world,entry)
  }

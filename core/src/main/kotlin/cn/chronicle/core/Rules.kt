@@ -6,7 +6,7 @@ import kotlin.math.min
 object Rules {
  val policies = listOf("FACTORY","FARM","RESEARCH","ROAD","TAX_DOWN","TAX_UP","DIPLOMACY","DRILL","RELIEF","REPAY","REFORM","REST")
  private val labels = mapOf("ERA" to "更改纪元", "RULER_NAME" to "君主更名", "CHILD_NAME_PLAN" to "预设子女名字", "NAME_CHILD" to "子女更名", "FAMILY_PLAN" to "设置备孕", "TRY_HEIR" to "自愿备孕", "FAMILY_TIME" to "陪伴家人", "STRATEGY" to "调整战略", "FACTORY" to "筹建工厂", "FARM" to "兴修水利", "RESEARCH" to "资助研究", "ROAD" to "修筑道路", "TAX_DOWN" to "减税惠民", "TAX_UP" to "提高税率", "DIPLOMACY" to "派遣使节", "DRILL" to "整训军队", "RELIEF" to "赈济百姓", "REPAY" to "偿还债务", "REFORM" to "考核改革", "REST" to "休养生息", "DEPART" to "出发巡游", "TRAVEL" to "继续行程", "VISIT" to "探访场景", "TALK" to "询问人物", "INVESTIGATE" to "暗访取证", "AUDIT" to "核验账册", "REVEAL" to "公开身份", "TRIAL" to "依法审理", "DISMISS" to "行政撤换", "CLOSE" to "撤销指控", "REMOTE" to "委派监察官", "RETURN" to "返回朝廷")
- fun label(c: Command)=labels[c.type] ?: c.type
+ fun label(c: Command)=if(c.type=="CANCEL_TASK") "撤销事务" else labels[c.type] ?: c.type
  fun cost(c: Command): Long = when(c.type) { "TRY_HEIR" -> 20; "FAMILY_TIME" -> 10; "FACTORY" -> 140; "FARM" -> 75; "RESEARCH" -> 65; "ROAD" -> 100; "DIPLOMACY" -> 35; "DRILL" -> 60; "RELIEF" -> 50; "REPAY" -> 80; "REFORM" -> 95; "DEPART" -> if(c.mode=="公开巡幸") 95 else if(c.mode=="秘密调查") 55 else 35; "TRAVEL" -> 8; "VISIT","TALK" -> 3; "INVESTIGATE" -> 12; "AUDIT" -> 20; "REVEAL" -> 10; "TRIAL" -> 25; "DISMISS" -> 20; "REMOTE" -> 65; "RETURN" -> 20; else -> 0 }
  fun duration(c: Command)=when(c.type) { "ERA","RULER_NAME","CHILD_NAME_PLAN","NAME_CHILD","FAMILY_PLAN","STRATEGY" -> 0; "DEPART" -> 1; "TRAVEL" -> 7; "VISIT","TALK" -> 2; "INVESTIGATE","AUDIT" -> 5; "REVEAL","TRIAL","DISMISS","CLOSE" -> 1; "RETURN" -> 7; else -> 90 }
  fun suggestions(w: World): List<Command> {
@@ -122,7 +122,7 @@ object Rules {
   x=clamped
   ledger+=delta(w.nation,x.nation)
   val text=buildString { append("${x.name} · ${x.date}\n"); append("${w.ruler}下令${label(c)}。 "); append(events.joinToString(" ")); if(events.isEmpty()) append("各司依章执行，成效记入本期账簿。") }
-  val entry=Entry(w.revision+1,x.turn,x.day,label(c),text,ledger,events,w.seed)
+  val entry=Entry(w.revision+1,x.turn,x.day,label(c),text,ledger,events,w.seed,commands=listOf(c))
   x=x.copy(revision=w.revision+1,recent=(w.recent+entry).takeLast(12),summary=if(x.turn%8==0) "截至${x.date}，工业${x.nation.industry}，民心${x.nation.morale}；澄江案${x.caseFile.status}。" else x.summary)
   return Outcome(x,entry)
  }

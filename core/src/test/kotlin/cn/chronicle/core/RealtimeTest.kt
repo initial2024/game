@@ -6,7 +6,7 @@ class RealtimeTest {
  private fun submit(w:World,c:Command)=RealtimeEngine.submit(w,c,w.revision).world
  private fun advance(w:World,n:Int)=RealtimeEngine.advance(w,n).world
  @Test fun ordersDoNotAdvanceTimeAndFinishWithoutNextTurnButton() {
-  val w=game();val queued=submit(w,Command("DRILL"));assertEquals(0,queued.day);assertEquals(w.nation.treasury-60,queued.nation.treasury)
+  val w=game();val queued=submit(w,Command("DRILL"));assertEquals(Command("DRILL"),queued.recent.last().commands.single());assertEquals(0,queued.day);assertEquals(w.nation.treasury-60,queued.nation.treasury)
   val before=advance(queued,29);assertEquals(w.nation.military,before.nation.military);assertEquals(1,before.pending.single().remainingDays)
   val done=advance(before,1);assertEquals(w.nation.military+4,done.nation.military);assertTrue(done.pending.isEmpty());assertEquals(queued.nation.treasury,done.nation.treasury)
  }
