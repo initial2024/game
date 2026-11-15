@@ -34,6 +34,11 @@ jobs:
             core/build/test-results
             app/build/outputs/apk/debug
             app/build/outputs/apk/androidTest/debug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chronicle-arm64-apk
+          compression-level: 9
+          path: app/build/outputs/apk/debug/app-arm64-v8a-debug.apk
   android-test:
     runs-on: ubuntu-latest
     steps:

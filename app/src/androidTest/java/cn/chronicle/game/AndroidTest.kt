@@ -41,7 +41,7 @@ class ScreenTest {
  @get:Rule val compose=createAndroidComposeRule<MainActivity>()
  private fun screenshot(name:String) {
   val context=InstrumentationRegistry.getInstrumentation().targetContext
-  val bitmap=compose.onRoot().captureToImage().asAndroidBitmap()
+  val bitmap=compose.onAllNodes(isRoot()).onLast().captureToImage().asAndroidBitmap()
   if(android.os.Build.VERSION.SDK_INT>=29) {
    val values=android.content.ContentValues().apply {put(android.provider.MediaStore.Images.Media.DISPLAY_NAME,"$name.png");put(android.provider.MediaStore.Images.Media.MIME_TYPE,"image/png");put(android.provider.MediaStore.Images.Media.RELATIVE_PATH,"Pictures/ChronicleCI")}
    val uri=context.contentResolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI,values)!!
@@ -82,6 +82,11 @@ class RealModelTest {
   val story=NativeBridge.generate(narrativePrompt,96,300000).toString(Charsets.UTF_8)
   assertTrue(story.any {it in '\u4e00'..'\u9fff'})
   println("REAL_NARRATIVE text=$story")
+  val commandPrompt="<|im_start|>system\n只输出JSON：{\"commands\":[{\"type\":\"FARM\",\"region\":0}]}。将兴修水渠映射为FARM，最多1条，不要Markdown。<|im_end|>\n<|im_start|>user\n兴修水渠<|im_end|>\n<|im_start|>assistant\n".toByteArray()
+  val structured=NativeBridge.generate(commandPrompt,64,300000).toString(Charsets.UTF_8)
+  val parsed=runCatching {AiValidation.parse(structured,NewGame.create("测试","君主","综合发展","标准",1847))}.getOrNull()
+  println("REAL_INTENT_STRUCTURED_VALID=${parsed!=null} text=$structured")
+  val playable=parsed?:IntentParser.parse("兴修水渠");assertEquals("FARM",playable.commands.single().type)
   val memory=android.os.Debug.MemoryInfo();android.os.Debug.getMemoryInfo(memory);println("ANDROID_OBSERVED_PSS_KIB=${memory.totalPss}")
   repeat(3) {assertTrue(NativeBridge.generate(prompt,6,120000).isNotEmpty())}
   val executor=java.util.concurrent.Executors.newSingleThreadExecutor()
