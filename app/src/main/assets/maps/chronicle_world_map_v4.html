@@ -421,7 +421,8 @@ const activeCoast=customGeography()?scene.geography.landPolygons.map(projectedPo
 if(layers.grid){ctx.save();ctx.beginPath();for(const poly of activeCoast)trace(poly,base);ctx.clip();drawGrid(base+.3);ctx.restore()}
 if(layers.terrain&&!customGeography()){for(const poly of desert)fill(poly,base+.7,colors.terrain,null);drawTerrain();ctx.fillStyle=colors.desert;for(const p of sand){const s=screen(...p,base+1);if(s[0]>0&&s[0]<W&&s[1]>0&&s[1]<H)ctx.fillRect(s[0],s[1],1.5,1.5)}}
 if(!customGeography()){drawRivers();drawRoads();drawAdminLinks()}drawTerritories();drawScenarioRoutes();drawDraft();drawPeaksAndCities();drawLabels();ctx.strokeStyle=colors.landEdge;ctx.lineWidth=2;ctx.beginPath();trace(frame,0);ctx.stroke();el('compass-needle').style.transform=`rotate(${-cam.yaw}deg)`}
-function request(){dirty=true;if(!frame)frame=requestAnimationFrame(()=>{frame=0;if(!dirty)return;dirty=false;const start=performance.now();drawMap();lastRenderMs=performance.now()-start;if(location.hash==='#debug')el('notice').textContent=`地图渲染 ${(performance.now()-start).toFixed(1)}ms · ${terrain.length} 三角面 · ${visibleCities.length} 城市`})}
+let lastNativeFrame='';
+function request(){dirty=true;if(!frame)frame=requestAnimationFrame(()=>{frame=0;if(!dirty)return;dirty=false;const start=performance.now();drawMap();lastRenderMs=performance.now()-start;const key=scene.id+':'+scene.revision;if(window.ChronicleHost&&key!==lastNativeFrame){lastNativeFrame=key;hostMessage('frame',{sceneId:scene.id,revision:scene.revision})}if(location.hash==='#debug')el('notice').textContent=`地图渲染 ${(performance.now()-start).toFixed(1)}ms · ${terrain.length} 三角面 · ${visibleCities.length} 城市`})}
 function fit(){const rect=canvas.getBoundingClientRect();W=Math.max(1,rect.width);H=Math.max(1,rect.height);dpr=Math.min(window.devicePixelRatio||1,2);const maxPixels=3.4e6;if(W*H*dpr*dpr>maxPixels)dpr=Math.sqrt(maxPixels/(W*H));canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);unit=Math.min(W*.94/7000,H*.87/4200);request()}
 function zoomAt(f,x,y){setCamera();const anchor=inverseSurface(x,y);if(!anchor)return;cam.zoom=Math.max(.65,Math.min(8,cam.zoom*f));setCamera();const p=screen(anchor[0],anchor[1],elevation(...anchor));cam.ox+=x-p[0];cam.oy+=y-p[1];clamp();request()}
 function centerPlace(p,z=2.5){cam.zoom=Math.max(1.8,Math.min(7,z));setCamera();cam.ox=0;cam.oy=0;const s=screen(p.x,p.y,p.z);cam.ox=W/2-s[0];cam.oy=H*.42-s[1];clamp();selected=p;request()}
@@ -592,7 +593,7 @@ function restoreView(){try{const v=JSON.parse(localStorage.getItem('chronicle-ma
 canvas.addEventListener('pointerup',saveView);canvas.addEventListener('wheel',saveView);canvas.addEventListener('keydown',saveView);
 el('theme').addEventListener('click',saveView);el('font').addEventListener('click',saveView);el('reset').addEventListener('click',saveView);
 panel.addEventListener('change',saveView);document.addEventListener('visibilitychange',saveView);
-window.addEventListener('chronicle-map:native-scene',restoreView);
+window.addEventListener('chronicle-map:native-scene',()=>{lastNativeFrame='';restoreView();request()});
 refreshSceneHeader();fit();hostMessage('ready');
 })();
 </script>

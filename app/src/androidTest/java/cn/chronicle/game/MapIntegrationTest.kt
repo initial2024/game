@@ -31,7 +31,7 @@ class MapIntegrationTest {
  @Before fun setup(){cleanLauncher()}
  private fun js(code:String):String {val latch=CountDownLatch(1);var result="";compose.runOnUiThread {compose.activity.mapController!!.evaluateForTest(code){result=it;latch.countDown()}};assertTrue("WebView evaluation timeout",latch.await(15,TimeUnit.SECONDS));return result}
  private fun scene()=JSONObject(JSONTokener(js("JSON.stringify(ChronicleMap.exportScenario())")).nextValue() as String)
- private fun ready(vm:GameViewModel){compose.waitUntil(30000){compose.activity.mapController?.readyRevision==vm.state.value.world?.revision}}
+ private fun ready(vm:GameViewModel){compose.waitUntil(30000){compose.activity.mapController?.let {it.readyRevision==vm.state.value.world?.revision&&it.readySceneId=="game-slot-${vm.state.value.slot}"}==true}}
  private fun openMap(){compose.onNodeWithText("世界",useUnmergedTree=true).performClick();compose.onNodeWithText("打开世界舆图 v4").performScrollTo().performClick()}
  private fun touch(selector:String){
   val query="(function(){const e=document.querySelector("+MapBridgePolicy.quoted(selector)+");if(!e)throw Error('missing element');const r=e.getBoundingClientRect();return JSON.stringify({x:r.x+r.width/2,y:r.y+r.height/2,width:innerWidth,height:innerHeight});})()"
@@ -93,7 +93,7 @@ class MapRestartTest {
   cleanLauncher();val vm=ViewModelProvider(compose.activity)[GameViewModel::class.java];compose.waitUntil(30000){vm.state.value.ready}
   val marker=JSONObject(java.io.File(compose.activity.getExternalFilesDir(null),"map-checkpoint.json").readText());assertEquals(marker.getInt("slot"),vm.state.value.slot);assertEquals(marker.getLong("revision"),vm.state.value.world!!.revision);assertTrue(vm.state.value.paused)
   assertEquals("澄江新城",vm.state.value.world!!.cartography!!.places["city-r0"]!!.name)
-  compose.onNodeWithText("世界",useUnmergedTree=true).performClick();compose.onNodeWithText("打开世界舆图 v4").performScrollTo().performClick();compose.waitUntil(30000){compose.activity.mapController?.readyRevision==vm.state.value.world!!.revision}
+  compose.onNodeWithText("世界",useUnmergedTree=true).performClick();compose.onNodeWithText("打开世界舆图 v4").performScrollTo().performClick();compose.waitUntil(30000){compose.activity.mapController?.let {it.readyRevision==vm.state.value.world!!.revision&&it.readySceneId=="game-slot-${vm.state.value.slot}"}==true}
   val latch=CountDownLatch(1);var raw="";compose.runOnUiThread {compose.activity.mapController!!.evaluateForTest("JSON.stringify(ChronicleMap.exportScenario())"){raw=it;latch.countDown()}};assertTrue(latch.await(15,TimeUnit.SECONDS));val scene=JSONObject(JSONTokener(raw).nextValue() as String)
   assertEquals("active",scene.getJSONObject("placeStates").getJSONObject("settlement-r0").getString("status"));assertEquals("澄江新城",scene.getJSONObject("places").getJSONObject("city-r0").getString("name"));captureMap("map-after-process-restart")
   println("MAP_PROCESS_RESTART_CONSISTENT=true revision=${vm.state.value.world!!.revision}")

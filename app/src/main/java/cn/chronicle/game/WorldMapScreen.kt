@@ -58,28 +58,51 @@ class MapWebController(private val web:WebView,private val editor:Boolean,privat
  private val dispatcher=MapDeltaDispatcher()
  private var snapshot:MapScenario?=null
  private var loaded=false
+ private var pageLoaded=false
+ private var editorPainted=false
+ private var requestToken=0L
+ private var expectedScene=""
+ private var expectedVisual=-1L
+ private var visualQueued=false
+ var readySceneId:String="";private set
  private var sending=false
  private var destroyed=false
  val isEditor:Boolean get()=editor
- val isPageReady:Boolean get()=loaded&&!destroyed
+ val isPageReady:Boolean get()=loaded&&!destroyed&&(if(editor)editorPainted else readyRevision>=0)
  @Volatile var readyRevision:Long=-1;private set
  var rejectedMessages:Int=0;private set
  fun update(world:World,slot:Int){if(editor||destroyed)return;snapshot=MapSnapshotMapper.scene(world,slot);flush()}
- fun pageReady(){if(destroyed)return;loaded=true;dispatcher.reset();flush()}
+ fun pageReady(){if(destroyed)return;pageLoaded=true;loaded=true;dispatcher.reset();flush()}
  private fun flush(){
   if(editor||!loaded||sending||destroyed)return
-  val scene=snapshot?:return;val d=dispatcher.next(scene)?:return;sending=true
+  val scene=snapshot?:return;val d=dispatcher.next(scene)?:return;sending=true;visualQueued=false;expectedScene=scene.id;expectedVisual=scene.revision;val token=++requestToken
   val js="(function(){try{if(ChronicleMap.getSchema()!==${MapBridgePolicy.quoted(MAP_SCHEMA)})throw Error('schema');ChronicleMap.${d.method}(JSON.parse(${MapBridgePolicy.quoted(d.json)}));${if(d.method=="applyScenario")"window.dispatchEvent(new Event('chronicle-map:native-scene'));" else ""}return {ok:true,revision:ChronicleMap.exportScenario().revision};}catch(e){return {ok:false,error:String(e)};}})()"
   web.evaluateJavascript(js){raw->
    if(destroyed)return@evaluateJavascript
-   sending=false
    val result=runCatching {JSONObject(raw)}.getOrNull()
-   if(result?.optBoolean("ok")==true){readyRevision=result.getLong("revision");flush()}else{dispatcher.reset();loaded=false;error("地图未载入：${result?.optString("error")?:"渲染进程不可用"}。可返回后重开。")}
+   if(result?.optBoolean("ok")!=true){sending=false;dispatcher.reset();loaded=false;error("地图未载入：${result?.optString("error")?:"渲染进程不可用"}。可返回后重开。")}
   }
+  web.postDelayed({if(!destroyed&&sending&&requestToken==token){sending=false;dispatcher.reset();loaded=false;error("地图绘制尚未完成，请返回后重开；可信存档已保留。")}},12000)
+ }
+ private fun rendered(id:String,revision:Long){
+  if(destroyed||!pageLoaded)return
+  if(!editor&&(id!=expectedScene||revision!=expectedVisual||!sending||visualQueued))return
+  if(editor&&!MapValidation.id(id))return
+  visualQueued=true;val token=requestToken
+  web.postVisualStateCallback(revision,object:WebView.VisualStateCallback(){override fun onComplete(requestId:Long){
+   if(destroyed||(!editor&&token!=requestToken))return
+   web.invalidate();(web.parent as? android.view.View)?.invalidate()
+   web.postOnAnimation {web.postOnAnimation {
+    if(!destroyed&&(editor||token==requestToken)){editorPainted=editor;readySceneId=id;readyRevision=revision;sending=false;visualQueued=false;flush()}
+   }}
+  }})
  }
  fun receive(text:String,origin:Uri,main:Boolean){
   android.util.Log.i("ChronicleMap","Bridge origin=$origin main=$main length=${text.length}")
   if(destroyed||!main||origin.toString().trimEnd('/')!=MapBridgePolicy.ORIGIN||!MapBridgePolicy.trusted(web.url)){android.util.Log.w("ChronicleMap","Rejected origin or frame");rejectedMessages++;return}
+  if(text.length<=256){val status=runCatching {JSONObject(text)}.getOrNull();if(status?.optString("type")=="frame"){
+   if(status.keys().asSequence().toSet()==setOf("type","sceneId","revision"))rendered(status.optString("sceneId"),status.optLong("revision",-1));return
+  }}
   if(text=="{\"type\":\"ready\"}"){pageReady();return}
   if(text=="{\"type\":\"request-export\"}"){fileRequest(false);return}
   if(editor&&text=="{\"type\":\"request-import\"}"){fileRequest(true);return}
@@ -92,7 +115,7 @@ class MapWebController(private val web:WebView,private val editor:Boolean,privat
  fun boundsForTest():String {val p=IntArray(2);web.getLocationOnScreen(p);return JSONObject().put("width",web.width).put("height",web.height).put("x",p[0]).put("y",p[1]).toString()}
  fun evaluateForTest(js:String,ready:(String)->Unit){check(!destroyed);web.evaluateJavascript(js,ready)}
  fun pause(){if(!destroyed)web.onPause()}
- fun resume(){if(!destroyed)web.onResume()}
+ fun resume(){if(!destroyed){web.onResume();if(pageLoaded){sending=false;visualQueued=false;loaded=true;dispatcher.reset();flush()}}}
  fun destroy(){if(destroyed)return;destroyed=true;loaded=false;snapshot=null;dispatcher.reset();web.stopLoading();if(WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER))WebViewCompat.removeWebMessageListener(web,"ChronicleHost");web.webChromeClient=null;web.webViewClient=WebViewClient();web.removeAllViews();web.destroy()}
  companion object {var activeCount=0;private set;fun created(){activeCount++};fun released(){activeCount--}}
 }
