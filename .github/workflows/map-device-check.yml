@@ -37,6 +37,8 @@ jobs:
             adb shell wm density 160
             adb install app.apk
             adb install test.apk
+            bash scripts/run-device-tests.sh cn.chronicle.game.ScreenTest,cn.chronicle.game.StorageTest "$RUNNER_TEMP/map-device-report/existing"
+            adb shell am force-stop cn.chronicle.shanhe
             bash scripts/run-device-tests.sh cn.chronicle.game.MapIntegrationTest "$RUNNER_TEMP/map-device-report"
             adb shell am force-stop cn.chronicle.shanhe
             bash scripts/run-device-tests.sh cn.chronicle.game.MapRestartTest "$RUNNER_TEMP/map-device-report/restart"

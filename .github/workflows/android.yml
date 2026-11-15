@@ -89,7 +89,7 @@ jobs:
           api-level: 35
           arch: x86_64
           profile: pixel_4
-          emulator-options: -no-window -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect
+          emulator-options: -no-window -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect -feature -Vulkan
           script: |
             adb shell wm size 390x844
             adb shell wm density 160
@@ -129,7 +129,7 @@ jobs:
           api-level: 35
           arch: x86_64
           profile: pixel_4
-          emulator-options: -no-window -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect
+          emulator-options: -no-window -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect -feature -Vulkan
           script: |
             adb shell wm size 390x844
             adb shell wm density 160

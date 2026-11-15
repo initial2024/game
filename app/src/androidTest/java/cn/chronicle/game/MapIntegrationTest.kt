@@ -35,7 +35,14 @@ class MapIntegrationTest {
  private fun openMap(){compose.onNodeWithText("世界",useUnmergedTree=true).performClick();compose.onNodeWithText("打开世界舆图 v4").performScrollTo().performClick()}
  private fun touch(selector:String){
   val query="(function(){const e=document.querySelector("+MapBridgePolicy.quoted(selector)+");if(!e)throw Error('missing element');const r=e.getBoundingClientRect();return JSON.stringify({x:r.x+r.width/2,y:r.y+r.height/2,width:innerWidth,height:innerHeight});})()"
-  val p=JSONObject(JSONTokener(js(query)).nextValue() as String);assertTrue("DOM control outside viewport: $p",p.getDouble("y") in 0.0..p.getDouble("height"))
+  var last="";var stableAt=android.os.SystemClock.uptimeMillis();var p=JSONObject()
+  compose.waitUntil(10000){
+   p=JSONObject(JSONTokener(js(query)).nextValue() as String);var native="";compose.runOnUiThread {native=compose.activity.mapController!!.boundsForTest()}
+   val metrics=JSONObject(native);val key=p.toString()+native;val now=android.os.SystemClock.uptimeMillis()
+   if(key!=last){last=key;stableAt=now}
+   metrics.getInt("height")==p.getInt("height")&&metrics.getInt("width")==p.getInt("width")&&now-stableAt>=500
+  }
+  assertTrue("DOM control outside viewport: $p",p.getDouble("y") in 0.0..p.getDouble("height"))
   val x=p.getDouble("x");val y=p.getDouble("y");val viewportWidth=p.getDouble("width")
   var nativeBounds="";compose.runOnUiThread {nativeBounds=compose.activity.mapController!!.boundsForTest()};println("MAP_TOUCH=$selector bounds=$p native=$nativeBounds node=${compose.onNodeWithTag("world-map-web").fetchSemanticsNode().boundsInWindow}")
   compose.onNodeWithTag("world-map-web").performTouchInput {val factor=width/viewportWidth;click(androidx.compose.ui.geometry.Offset((x*factor).toFloat(),(y*factor).toFloat()))}
