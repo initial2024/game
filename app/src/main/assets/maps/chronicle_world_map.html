@@ -348,7 +348,7 @@ classic:{sea:'#a9c5b9',land:'#eadbab',landEdge:'#503d28',wall:'#a8895c',terrain:
 night:{sea:'#263c3e',land:'#59523c',landEdge:'#171b14',wall:'#3c3529',terrain:'#646047',terrainHigh:'#8e815a',mountLight:'#66846b',mountDark:'#315c4f',river:'#6cbdc0',yellow:'#c3a764',desert:'#938254',ink:'#eee1ba',region:'#e88b77',waterName:'#8bc9d1',grid:'rgba(227,215,174,.19)',halo:'rgba(19,23,17,.92)',snow:'#e9edf0',road:'#df8b70'},
 eye:{sea:'#a9c8bd',land:'#e1e6bb',landEdge:'#48553a',wall:'#a9b18a',terrain:'#abb68b',terrainHigh:'#d1d3a0',mountLight:'#8cac86',mountDark:'#52775a',river:'#467f8b',yellow:'#a68843',desert:'#b9aa73',ink:'#2f402b',region:'#994233',waterName:'#3b7c89',grid:'rgba(58,76,40,.23)',halo:'rgba(232,239,203,.93)',snow:'#f7f9ed',road:'#a7382c'}};
 const cam={yaw:0,pitch:34,zoom:1.8,ox:0,oy:0};let W=1,H=1,dpr=1,unit=.04,ca=1,sa=0,cb=1,sb=0,scale=1,frame=0,dirty=true,lastRenderMs=0;
-let themeName=matchMedia('(prefers-color-scheme:dark)').matches?'night':'classic',colors=palettes[themeName],fontScale=1,mode='rotate',selected=null,openPanel='',hitBoxes=[],labelRects=[],visibleCities=[];
+let themeName='classic',colors=palettes[themeName],fontScale=1,mode='rotate',selected=null,openPanel='',hitBoxes=[],labelRects=[],visibleCities=[];
 document.documentElement.dataset.theme=themeName;
 const layers={terrain:true,mountains:true,rivers:true,cities:true,counties:true,foreign:true,adminLinks:false,labels:true,roads:true,regions:true,grid:true,territories:true,scenarioRoutes:true};
 function setCamera(c=cam){const ya=c.yaw*D,pa=c.pitch*D;ca=Math.cos(ya);sa=Math.sin(ya);cb=Math.cos(pa);sb=Math.sin(pa);scale=unit*c.zoom}
@@ -397,6 +397,7 @@ function drawAdminLinks(){
 }
 function drawTerritories(){
  if(!layers.territories)return;
+ ctx.save();ctx.beginPath();for(const poly of (customGeography()?scene.geography.landPolygons.map(projectedPolygon):coast))trace(poly,base);ctx.clip();
  for(const t of scene.territories){
   const polygon=projectedPolygon(t.polygon),owner=scene.polities.find(p=>p.id===t.polityId),col=owner?.color||'#98816b';
   if(polygon.length<3)continue;
@@ -411,6 +412,7 @@ function drawTerritories(){
   if(t.id===selectedTerritoryId){path();ctx.strokeStyle=colors.ink;ctx.lineWidth=2;ctx.setLineDash([3,4]);ctx.stroke()}
   ctx.restore();
  }
+ ctx.restore();
 }
 function drawTerritoryLabels(){
  if(!layers.territories||!layers.labels||cam.zoom<1.15)return;
@@ -465,6 +467,16 @@ function details(p,notify=true){
  setPanel({type:'detail',title:assigned||placeholder(p),children});request()
 }
 function showAdmin(openId=null){
+ if(nativeReadOnly&&scene.groups.some(g=>g.parentId)){
+  const children=[txt('p','按大区、府、县展开。点击城邑可查看人口、地方官及城内建筑；县级标记放大后显示。','notice-area')],roots=scene.groups.filter(g=>!g.parentId);
+  const ancestors=new Set();let focus=scene.groups.find(g=>g.id===openId);while(focus){ancestors.add(focus.id);focus=scene.groups.find(g=>g.id===focus.parentId)}
+  const render=(g,depth)=>{const box=document.createElement('details');box.className='district';box.open=ancestors.has(g.id);box.style.marginLeft=depth?'8px':'0';
+   const sub=scene.groups.filter(x=>x.parentId===g.id),summary=txt('summary',(g.name||g.id)+(g.rank?' · '+g.rank:'')+(sub.length?' · '+sub.length+'个下辖单位':''));box.append(summary);
+   const buttons=txt('div','','result-list');for(const id of g.memberIds){const place=cityById.get(id);if(!place||!shownCity(place))continue;const b=txt('button',displayPlace(place)||place.id);b.className='listing';b.onclick=()=>{centerPlace(place,place.type==='x'?5:3.7);details(place)};buttons.append(b)}box.append(buttons);
+   for(const child of sub){if(child.rank==='县'){const place=cityById.get(child.memberIds[0]);if(!place)continue;const b=txt('button',(child.name||child.id)+' · 县城');b.className='listing';b.style.width='100%';b.style.margin='3px 0';b.onclick=()=>{centerPlace(place,5);details(place)};box.append(b)}else box.append(render(child,depth+1))}
+   return box};roots.forEach(g=>children.push(render(g,0)));setPanel({type:'admin',title:'府县与城邑',children});return;
+ }
+
  const children=[txt('p',scene.groups.length?'当前区域与节点关系来自剧情场景；不代表精确国界。':'当前仅显示地理参考节点簇。旧版府县与周边城邑关系仅作数据占位，不代表当前时代或国家的行政关系。','notice-area')];
  const list=document.createElement('div');
  for(const group of activeGroups()){
@@ -603,8 +615,8 @@ if(!sceneLibrary[scene.id])sceneLibrary[scene.id]=plainScene();
 window.addEventListener('chronicle-map:place-select',e=>hostMessage('place-select',e.detail));
 window.addEventListener('chronicle-map:territory-select',e=>hostMessage('territory-select',e.detail));
 // Camera/theme cache is auxiliary only; native world snapshots never read it as game data.
-function saveView(){try{localStorage.setItem('chronicle-map-view-'+scene.id,JSON.stringify({cam,themeName,fontScale,layers}))}catch{}}
-function restoreView(){try{const v=JSON.parse(localStorage.getItem('chronicle-map-view-'+scene.id)||'null');if(!v)return;if(v.cam&&Object.values(v.cam).every(Number.isFinite))Object.assign(cam,v.cam);if(palettes[v.themeName]){themeName=v.themeName;colors=palettes[themeName];document.documentElement.dataset.theme=themeName}if([1,1.2,1.4].includes(v.fontScale))fontScale=v.fontScale;if(v.layers)for(const k in layers)if(typeof v.layers[k]==='boolean')layers[k]=v.layers[k];clamp();request()}catch{}}
+function saveView(){try{localStorage.setItem('chronicle-map-view-counties-v1-'+scene.id,JSON.stringify({cam,themeName,fontScale,layers}))}catch{}}
+function restoreView(){try{const v=JSON.parse(localStorage.getItem('chronicle-map-view-counties-v1-'+scene.id)||'null');if(!v)return;if(v.cam&&Object.values(v.cam).every(Number.isFinite))Object.assign(cam,v.cam);if(palettes[v.themeName]){themeName=v.themeName;colors=palettes[themeName];document.documentElement.dataset.theme=themeName}if([1,1.2,1.4].includes(v.fontScale))fontScale=v.fontScale;if(v.layers)for(const k in layers)if(typeof v.layers[k]==='boolean')layers[k]=v.layers[k];clamp();request()}catch{}}
 canvas.addEventListener('pointerup',saveView);canvas.addEventListener('wheel',saveView);canvas.addEventListener('keydown',saveView);
 el('theme').addEventListener('click',saveView);el('font').addEventListener('click',saveView);el('reset').addEventListener('click',saveView);
 panel.addEventListener('change',saveView);document.addEventListener('visibilitychange',saveView);

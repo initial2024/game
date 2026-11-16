@@ -11,6 +11,8 @@ import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlinx.coroutines.*
+import kotlinx.serialization.json.*
+import kotlinx.serialization.encodeToString
 import androidx.compose.ui.test.*
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.semantics.SemanticsActions
@@ -32,6 +34,16 @@ class StorageTest {
   val exported=store.export(1);store.import(exported,3);assertEquals(next.world,store.load(3));assertEquals(2,store.history(3).size)
   try {store.import(exported.replace("测试","篡改"),4);fail("corruption accepted")}catch(_:IllegalArgumentException){}
   store.close()
+ }
+ @Test fun legacyExportChecksumSurvivesCommandSchemaExtension(){
+  val context=InstrumentationRegistry.getInstrumentation().targetContext;context.deleteDatabase("old-command-import-test.db")
+  val start=NewGame.create("旧格式","君主","综合发展","标准",1847);val out=RealtimeEngine.submit(start,Command("FARM"),0)
+  fun strip(e:JsonElement):JsonElement=when(e){is JsonObject->JsonObject(e.filterKeys {it!="level"}.mapValues {strip(it.value)});is JsonArray->JsonArray(e.map {strip(it)});else->e}
+  val original=SaveJson.parseToJsonElement(SaveJson.encodeToString(out.world)).jsonObject
+  val world=strip(JsonObject(original.filterKeys {it !in listOf("towns","socialTopics")}.toMutableMap().apply {put("people",SaveJson.parseToJsonElement(SaveJson.encodeToString(out.world.people.take(10))))})).toString()
+  val history=strip(SaveJson.parseToJsonElement(SaveJson.encodeToString(listOf(out.entry))));val digest=Store.sha(world+history.toString()+"[]")
+  val snapshot=buildJsonObject {put("format",2);put("world",world);put("history",history);put("dialogues",JsonArray(emptyList()));put("sha256",digest)}.toString()
+  Store(context,"old-command-import-test.db").use {store->store.import(snapshot,1);assertEquals(out.world.nation,store.load(1)!!.nation);assertEquals(59,store.load(1)!!.towns.count {it.rank=="县城"});assertEquals("FARM",store.history(1).single().commands.single().type)}
  }
  @Test fun corruptModelHeaderRejected() {
   val f=File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir,"invalid.gguf");f.writeBytes(ByteArray(64))
@@ -167,7 +179,7 @@ class RealModelTest {
    manager.load();runBlocking {withTimeout(120000){while(manager.state.value.working)delay(100)}}
    assertTrue(manager.state.value.status,manager.isLoaded)
    var appChunks=0;val appStart=System.nanoTime()
-   val reply=runBlocking {withTimeout(150000){manager.chat(world,person,emptyList(),"请用一句话谈谈你的目标。",{appChunks++})}}
+   val reply=runBlocking {withTimeout(210000){manager.chat(world,person,emptyList(),"请用一句话谈谈你的目标。",{appChunks++})}}
    assertEquals("model",reply.source);assertTrue(reply.text.any {it in '\u4e00'..'\u9fff'});assertTrue(appChunks>0)
    println("REAL_APP_CHARACTER_CHAT elapsed_ms=${(System.nanoTime()-appStart)/1000000} chunks=$appChunks text=${reply.text}")
   } finally {manager.unloadAsync();runBlocking {withTimeout(60000){while(manager.isLoaded)delay(100)}};manager.close()}

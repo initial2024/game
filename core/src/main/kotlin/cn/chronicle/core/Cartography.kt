@@ -83,14 +83,19 @@ object MapSnapshotMapper {
   val index=when {t.id.startsWith("territory-r")->t.id.removePrefix("territory-r").toIntOrNull()?.takeIf {it in 0..3};t.id.startsWith("frontier-")->t.id.removePrefix("frontier-").toIntOrNull()?.takeIf {it in 0..2}?.plus(4);else->null}
   if(index!=null&&t.polygon==oldRect(index))t.copy(polygon=contours[index])else t
  })
+ fun legacyBoundary(t:MapTerritory):Boolean {
+  val index=when {t.id.startsWith("territory-r")->t.id.removePrefix("territory-r").toIntOrNull()?.takeIf {it in 0..3};t.id.startsWith("frontier-")->t.id.removePrefix("frontier-").toIntOrNull()?.takeIf {it in 0..2}?.plus(4);else->null}
+  return index!=null&&(t.polygon==oldRect(index)||t.polygon==contours[index])
+ }
+ fun state(w:World)=MunicipalMap.expand(w,detailed(w.cartography?:base(w)))
  fun scene(w:World,slot:Int):MapScenario {
   require(slot in 1..8)
-  val s=detailed(w.cartography?:base(w))
+  val s=state(w)
   return s.copy(id="game-slot-$slot",revision=w.revision,meta=MapMeta(w.name,w.date,if(w.setting=="古代王朝")"古" else "纪"),polities=s.polities.map {if(it.id=="nation")it.copy(name=w.name)else it},groups=s.groups.map {g->w.regions.find {"region-${it.id}"==g.id}?.let {g.copy(name=it.name)}?:g}).also(MapValidation::verify)
  }
- fun regionId(w:World,placeId:String):Int? = (w.cartography?:base(w)).places[placeId]?.let {regionForGroup(w,it.groupId)}
+ fun regionId(w:World,placeId:String):Int? = state(w).places[placeId]?.let {regionForGroup(w,it.groupId)}
  fun regionForGroup(w:World,groupId:String):Int? {
-  val s=w.cartography?:base(w);var id=groupId;val seen=mutableSetOf<String>()
+  val s=state(w);var id=groupId;val seen=mutableSetOf<String>()
   while(id.isNotEmpty()&&seen.add(id)){
    id.takeIf {it.startsWith("region-")}?.removePrefix("region-")?.toIntOrNull()?.takeIf {n->w.regions.any {it.id==n}}?.let {return it}
    id=s.groups.find {it.id==id}?.parentId?:return null
@@ -103,7 +108,7 @@ object MapSnapshotMapper {
   val polities=listOf(MapPolity("nation",w.name,"#b75d45"))+w.neighbors.mapIndexed {i,n->MapPolity("neighbor-$i",n.name,listOf("#5a90a0","#9b8657","#748457")[i])}
   val places=w.regions.associate {r->"city-r${r.id}" to MapPlace(r.name+"城",if(w.setting=="古代王朝")"府城" else "地区中心","地区治理、官员档案与巡游入口。","region-${r.id}","nation")}+mapOf("ruin-r0" to MapPlace("旧津", "旧城","往年水患留下的废城，可以依法拨款恢复。","region-0","nation"))+w.neighbors.mapIndexed {i,n->"neighbor-city-$i" to MapPlace(n.name+"都","邻国都城",polityId="neighbor-$i")}
   val territories=w.regions.map {r->MapTerritory("territory-r${r.id}",r.name,if(w.setting==EraRules.ANCIENT)"府"else"地区","nation","region-${r.id}",polygon=contours[r.id])}+w.neighbors.mapIndexed {i,n->MapTerritory("frontier-$i",n.name+"边地",polityId="neighbor-$i",polygon=contours[i+4])}
-  return MapScenario(polities=polities,places=places,extraPlaces=points,placeStates=points.associate {it.id to MapPlaceState(if(it.id=="ruin-r0")"ruined" else "active")},groups=w.regions.map {r->MapGroup("region-${r.id}",r.name,if(w.setting=="古代王朝")"府" else "地区",polityId="nation",memberIds=places.filterValues {it.groupId=="region-${r.id}"}.keys.toList())},territories=territories,routes=(1..3).map {MapRoute("route-$it","驿道","city-r0","city-r$it")})
+  return MunicipalMap.expand(w,MapScenario(polities=polities,places=places,extraPlaces=points,placeStates=points.associate {it.id to MapPlaceState(if(it.id=="ruin-r0")"ruined" else "active")},groups=w.regions.map {r->MapGroup("region-${r.id}",r.name,if(w.setting=="古代王朝")"府" else "地区",polityId="nation",memberIds=places.filterValues {it.groupId=="region-${r.id}"}.keys.toList())},territories=territories,routes=(1..3).map {MapRoute("route-$it","驿道","city-r0","city-r$it")}))
  }
 }
 
@@ -129,7 +134,7 @@ class MapDeltaDispatcher {
 object MapActions {
  val types=setOf("CITY_FOUND","CITY_RESTORE","CITY_RENAME","BORDER_TREATY")
  fun validate(w:World,c:Command):String? {
-  val s=w.cartography?:MapSnapshotMapper.base(w)
+  val s=MapSnapshotMapper.state(w)
   if(w.pending.any {it.command.type==c.type && it.command.region==c.region} || w.projects.any {it.kind==c.type&&it.region==c.region})return "同一地区已有这项事务。"
   return when(c.type){
    "CITY_FOUND" -> if(s.places.containsKey("settlement-r${c.region}"))"此地新城已登记。" else if(s.extraPlaces.none {it.id=="city-r${c.region}"&&it.lon<=154&&it.lat>=-3.3})"当前剧情没有可用的地区营建点。" else null
@@ -140,23 +145,24 @@ object MapActions {
   }
  }
  fun execute(w:World,c:Command,events:MutableList<String>):World {
-  var s=w.cartography?:MapSnapshotMapper.base(w)
+  var s=MapSnapshotMapper.state(w)
   when(c.type){
    "CITY_FOUND" -> {val id="settlement-r${c.region}";val main=s.extraPlaces.first {it.id=="city-r${c.region}"}
     s=s.copy(extraPlaces=s.extraPlaces+MapPoint(id,main.lon+1.0,main.lat-.7,"s"),places=s.places+(id to MapPlace(w.regions[c.region].name+"新邑","新邑",groupId="region-${c.region}",polityId="nation")),placeStates=s.placeStates+(id to MapPlaceState("planned")),groups=s.groups.map {if(it.id=="region-${c.region}")it.copy(memberIds=it.memberIds+id)else it},routes=s.routes+MapRoute("new-route-${c.region}","新邑道路","city-r${c.region}",id))
     events+="新邑已登记为规划中；120日工期完成后方可居住。"
    }
    "CITY_RESTORE" -> {s=s.copy(placeStates=s.placeStates+(c.target to MapPlaceState("planned","修复中")));events+="旧津开始修复，90日后验收，不会即刻恢复。"}
-   "CITY_RENAME" -> {s=s.copy(places=s.places+(c.target to s.places.getValue(c.target).copy(name=c.objective)));events+="城邑名称改为${c.objective}，稳定地点ID和过去历史保留。"}
+   "CITY_RENAME" -> {s=s.copy(places=s.places+(c.target to s.places.getValue(c.target).copy(name=c.objective)),groups=s.groups.map {if(it.id=="admin-${c.target}")it.copy(name=c.objective)else it});events+="城邑名称改为${c.objective}，稳定地点ID和过去历史保留。"}
    "BORDER_TREATY" -> {s=s.copy(territories=s.territories.map {if(it.id==c.target)it.copy(polityId="nation",description="两国议定移交，仍保留原有地理位置。")else it},places=s.places+("neighbor-city-0" to s.places.getValue("neighbor-city-0").copy(polityId="nation")))
     events+="两国按约完成东部边地移交；交割成本已付，今后每季承担5万两驻防支出。"
    }
   }
-  return w.copy(cartography=s,projects=if(c.type in listOf("CITY_FOUND","CITY_RESTORE")) w.projects+Project(c.type,c.region,2,if(c.type=="CITY_FOUND")120 else 90) else w.projects,neighbors=if(c.type=="BORDER_TREATY")w.neighbors.mapIndexed {i,n->if(i==0)n.copy(relation=n.relation-15)else n}else w.neighbors)
+  return w.copy(towns=if(c.type=="CITY_RENAME")w.towns.map {if(it.id==c.target)it.copy(name=c.objective)else it}else w.towns,cartography=s,projects=if(c.type in listOf("CITY_FOUND","CITY_RESTORE")) w.projects+Project(c.type,c.region,2,if(c.type=="CITY_FOUND")120 else 90) else w.projects,neighbors=if(c.type=="BORDER_TREATY")w.neighbors.mapIndexed {i,n->if(i==0)n.copy(relation=n.relation-15)else n}else w.neighbors)
  }
  fun complete(w:World,p:Project,events:MutableList<String>):World {
-  val s=w.cartography?:MapSnapshotMapper.base(w);val id=if(p.kind=="CITY_FOUND")"settlement-r${p.region}" else "ruin-r0"
+  val s=MapSnapshotMapper.state(w);val id=if(p.kind=="CITY_FOUND")"settlement-r${p.region}" else "ruin-r0"
   events+="${s.places[id]?.name}验收完成，由规划中变为现存，城邑记录已保存。"
-  return w.copy(cartography=s.copy(placeStates=s.placeStates+(id to MapPlaceState("active","完成验收"))))
+  val x=MunicipalEngine.register(w,id,p.region,s.places.getValue(id).name)
+  return x.copy(cartography=s.copy(placeStates=s.placeStates+(id to MapPlaceState("active","完成验收"))),towns=x.towns)
  }
 }

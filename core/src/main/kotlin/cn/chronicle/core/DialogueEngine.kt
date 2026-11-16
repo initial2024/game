@@ -11,15 +11,30 @@ object DialogueEngine {
   if(!p.alive)return "此人已故，旧对话仅供查阅。"
   if(w.studies.any {it.person==id})return null // Student correspondence is a registered channel.
   val j=w.journey
+  if(id>=10&&MunicipalEngine.all(w).any {it.official==id})return if(j==null||j.remainingTravel==0&&MunicipalEngine.all(w).any {it.official==id&&it.region==j.region})null else "可回朝后函询这位地方官，或抵达其所属大区。"
   if(id<=2)return null // Court correspondence or a travelling companion.
   if(id in 3..5)return if(j==null||j.remainingTravel==0&&j.region==id-3)null else "这位地方官不在当前行在，可回朝后函议。"
   return if(j?.region==0&&j.remainingTravel==0)null else "须抵达澄江后才能与这位地方人物交谈。"
  }
  fun hidden(w:World,p:Person)=p.id>=3&&w.journey?.revealed==false
- fun identity(w:World,p:Person)=if(hidden(w,p))w.journey!!.disguise else if(p.id<6)"经朝廷文书确认的统治者" else "已验明身份的来访者"
+ fun identity(w:World,p:Person)=if(hidden(w,p))w.journey!!.disguise else if(p.id<6||MunicipalEngine.all(w).any {it.official==p.id})"经朝廷文书确认的统治者" else "已验明身份的来访者"
  fun approach(requested:String,text:String):String {
   require(requested in approaches)
   return if(listOf("废物","蠢货","处死你","杀你全家","滚蛋").any(text::contains))"威胁" else requested
+ }
+ fun topic(text:String)=when {
+  listOf("学习","学院","学堂","留学","学业","老师").any(text::contains)->"学业"
+  listOf("证据","贪污","摊派","账册","调查").any(text::contains)->"案件"
+  listOf("军队","士兵","军需","边防","军饷").any(text::contains)->"军务"
+  listOf("百姓","农田","粮食","赈济","民生").any(text::contains)->"民生"
+  listOf("目标","打算","志向","抱负").any(text::contains)->"志向"
+  listOf("家乡","近况","身体","休息","家人").any(text::contains)->"近况"
+  listOf("政策","改革","朝政","税收").any(text::contains)->"政务"
+  else->"闲谈"
+ }
+ fun socialKey(w:World,p:Person,topic:String):String {
+  val context=when(topic){"学业"->w.studies.firstOrNull {it.person==p.id}?.let {"${it.destination}-${it.phase}"}?:"能力${p.ability/10}";"案件"->w.caseFile.status;"军务"->"军备${w.nation.military/20}";"民生"->"民心${w.nation.morale/20}";"政务"->"改革${w.nation.administration/20}";"志向"->p.role;else->"日常"}
+  return "$topic:$context".take(100)
  }
  fun context(w:World,p:Person,compact:Boolean=false):String {
   require(access(w,p.id)==null)
@@ -29,6 +44,8 @@ object DialogueEngine {
    append("只依给定信息回应，不猜测未给身份，不创设证据、判决或政策结果；不执行资源操作。回答简短中文。")
    if(w.setting==EraRules.ANCIENT)append("仅农耕、手工作坊、驿道、冷兵器。")
    append("立场${p.stance}，目标${p.goal}。态度${if(p.hostility>60)"戒备敌视" else if(p.trust>=60)"愿意信任" else "谨慎"}。")
+   MunicipalEngine.all(w).firstOrNull {it.official==p.id}?.let {town->append("任所${MunicipalEngine.name(w,town)}，常平仓${town.buildings.getValue("GRANARY")}级，学堂${town.buildings.getValue("SCHOOL")}级。${town.work?.let {"有${MunicipalEngine.buildings.first {b->b.id==it.kind}.name}在建，尚未竣工。"}?:""}")}
+
    if(!compact){
     val memories=p.memories.takeLast(2).filterNot {private&&listOf(w.ruler,"陛下","君主","皇帝","印信").any(it::contains)}
     if(memories.isNotEmpty())append("经历：${memories.joinToString("；").take(180)}。")

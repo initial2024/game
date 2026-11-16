@@ -163,7 +163,8 @@ class MainActivity:ComponentActivity() {
    }
    "项目" -> Panel("政策与在建项目") {
     Text("当前方向：${w.strategy}");Choices(listOf(if(w.setting==EraRules.ANCIENT)"商工兴国" else "工业强国","富民治国","综合发展"),w.strategy,{ask(Command("STRATEGY",target=it))})
-    if(w.projects.isEmpty())Text("暂无在建项目")
+    w.towns.filter {it.work!=null}.forEach {t->Text("${MunicipalEngine.name(w,t)} · ${MunicipalEngine.buildings.first {it.id==t.work!!.kind}.name} · 剩余${t.work!!.remainingDays}日")}
+    if(w.projects.isEmpty()&&w.towns.none {it.work!=null})Text("暂无在建项目")
     w.projects.drop(projectPage*4).take(4).forEach {Text("${w.regions[it.region].name} · ${Rules.label(Command(it.kind))} · 剩余${it.remainingDays}日")}
     if(w.projects.size>4)Row {TextButton(onClick={projectPage--},enabled=projectPage>0){Text("上一页")};TextButton(onClick={projectPage++},enabled=(projectPage+1)*4<w.projects.size){Text("下一页")}}
     Text("研究预算持续生效，休养会逐步削减预算。",style=MaterialTheme.typography.bodySmall)
@@ -175,19 +176,21 @@ class MainActivity:ComponentActivity() {
  }
 }
 @Composable private fun WorldPage(w:World,slot:Int,vm:GameViewModel,ask:(Command)->Unit) {
- var showMap by rememberSaveable {mutableStateOf(false)}
+ var showMap by rememberSaveable {mutableStateOf(false)};var city by rememberSaveable {mutableStateOf<String?>(null)}
  var area by rememberSaveable {mutableIntStateOf(0)};var section by rememberSaveable {mutableIntStateOf(0)}
- var regionGroup by rememberSaveable {mutableStateOf("概览")};var personPage by rememberSaveable {mutableIntStateOf(0)};var selectedPerson by remember {mutableStateOf<Person?>(null)}
- if(showMap){androidx.compose.ui.window.Dialog(onDismissRequest={showMap=false},properties=androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth=false,decorFitsSystemWindows=true)){Surface(Modifier.fillMaxSize()){WorldMapScreen(w,slot,{showMap=false},ask,{area=it;section=0;regionGroup="概览";showMap=false})}}}
+ var regionGroup by rememberSaveable {mutableStateOf("府县")};var personPage by rememberSaveable {mutableIntStateOf(0)};var selectedPerson by remember {mutableStateOf<Person?>(null)}
+ if(showMap){androidx.compose.ui.window.Dialog(onDismissRequest={showMap=false},properties=androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth=false,decorFitsSystemWindows=true)){Surface(Modifier.fillMaxSize()){WorldMapScreen(w,slot,{showMap=false},ask,{area=it;section=0;regionGroup="府县";showMap=false})}}}
  Page {
   OutlinedButton(onClick={showMap=true},modifier=Modifier.fillMaxWidth()){Text("打开世界舆图")}
+  Text("${w.towns.count {it.rank=="府城"}}府 · ${w.towns.count {it.rank=="县城"}}县 · 城市情况与建筑可逐一查看",style=MaterialTheme.typography.labelSmall)
   SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {listOf("地区","人物","列国","宗室","学院").forEachIndexed {i,t->SegmentedButton(selected=section==i,onClick={section=i},shape=SegmentedButtonDefaults.itemShape(i,5)){Text(t)}}}
   when(section) {
    0 -> {
     Choices(w.regions.map {it.name},w.regions[area].name,{name->area=w.regions.first {it.name==name}.id})
-    Choices(listOf("概览","行旅","案卷","建设"),regionGroup,{regionGroup=it})
+    Choices(listOf("概览","府县","行旅","案卷","建设"),regionGroup,{regionGroup=it})
     val r=w.regions[area]
     when(regionGroup) {
+     "府县" -> CountyBrowser(w,area,{city=it})
      "概览" -> Panel(r.name,"地方官：${w.people.find {it.id==r.official}?.name?:"暂缺"} · 人口 ${r.population}") {
       Text("地方财政 ${r.funds} 万两");Stat("农业",r.agriculture);Stat(EraRules.industry(w),r.industry);Stat("治安",r.security);Stat("地方腐败",r.corruption);Stat("民心",r.morale)
       Row {TextButton(onClick={regionGroup="行旅"}){Text("安排行程")};TextButton(onClick={regionGroup="案卷"}){Text("查看案件")}}
@@ -199,8 +202,8 @@ class MainActivity:ComponentActivity() {
    }
    1 -> {
     Fold("主要利益集团") {w.factions.forEach {Stat(it.name,it.support)}}
-    w.people.drop(personPage*3).take(3).forEach {person->Panel("${person.name} · ${person.role}") {Text("${person.ageQuarters/4}岁 · ${w.factions[person.faction].name}",style=MaterialTheme.typography.bodySmall);TextButton(onClick={selectedPerson=person}){Text("查看人物档案")};TextButton(onClick={vm.openChat(person.id)}){Text("与${person.name}交谈")}}}
-    Row {TextButton(onClick={personPage--},enabled=personPage>0){Text("上一页")};Text("${personPage+1} / ${maxOf(1,(w.people.size+2)/3)}");TextButton(onClick={personPage++},enabled=(personPage+1)*3<w.people.size){Text("下一页")}}
+    w.people.take(10).drop(personPage*3).take(3).forEach {person->Panel("${person.name} · ${person.role}") {Text("${person.ageQuarters/4}岁 · ${w.factions[person.faction].name}",style=MaterialTheme.typography.bodySmall);TextButton(onClick={selectedPerson=person}){Text("查看人物档案")};TextButton(onClick={vm.openChat(person.id)}){Text("与${person.name}交谈")}}}
+    Row {TextButton(onClick={personPage--},enabled=personPage>0){Text("上一页")};Text("${personPage+1} / ${maxOf(1,(minOf(10,w.people.size)+2)/3)}");TextButton(onClick={personPage++},enabled=(personPage+1)*3<minOf(10,w.people.size)){Text("下一页")}}
    }
    2 -> {
     w.neighbors.forEach {n->Panel(n.name) {Stat("外交关系",n.relation);Stat("军事实力",n.strength)}}
@@ -211,6 +214,7 @@ class MainActivity:ComponentActivity() {
    else -> AcademyPanel(w,ask)
   }
  }
+ city?.let {id->CityDialog(w,id,{city=null},ask,{vm.openChat(it)})}
  selectedPerson?.let {p->AlertDialog(onDismissRequest={selectedPerson=null},title={Text("${p.name} · ${p.role}")},text={Column(Modifier.heightIn(max=420.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(10.dp)){Text("${p.ageQuarters/4}岁 · ${p.stance}");Stat("能力",p.ability);Stat("忠诚",p.loyalty);Stat("信任",p.trust);Stat("怀疑",p.suspicion);Stat("敌意",p.hostility);Text("目标：${p.goal}");p.memories.forEach {Text(it,style=MaterialTheme.typography.bodySmall)}}},confirmButton={TextButton(onClick={selectedPerson=null}){Text("关闭")}})}
 }
 @Composable private fun Departure(area:Int,w:World,ask:(Command)->Unit) {
@@ -248,6 +252,7 @@ class MainActivity:ComponentActivity() {
 @Composable private fun Archive(ui:UiState,vm:GameViewModel,new:()->Unit,theme:Int,onTheme:(Int)->Unit,scale:Float,onScale:(Float)->Unit) {
  val ctx=LocalContext.current;val scope=rememberCoroutineScope();val version=remember {ctx.packageManager.getPackageInfo(ctx.packageName,0).versionName}
  val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) {uri->if(uri!=null) scope.launch {runCatching {val text=vm.export();withContext(Dispatchers.IO){ctx.contentResolver.openOutputStream(uri)?.use {it.write(text.toByteArray())}?:error("文件无法打开")}}.onSuccess {vm.message("存档已导出到你选择的位置。")}.onFailure {vm.message(it.message?:"导出失败")} }}
+ val exportChats=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")){uri->if(uri!=null)scope.launch {runCatching {vm.exportDialogues(uri)}.onSuccess {vm.message("全部对话已导出，游戏内记录仍保留。")}.onFailure {vm.message("导出失败：${it.message}")}}}
  val import=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {uri->if(uri!=null) scope.launch {runCatching {withContext(Dispatchers.IO){ctx.contentResolver.openInputStream(uri)?.use { readBoundedSave(it)}?:error("文件无法打开")}}.onSuccess {vm.import(it)}.onFailure {vm.message(it.message?:"导入失败")} }}
  var group by rememberSaveable {mutableStateOf("存档")};var savePage by rememberSaveable {mutableIntStateOf(0)};var selectedEntry by remember {mutableStateOf<Entry?>(null)}
  LaunchedEffect(group) {if(group=="史书")vm.page(0)}
@@ -258,6 +263,7 @@ class MainActivity:ComponentActivity() {
     ui.slots.drop(savePage*4).take(4).forEach {slot->OutlinedButton(onClick={vm.load(slot.id)},enabled=!ui.busy,modifier=Modifier.fillMaxWidth()){Text("${if(slot.id==ui.slot) "●" else "○"} 槽${slot.id} · ${slot.name} · ${slot.turn*3}个月")}}
     if(ui.slots.size>4)Row {TextButton(onClick={savePage--},enabled=savePage>0){Text("上一页")};TextButton(onClick={savePage++},enabled=(savePage+1)*4<ui.slots.size){Text("下一页")}}
     Row {TextButton(onClick=new){Text("新建")};TextButton(onClick={vm.manualSave()}){Text("手动快照")}}
+    TextButton(onClick={exportChats.launch("山河纪年-全部对话-槽${ui.slot}.json")}){Text("导出全部对话")}
     Row {TextButton(onClick={export.launch("山河纪年-槽${ui.slot}.json")}){Text("导出本地文件")};TextButton(onClick={import.launch(arrayOf("application/json","text/*"))}){Text("导入空槽")}}
    }
    "史书" -> Panel("史官档案","每页5项，点开查看剧情与结算账簿") {

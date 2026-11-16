@@ -27,8 +27,10 @@ class CharacterFeatureTest {
   if(!vm.state.value.paused)vm.toggleClock()
   compose.onNodeWithText("世界",useUnmergedTree=true).performClick();compose.onNodeWithText("人物",useUnmergedTree=true).performScrollTo().performClick()
   compose.onNodeWithText("与韩砺交谈").performScrollTo().performClick();compose.waitUntil(10000){vm.chat.value.person==1}
+  val beforeChat=vm.state.value.world!!
+  compose.onAllNodesWithText("2万两",substring=true).assertCountEquals(0)
   compose.onNodeWithText("说些什么…").performTextInput("你希望到国家学院学习吗？");compose.onNodeWithText("发送对话").performClick()
-  compose.waitUntil(15000){!vm.chat.value.working&&vm.chat.value.records.size>=2};assertEquals("template",vm.chat.value.records.last().source)
+  compose.waitUntil(15000){!vm.chat.value.working&&vm.chat.value.records.size>=2};assertEquals("template",vm.chat.value.records.last().source);assertEquals(beforeChat.nation.treasury,vm.state.value.world!!.nation.treasury);assertEquals(beforeChat.day,vm.state.value.world!!.day);assertTrue(vm.state.value.world!!.pending.none {it.command.type=="CONVERSE"})
   screenshot("character-chat");val store=Store(compose.activity);assertTrue(store.dialogues(vm.state.value.slot,1).size>=2);store.close()
   compose.onNodeWithText("关闭对话").performClick();compose.onNodeWithText("学院",useUnmergedTree=true).performScrollTo().performClick()
   compose.onNodeWithText("派学",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("预览派学").performScrollTo().performClick();compose.onNodeWithText("确认执行").performClick()
@@ -37,9 +39,9 @@ class CharacterFeatureTest {
  }
  @Test fun oldDatabaseMigratesWithoutChangingWorldAndChatsStayIsolated(){
   val ctx=InstrumentationRegistry.getInstrumentation().targetContext;val name="character-migration-test.db";ctx.deleteDatabase(name)
-  val w=NewGame.create("旧档","景衡","综合发展","标准",1847);val json=SaveJson.encodeToString(w)
+  val w=NewGame.create("旧档","景衡","综合发展","标准",1847);val json=kotlinx.serialization.json.JsonObject(SaveJson.parseToJsonElement(SaveJson.encodeToString(w)).let {it as kotlinx.serialization.json.JsonObject}.filterKeys {it!="towns"&&it!="socialTopics"}.toMutableMap().apply {put("people",kotlinx.serialization.json.JsonArray(SaveJson.parseToJsonElement(SaveJson.encodeToString(w.people.take(10))).let {it as kotlinx.serialization.json.JsonArray}))}).toString()
   ctx.openOrCreateDatabase(name,0,null).use {db->db.execSQL("CREATE TABLE saves(slot INTEGER PRIMARY KEY,revision INTEGER NOT NULL,name TEXT NOT NULL,turn INTEGER NOT NULL,json TEXT NOT NULL)");db.execSQL("CREATE TABLE history(slot INTEGER NOT NULL,revision INTEGER NOT NULL,json TEXT NOT NULL,PRIMARY KEY(slot,revision))");db.execSQL("INSERT INTO saves VALUES(1,0,'旧档',0,?)",arrayOf(json));db.version=1}
-  Store(ctx,name).use {s->assertEquals(w,s.load(1));val record=DialogueRecord(1,"user","学业如何？",0,"player");val out=RealtimeEngine.submit(w,Command("CONVERSE",target="1",mode="倾听"),0);s.startDialogue(1,0,out,record);assertEquals(w.nation.treasury-2,s.load(1)!!.nation.treasury)
+  Store(ctx,name).use {s->assertEquals(w,s.load(1));val record=DialogueRecord(1,"user","学业如何？",0,"player");val out=RealtimeEngine.submit(w,Command("CONVERSE",target="1",mode="倾听"),0);s.startDialogue(1,0,out,record);assertEquals(w.nation.treasury,s.load(1)!!.nation.treasury)
    try{s.startDialogue(1,0,out,record);fail("replay accepted")}catch(_:IllegalArgumentException){}
    assertEquals(1,s.dialogues(1).size);s.copyTo(1,2);s.appendDialogue(1,DialogueRecord(1,"assistant","愿潜心进学。",0,"template"));assertEquals(1,s.dialogues(2).size);s.import(s.export(1),3);assertEquals(s.dialogues(1),s.dialogues(3));assertEquals(s.load(1),s.load(3))
   }

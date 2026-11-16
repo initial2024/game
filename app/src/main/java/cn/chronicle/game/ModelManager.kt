@@ -162,7 +162,7 @@ class ModelManager(private val app:Context) {
   while(!fits(prompt,96)&&messages.size>2){messages=listOf(messages.first())+messages.drop(if(messages.size>=4)3 else 2);prompt=format(messages)}
   require(fits(prompt,96)){"对话超出上下文预算，请缩短消息或提高上下文上限。"}
   val coroutine=currentCoroutineContext();coroutine.ensureActive()
-  val raw=NativeBridge.generateStreaming(prompt,96,120000,NativeTokenSink {bytes->
+  val raw=NativeBridge.generateStreaming(prompt,96,180000,NativeTokenSink {bytes->
    coroutine.ensureActive()
    val partial=Charsets.UTF_8.newDecoder().onMalformedInput(java.nio.charset.CodingErrorAction.IGNORE).onUnmappableCharacter(java.nio.charset.CodingErrorAction.IGNORE).decode(ByteBuffer.wrap(bytes)).toString()
    // Never stream an unfiltered royal identity or fabricated judgment to the player.

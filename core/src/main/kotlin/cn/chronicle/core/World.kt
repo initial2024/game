@@ -39,13 +39,13 @@ val SaveJson = Json { encodeDefaults = true; ignoreUnknownKeys = false; isLenien
  val cooldowns: Map<String, Int> = emptyMap(), val journey: Journey? = null, val caseFile: CaseFile,
  val recent: List<Entry> = emptyList(), val summary: String = "", val ended: Boolean = false,
  val era:String="启元",val eraDay:Int=0,val household:Household=Household(),
- val scale:String="中等国家",val atmosphere:String="均势博弈",val pending:List<PendingOrder> = emptyList(),val setting:String="工业初兴",val cartography:MapScenario?=null,val academy:Academy=Academy(),val studies:List<StudyCourse> = emptyList(),val socialDays:Map<Int,Int> = emptyMap()) {
+ val scale:String="中等国家",val atmosphere:String="均势博弈",val pending:List<PendingOrder> = emptyList(),val setting:String="工业初兴",val cartography:MapScenario?=null,val academy:Academy=Academy(),val studies:List<StudyCourse> = emptyList(),val socialDays:Map<Int,Int> = emptyMap(),val socialTopics:Map<Int,List<String>> = emptyMap(),val towns:List<Town> = emptyList()) {
  val turn: Int get() = day / 90
  val date: String get() = "${era}${1 + day / 360 - eraDay / 360}年 · ${listOf("春", "夏", "秋", "冬")[(day / 90) % 4]} · 第${day % 90 + 1}日"
 }
 @Serializable data class Command(val type: String, val region: Int = 0, val mode: String = "微服私访",
  val disguise: String = "商人", val companion: Int = 2, val regent: Int = 0,
- val objective: String = "财政审计", val days: Int = 30, val target: String = "")
+ val objective: String = "财政审计", val days: Int = 30, val target: String = "",val level:Int=0)
 
 data class Preview(val commands: List<Command>, val description: String, val uncertain: Boolean = false)
 data class Outcome(val world: World, val entry: Entry)
@@ -73,7 +73,7 @@ object NewGame {
    neighbors=listOf(Neighbor("岚海联邦",45,50,4,4),Neighbor("赤岭汗国",35,58,2,3),Neighbor("白榆公国",60,36,3,5)),
    caseFile=CaseFile(guilty=Math.floorMod(seed,5L)!=0L)).let {world->world.copy(
     regions=world.regions.map {it.copy(population=it.population*n.population/2800000)},
-    neighbors=world.neighbors.map {it.copy(name=EraRules.render(it.name,setting),relation=(it.relation+when(atmosphere){"和平建设"->25;"烽火边疆"->-20;else->0}).coerceIn(0,100))})}
+    neighbors=world.neighbors.map {it.copy(name=EraRules.render(it.name,setting),relation=(it.relation+when(atmosphere){"和平建设"->25;"烽火边疆"->-20;else->0}).coerceIn(0,100))})}.let(MunicipalEngine::initialize)
  }
 }
 

@@ -75,6 +75,6 @@ class CartographyTest {
   assertEquals("WORKSHOP",Rules.suggestions(w).first().type);assertNotNull(Rules.validate(w,Command("FACTORY")));assertTrue(EraRules.parse("兴建铁路",w).commands.isEmpty());assertEquals("WORKSHOP",EraRules.parse("建设作坊",w).commands.single().type)
   w=submit(w,Command("WORKSHOP"));assertEquals(270,w.projects.single().remainingDays)
   repeat(1000){w=RealtimeEngine.advance(w,90).world;Rules.verify(w);assertTrue(w.recent.all {e->listOf("蒸汽","工厂","铁路").none(e.narrative::contains)})}
-  assertTrue(MemoryEngine.context(w).contains("冷兵器"));assertEquals("府",MapSnapshotMapper.scene(w,1).groups.first().rank)
+  assertTrue(MemoryEngine.context(w).contains("冷兵器"));assertEquals("大区",MapSnapshotMapper.scene(w,1).groups.first().rank);assertTrue(MapSnapshotMapper.scene(w,1).groups.any {it.rank=="县"})
  }
 }

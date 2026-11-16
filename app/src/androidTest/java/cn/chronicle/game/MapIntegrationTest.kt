@@ -53,6 +53,18 @@ class MapIntegrationTest {
   touch("#panel button.listing");println("MAP_AFTER_CITY_TOUCH="+js("JSON.stringify({panel:document.querySelector('#panel').textContent,events:window.__nativeEvents||null,error:window.__mapRenderError||null})"));captureMap("map-after-city-touch");compose.waitUntil(10000){compose.onAllNodesWithText("城邑名称").fetchSemanticsNodes().isNotEmpty()}
  }
 
+ @Test fun countyCityHasWorkingBuildingsAndPersistsAfterConstruction(){
+  val vm=ViewModelProvider(compose.activity)[GameViewModel::class.java];compose.waitUntil(30000){vm.state.value.ready}
+  vm.newGame("府县验收国","君主","综合发展","标准","1847",setting=EraRules.ANCIENT);compose.waitUntil(30000){vm.state.value.world?.name=="府县验收国"&&!vm.state.value.busy};if(!vm.state.value.paused)vm.toggleClock();vm.message("")
+  openMap();ready(vm);val data=scene();assertEquals(59,(0 until data.getJSONArray("groups").length()).count {data.getJSONArray("groups").getJSONObject(it).getString("rank")=="县"})
+  fun county(){touch("#search");js("(function(){const e=document.querySelector('input[type=search]');e.value='长安县';e.dispatchEvent(new Event('input',{bubbles:true}));return true})()");touch("#panel button.listing");compose.waitUntil(10000){compose.onAllNodesWithText("关闭城邑").fetchSemanticsNodes().isNotEmpty()}}
+  county();compose.onNodeWithText("长安县",useUnmergedTree=true).assertIsDisplayed();captureMap("county-city-overview")
+  compose.onNodeWithText("建筑",useUnmergedTree=true).performClick();compose.onNodeWithText("升级常平仓至2级").performScrollTo().performClick();compose.onNodeWithText("确认执行").performClick();compose.waitUntil(10000){vm.state.value.world!!.towns.first {it.id=="county-jingji-01"}.work!=null};captureMap("county-building-started")
+  compose.onNodeWithText("关闭城邑").performClick();while(vm.state.value.speed!=64)compose.onNodeWithTag("map-speed").performClick();compose.onNodeWithTag("map-clock").performClick();compose.waitUntil(30000){vm.state.value.world!!.towns.first {it.id=="county-jingji-01"}.buildings["GRANARY"]==2};compose.onNodeWithTag("map-clock").performClick();ready(vm)
+  county();compose.onNodeWithText("建筑",useUnmergedTree=true).performClick();compose.onNodeWithText("常平仓 · 2级").assertIsDisplayed();captureMap("county-building-completed")
+  Store(compose.activity).use {store->assertEquals(2,store.load(vm.state.value.slot)!!.towns.first {it.id=="county-jingji-01"}.buildings["GRANARY"])}
+  java.io.File(compose.activity.getExternalFilesDir(null),"county-checkpoint.json").writeText(JSONObject().put("slot",vm.state.value.slot).toString())
+ }
  @Test fun mapClickNativeOrderCommitRefreshAndSaveIsolation(){
   val vm=ViewModelProvider(compose.activity)[GameViewModel::class.java];compose.waitUntil(30000){vm.state.value.ready}
   vm.newGame("古代地图国","君主","综合发展","标准","1847",setting=EraRules.ANCIENT);compose.waitUntil(30000){vm.state.value.world?.name=="古代地图国"&&!vm.state.value.busy};if(!vm.state.value.paused)compose.runOnUiThread {vm.toggleClock()};vm.message("")
@@ -98,6 +110,8 @@ class MapRestartTest {
  @get:Rule val compose=createAndroidComposeRule<MainActivity>()
  @Test fun persistedWorldAndMapAfterActualProcessRestart(){
   cleanLauncher();val vm=ViewModelProvider(compose.activity)[GameViewModel::class.java];compose.waitUntil(30000){vm.state.value.ready}
+  val countyMarker=java.io.File(compose.activity.getExternalFilesDir(null),"county-checkpoint.json")
+  assertTrue(countyMarker.exists());Store(compose.activity).use {store->assertEquals(2,store.load(JSONObject(countyMarker.readText()).getInt("slot"))!!.towns.first {it.id=="county-jingji-01"}.buildings["GRANARY"])}
   val marker=JSONObject(java.io.File(compose.activity.getExternalFilesDir(null),"map-checkpoint.json").readText());assertEquals(marker.getInt("slot"),vm.state.value.slot);assertEquals(marker.getLong("revision"),vm.state.value.world!!.revision);assertTrue(vm.state.value.paused)
   assertEquals("澄江新城",vm.state.value.world!!.cartography!!.places["city-r0"]!!.name)
   compose.onNodeWithText("世界",useUnmergedTree=true).performClick();compose.onNodeWithText("打开世界舆图").performScrollTo().performClick();compose.waitUntil(30000){compose.activity.mapController?.let {it.readyRevision==vm.state.value.world!!.revision&&it.readySceneId=="game-slot-${vm.state.value.slot}"}==true}

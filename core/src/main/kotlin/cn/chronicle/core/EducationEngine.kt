@@ -19,7 +19,7 @@ object EducationEngine {
   if(c.type=="ACADEMY_UPGRADE")return when {w.academy.level>=5->"学院已达五级。";w.projects.any {it.kind==c.type}->"学院扩建正在进行。";else->null}
   if(p==null||!p.alive)return "目标须为已登记且在世的人物。"
   return when(c.type){
-   "CONVERSE" -> DialogueEngine.access(w,p.id)?:when {c.mode !in DialogueEngine.approaches->"交谈方式无效。";w.day-(w.socialDays[p.id]?:-1000)<30->"这位人物的关系交流每30日结算一次，仍可继续日常对话。";else->null}
+   "CONVERSE" -> DialogueEngine.access(w,p.id)?:if(c.mode !in DialogueEngine.approaches||c.objective !in listOf("学业","案件","军务","民生","志向","近况","政务","闲谈","财政审计"))"交谈方式或话题无效。"else null
    "APPOINT_TUTOR" -> if(p.ability<40||busy(w,p.id)||w.journey?.companion==p.id)"讲席须有40以上能力，且未赴学或随驾。" else null
    "STUDY_HOME","STUDY_ABROAD" -> when {
     p.ageQuarters<72->"本版派学对象须成年。"
@@ -39,10 +39,14 @@ object EducationEngine {
  fun execute(w:World,c:Command,events:MutableList<String>):World {
   val id=c.target.toIntOrNull();val p=w.people.find {it.id==id}
   return when(c.type){
-   "CONVERSE" -> {p!!;val masked=DialogueEngine.hidden(w,p)
-    val effect=when(c.mode){"倾听"->listOf(3,if(masked)0 else 1,0,0);"勉励"->listOf(2,if(masked||p.loyalty<30)0 else 2,0,0);"质询"->listOf(-2,if(masked)0 else -1,3,1);else->listOf(-6,if(masked)0 else -4,5,4)}
-    events+="与${p.name}${c.mode}交流：信任${effect[0]}、忠诚${effect[1]}、怀疑${effect[2]}、敌意${effect[3]}，受百分制边界约束。${if(masked)"对方只认识当前伪装，不增加对统治者的忠诚。" else ""}"
-    w.copy(socialDays=w.socialDays+(p.id to w.day),people=w.people.map {if(it.id==p.id)it.copy(trust=(it.trust+effect[0]).coerceIn(0,100),loyalty=(it.loyalty+effect[1]).coerceIn(0,100),suspicion=(it.suspicion+effect[2]).coerceIn(0,100),hostility=(it.hostility+effect[3]).coerceIn(0,100),memories=(it.memories+"${w.day}日，与${DialogueEngine.identity(w,it)}${c.mode}交流").takeLast(8))else it})
+   "CONVERSE" -> {p!!;val masked=DialogueEngine.hidden(w,p);val topic=if(c.objective=="财政审计")"闲谈"else c.objective;val key=DialogueEngine.socialKey(w,p,topic)
+    val known=w.socialTopics[p.id].orEmpty();val repeat=key in known
+    if(repeat&&c.mode!="威胁"){events+="与${p.name}继续交流${topic}。相同经历下重复表态不会反复增加关系；可以继续交谈，无费用、无等待。";w}
+    else {
+     val effect=when(c.mode){"倾听"->listOf(if(topic=="闲谈")1 else 3,if(masked||topic=="闲谈")0 else 1,0,0);"勉励"->listOf(2,if(masked||p.loyalty<30||topic=="闲谈")0 else 2,0,0);"质询"->listOf(-2,if(masked)0 else -1,3,1);else->listOf(-6,if(masked)0 else -4,5,4)}
+     events+="与${p.name}${c.mode}交流${topic}：信任${effect[0]}、忠诚${effect[1]}、怀疑${effect[2]}、敌意${effect[3]}，受百分制边界约束。${if(masked)"对方只认识当前伪装，不增加对统治者的忠诚。"else ""}"
+     w.copy(socialTopics=w.socialTopics+(p.id to (known+key).distinct().takeLast(64)),people=w.people.map {if(it.id==p.id)it.copy(trust=(it.trust+effect[0]).coerceIn(0,100),loyalty=(it.loyalty+effect[1]).coerceIn(0,100),suspicion=(it.suspicion+effect[2]).coerceIn(0,100),hostility=(it.hostility+effect[3]).coerceIn(0,100),memories=(it.memories+"${w.day}日，与${DialogueEngine.identity(w,it)}${c.mode}谈论${topic}").takeLast(8))else it})
+    }
    }
    "ACADEMY_UPGRADE"->{events+="国家学院扩建立项，180日后增级；未竣工前不提前增加学额与教学效果。";w.copy(projects=w.projects+Project(c.type,0,2,180))}
    "APPOINT_TUTOR"->{events+="${p!!.name}兼任国家学院讲席，师资等级${grade(p)}，由能力决定。";w.copy(academy=w.academy.copy(tutor=p.id))}

@@ -5,10 +5,10 @@ import kotlin.math.min
 
 object Rules {
  val policies = listOf("WORKSHOP","FACTORY","FARM","RESEARCH","ROAD","TAX_DOWN","TAX_UP","DIPLOMACY","DRILL","RELIEF","REPAY","REFORM","REST")
- private val labels = mapOf("CONVERSE" to "正式交流", "ACADEMY_UPGRADE" to "扩建国家学院", "APPOINT_TUTOR" to "聘任讲席", "STUDY_HOME" to "入国家学院", "STUDY_ABROAD" to "派往海外学习", "RECALL_STUDENT" to "召回学员", "WORKSHOP" to "营造官营作坊", "CITY_FOUND" to "营建新邑", "CITY_RESTORE" to "修复旧城", "CITY_RENAME" to "城邑更名", "BORDER_TREATY" to "议定边地移交", "ERA" to "更改纪元", "RULER_NAME" to "君主更名", "CHILD_NAME_PLAN" to "预设子女名字", "NAME_CHILD" to "子女更名", "FAMILY_PLAN" to "设置备孕", "TRY_HEIR" to "自愿备孕", "FAMILY_TIME" to "陪伴家人", "STRATEGY" to "调整战略", "FACTORY" to "筹建工厂", "FARM" to "兴修水利", "RESEARCH" to "资助研究", "ROAD" to "修筑道路", "TAX_DOWN" to "减税惠民", "TAX_UP" to "提高税率", "DIPLOMACY" to "派遣使节", "DRILL" to "整训军队", "RELIEF" to "赈济百姓", "REPAY" to "偿还债务", "REFORM" to "考核改革", "REST" to "休养生息", "DEPART" to "出发巡游", "TRAVEL" to "继续行程", "VISIT" to "探访场景", "TALK" to "询问人物", "INVESTIGATE" to "暗访取证", "AUDIT" to "核验账册", "REVEAL" to "公开身份", "TRIAL" to "依法审理", "DISMISS" to "行政撤换", "CLOSE" to "撤销指控", "REMOTE" to "委派监察官", "RETURN" to "返回朝廷")
+ private val labels = mapOf("URBAN_BUILD" to "升级城内建筑", "URBAN_AUDIT" to "城邑财政审计", "URBAN_RELIEF" to "城邑赈济","CONVERSE" to "人物交谈", "ACADEMY_UPGRADE" to "扩建国家学院", "APPOINT_TUTOR" to "聘任讲席", "STUDY_HOME" to "入国家学院", "STUDY_ABROAD" to "派往海外学习", "RECALL_STUDENT" to "召回学员", "WORKSHOP" to "营造官营作坊", "CITY_FOUND" to "营建新邑", "CITY_RESTORE" to "修复旧城", "CITY_RENAME" to "城邑更名", "BORDER_TREATY" to "议定边地移交", "ERA" to "更改纪元", "RULER_NAME" to "君主更名", "CHILD_NAME_PLAN" to "预设子女名字", "NAME_CHILD" to "子女更名", "FAMILY_PLAN" to "设置备孕", "TRY_HEIR" to "自愿备孕", "FAMILY_TIME" to "陪伴家人", "STRATEGY" to "调整战略", "FACTORY" to "筹建工厂", "FARM" to "兴修水利", "RESEARCH" to "资助研究", "ROAD" to "修筑道路", "TAX_DOWN" to "减税惠民", "TAX_UP" to "提高税率", "DIPLOMACY" to "派遣使节", "DRILL" to "整训军队", "RELIEF" to "赈济百姓", "REPAY" to "偿还债务", "REFORM" to "考核改革", "REST" to "休养生息", "DEPART" to "出发巡游", "TRAVEL" to "继续行程", "VISIT" to "探访场景", "TALK" to "询问人物", "INVESTIGATE" to "暗访取证", "AUDIT" to "核验账册", "REVEAL" to "公开身份", "TRIAL" to "依法审理", "DISMISS" to "行政撤换", "CLOSE" to "撤销指控", "REMOTE" to "委派监察官", "RETURN" to "返回朝廷")
  fun label(c: Command)=if(c.type=="CANCEL_TASK") "撤销事务" else labels[c.type] ?: c.type
- fun cost(c: Command): Long = when(c.type) { "CONVERSE"->2; "APPOINT_TUTOR"->10; "STUDY_HOME"->50; "STUDY_ABROAD"->140; "ACADEMY_UPGRADE"->120; "WORKSHOP" -> 100; "CITY_FOUND" -> 120; "CITY_RESTORE" -> 80; "CITY_RENAME" -> 5; "BORDER_TREATY" -> 180; "TRY_HEIR" -> 20; "FAMILY_TIME" -> 10; "FACTORY" -> 140; "FARM" -> 75; "RESEARCH" -> 65; "ROAD" -> 100; "DIPLOMACY" -> 35; "DRILL" -> 60; "RELIEF" -> 50; "REPAY" -> 80; "REFORM" -> 95; "DEPART" -> if(c.mode=="公开巡幸") 95 else if(c.mode=="秘密调查") 55 else 35; "TRAVEL" -> 8; "VISIT","TALK" -> 3; "INVESTIGATE" -> 12; "AUDIT" -> 20; "REVEAL" -> 10; "TRIAL" -> 25; "DISMISS" -> 20; "REMOTE" -> 65; "RETURN" -> 20; else -> 0 }
- fun duration(c: Command)=when(c.type) { "CONVERSE" -> 1; "APPOINT_TUTOR" -> 7; "ACADEMY_UPGRADE","STUDY_HOME","STUDY_ABROAD","RECALL_STUDENT" -> 0; "ERA","RULER_NAME","CHILD_NAME_PLAN","NAME_CHILD","FAMILY_PLAN","STRATEGY" -> 0; "DEPART" -> 1; "TRAVEL" -> 7; "VISIT","TALK" -> 2; "INVESTIGATE","AUDIT" -> 5; "REVEAL","TRIAL","DISMISS","CLOSE" -> 1; "RETURN" -> 7; else -> 90 }
+ fun cost(c: Command): Long = when(c.type) { in MunicipalEngine.types->MunicipalEngine.cost(c); "CONVERSE"->0; "APPOINT_TUTOR"->10; "STUDY_HOME"->50; "STUDY_ABROAD"->140; "ACADEMY_UPGRADE"->120; "WORKSHOP" -> 100; "CITY_FOUND" -> 120; "CITY_RESTORE" -> 80; "CITY_RENAME" -> 5; "BORDER_TREATY" -> 180; "TRY_HEIR" -> 20; "FAMILY_TIME" -> 10; "FACTORY" -> 140; "FARM" -> 75; "RESEARCH" -> 65; "ROAD" -> 100; "DIPLOMACY" -> 35; "DRILL" -> 60; "RELIEF" -> 50; "REPAY" -> 80; "REFORM" -> 95; "DEPART" -> if(c.mode=="公开巡幸") 95 else if(c.mode=="秘密调查") 55 else 35; "TRAVEL" -> 8; "TALK" -> 0; "VISIT" -> 3; "INVESTIGATE" -> 12; "AUDIT" -> 20; "REVEAL" -> 10; "TRIAL" -> 25; "DISMISS" -> 20; "REMOTE" -> 65; "RETURN" -> 20; else -> 0 }
+ fun duration(c: Command)=when(c.type) { "URBAN_BUILD" -> 0; "URBAN_AUDIT","URBAN_RELIEF"->5; "CONVERSE" -> 0; "APPOINT_TUTOR" -> 7; "ACADEMY_UPGRADE","STUDY_HOME","STUDY_ABROAD","RECALL_STUDENT" -> 0; "ERA","RULER_NAME","CHILD_NAME_PLAN","NAME_CHILD","FAMILY_PLAN","STRATEGY" -> 0; "DEPART" -> 1; "TRAVEL" -> 7; "TALK" -> 0; "VISIT" -> 2; "INVESTIGATE","AUDIT" -> 5; "REVEAL","TRIAL","DISMISS","CLOSE" -> 1; "RETURN" -> 7; else -> 90 }
  fun suggestions(w: World): List<Command> {
   val j=w.journey
   if(j!=null) return if(j.remainingTravel>0) listOf(Command("TRAVEL"),Command("RETURN"),Command("REST")) else listOf(Command("INVESTIGATE"),Command("AUDIT"),Command("RETURN"))
@@ -23,6 +23,7 @@ object Rules {
   if(c.region !in 0..3) return "目标地区不存在。"
   if(c.type in FamilyEngine.types) FamilyEngine.validate(w,c)?.let {return it}
   if(c.type in MapActions.types) MapActions.validate(w,c)?.let {return it}
+  if(c.type in MunicipalEngine.types)MunicipalEngine.validate(w,c)?.let {return it}
   if(c.type in EducationEngine.types)EducationEngine.validate(w,c)?.let {return it}
   if(w.nation.treasury<cost(c)) return "国库不足：需要 ${cost(c)} 万两。可休养、调整税率或削减研究。"
   if(c.type in listOf("FACTORY","WORKSHOP","FARM","ROAD") && w.projects.any { it.kind==c.type && it.region==c.region }) return "该地区已有同类在建项目。"
@@ -81,8 +82,8 @@ object Rules {
    "DEPART" -> { val public=c.mode=="公开巡幸"; x=x.copy(journey=Journey(c.region,c.mode,c.disguise,c.companion,c.regent,c.objective,c.days,7+c.region*3,exposure=if(public) 100 else if(c.companion==1) 35 else 8,revealed=public)); events+="由${x.people[c.regent].name}代理朝政；抵达后方可进入场景。" }
    "TRAVEL" -> x=x.copy(journey=x.journey!!.copy(remainingTravel=max(0,x.journey!!.remainingTravel-7),location=if(x.journey!!.remainingTravel<=7) "客栈" else "驿道"))
    "VISIT" -> { x=x.copy(journey=x.journey!!.copy(location=c.target)); events+=when(c.target) { "集市" -> "商贩抱怨关卡另收费用，传闻尚待核查。"; "官府" -> if(x.journey!!.revealed) "官府验过印信，开放卷宗核查。" else "门吏将你视为${x.journey!!.disguise}，要求按章递交文书。"; "军营" -> "士兵谈及粮饷，请核对名册再下结论。"; "农田" -> "田间沟渠的损坏可被直接观察；农民口述仅作线索。"; "工厂","作坊" -> "工匠展示机具；扩产仍需项目资金与工期。"; else -> "旅人各执一词，流言并非证据。" } }
-   "TALK" -> { val id=c.target.toInt(); val p=x.people[id]; val suspicion=if(x.journey!!.revealed) 0 else 7; val trust=if(x.journey!!.disguise=="商人" && id==6) 12 else 6
-    x=x.copy(people=x.people.map { if(it.id==id) it.copy(trust=(it.trust+trust).coerceAtMost(100),suspicion=(it.suspicion+suspicion).coerceAtMost(100),memories=(it.memories+"第${x.day}日与${if(x.journey!!.revealed) "君主" else x.journey!!.disguise}交谈").takeLast(8)) else it });
+   "TALK" -> { val id=c.target.toInt(); val p=x.people[id]; val key="线索:${x.caseFile.status}:${x.journey!!.disguise}";val known=x.socialTopics[id].orEmpty();val repeated=key in known; val suspicion=if(x.journey!!.revealed) 0 else 7; val trust=if(repeated)0 else if(x.journey!!.disguise=="商人" && id==6)12 else 6
+    x=x.copy(socialTopics=x.socialTopics+(id to (known+key).distinct().takeLast(64)),people=x.people.map { if(it.id==id) it.copy(trust=(it.trust+trust).coerceAtMost(100),suspicion=(it.suspicion+suspicion).coerceAtMost(100),memories=(it.memories+"第${x.day}日与${if(x.journey!!.revealed) "君主" else x.journey!!.disguise}交谈").takeLast(8)) else it });
     events+=if(id==9) "${p.name}声称知府一向清廉；他与地方特许经营存在利益联系。" else "${p.name}愿意提供线索，但仍需独立查证。"
     if(id==7 && x.people[id].trust>=47) evidence(Evidence("witness","农户具名证言",25,x.caseFile.guilty))
    }
@@ -106,6 +107,7 @@ object Rules {
   }
   if(c.type in FamilyEngine.types) x=FamilyEngine.execute(x,c,events)
   if(c.type in MapActions.types) x=MapActions.execute(x,c,events)
+  if(c.type in MunicipalEngine.types)x=MunicipalEngine.execute(x,c,events)
   if(c.type in EducationEngine.types)x=EducationEngine.execute(x,c,events)
   if(x.journey!=null) {
    var j=x.journey!!.copy(spentDays=x.journey!!.spentDays+elapsed)
@@ -117,10 +119,10 @@ object Rules {
    val left=max(0,x.caseFile.remoteDays-elapsed); x=x.copy(caseFile=x.caseFile.copy(remoteDays=left))
    if(left==0) { evidence(Evidence("ledger","监察使核验账册",50,true)); if(x.caseFile.guilty) evidence(Evidence("receipt","监察使复核收费凭据",30,true)); else evidence(Evidence("forgery","证人笔迹不符的伪证",0,false)); events+="监察使归报，材料已存入案卷；处分仍须另行决定。" }
   }
-  repeat(elapsed){x=EducationEngine.advance(x.copy(day=x.day+1),events)}
+  repeat(elapsed){x=EducationEngine.advance(x.copy(day=x.day+1),events);x=MunicipalEngine.advance(x,events)}
   x=FamilyEngine.advance(x.copy(day=newDay),elapsed,events)
   repeat(newDay/90-oldQuarter) {
-   x=EconomyEngine.quarter(x,ledger,events)
+   x=EconomyEngine.quarter(x,ledger,events);x=MunicipalEngine.quarter(x,ledger)
    x=CharacterEngine.quarter(x,events)
    x=EventEngine.quarter(x,ledger,events)
   }
@@ -138,16 +140,18 @@ object Rules {
   return w.copy(nation=n.copy(treasury=n.treasury.coerceIn(0,1000000),debt=n.debt.coerceIn(0,1000000),population=n.population.coerceIn(100000,100000000),tax=n.tax.coerceIn(5,40),morale=p(n.morale),stability=p(n.stability),administration=p(n.administration),corruption=p(n.corruption),agriculture=p(n.agriculture),commerce=p(n.commerce),industry=p(n.industry),technology=p(n.technology),infrastructure=p(n.infrastructure),military=p(n.military),research=n.research.coerceIn(0,30)),people=w.people.map { it.copy(ability=p(it.ability),loyalty=p(it.loyalty),hostility=p(it.hostility),trust=p(it.trust),fear=p(it.fear),suspicion=p(it.suspicion)) })
  }
  fun verify(w:World) {
+  MunicipalEngine.verify(w)
   w.cartography?.let(MapValidation::verify)
   require(w.academy.level in 1..5&&w.people.any {it.id==w.academy.tutor})
   require(w.studies.size<=5&&w.studies.map {it.person}.distinct().size==w.studies.size)
   require(w.studies.all {s->w.people.any {it.id==s.person&&it.alive}&&s.destination in -1..2&&s.remaining in 0..s.duration&&s.duration in listOf(90,180)&&s.travel in 0..28&&s.returnDays in 7..28&&s.score in 0..1800&&s.phase in listOf("赴学","研习","返程")})
-  require(w.socialDays.size<=100&&w.socialDays.all {(id,day)->w.people.any {it.id==id}&&day in 0..w.day})
+  require(w.socialTopics.size<=500&&w.socialTopics.all {(id,keys)->w.people.any {it.id==id}&&keys.size<=64&&keys.distinct().size==keys.size&&keys.all {it.length<=100}})
+  require(w.socialDays.size<=500&&w.socialDays.all {(id,day)->w.people.any {it.id==id}&&day in 0..w.day})
   require(w.neighbors.all {it.academyLevel in 1..5&&it.teacherLevel in 1..5})
   require(w.setting in listOf("古代王朝","工业初兴"))
   require(w.schema==1 && w.revision>=0 && w.day in 0..900090 && w.name.length in 1..24 && w.ruler.length in 1..24)
   require(w==bounded(w)); require(w.regions.size==4 && w.regions.map { it.id }==listOf(0,1,2,3))
-  require(w.people.size in 10..100 && w.people.map { it.id }.distinct().size==w.people.size)
+  require(w.people.size in 10..500 && w.people.map { it.id }.distinct().size==w.people.size)
   require(w.people.all { it.ageQuarters in 0..20000 && it.memories.size<=8 })
   require(w.regions.all { r -> r.official==-1 || w.people.any { it.id==r.official && it.alive } })
   require(w.pending.size<=3 && w.pending.map {it.id}.distinct().size==w.pending.size && w.pending.all {it.remainingDays in 1..90 && it.escrow in 0L..1000L})
@@ -200,7 +204,7 @@ object EconomyEngine {
    regions=regions.map { if(it.id==p.region) it.copy(industry=min(100,it.industry+if(p.kind in listOf("FACTORY","WORKSHOP")) 8 else 0),agriculture=min(100,it.agriculture+if(p.kind=="FARM") 8 else 0)) else it }
    events+="${w.regions[p.region].name}${Rules.label(Command(p.kind))}完工，开始产生效果。"
   }
-  regions=regions.map { it.copy(funds=(it.funds+income/8-10).coerceIn(0,100000),morale=(it.morale+if(it.reform>0 && it.morale<75) 1 else 0).coerceIn(0,100),population=n.population/4) }
+  regions=regions.map { it.copy(funds=(it.funds+income/8-10).coerceIn(0,100000),morale=(it.morale+if(it.reform>0 && it.morale<75) 1 else 0).coerceIn(0,100),population=n.population/4+if(it.id==3)n.population%4 else 0) }
   return mapWorld.copy(nation=n,regions=regions,projects=if(advanceProjects) w.projects.filter { it.quarters>1 }.map { it.copy(quarters=it.quarters-1,remainingDays=(it.remainingDays-90).coerceAtLeast(1)) } else w.projects)
  }
 }
@@ -218,7 +222,7 @@ object CharacterEngine {
    if(r.official==-1 || people.none { it.id==r.official && it.alive }) {
     val id=(people.maxOf { it.id }+1)
     // Reuse the finite pool of successors, while preserving old identities in history.
-    if(people.size<100) { people=people+Person(id,"${r.name}新任官${id}","${r.name}地方官",0,120,60,65,"依法施政","延续地方改革"); events+="${r.name}任命新官，延续已有改革。"; r.copy(official=id) } else r.copy(official=-1)
+    if(people.size<500) { people=people+Person(id,"${r.name}新任官${id}","${r.name}地方官",0,120,60,65,"依法施政","延续地方改革"); events+="${r.name}任命新官，延续已有改革。"; r.copy(official=id) } else r.copy(official=-1)
    } else r
   }
   val j=w.journey?.let { if(people.none { p->p.id==it.companion && p.alive } || people.none { p->p.id==it.regent && p.alive }) { events+="随行或摄政人事变化，行程提前结束。"; null } else it }

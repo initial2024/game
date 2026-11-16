@@ -18,7 +18,7 @@ import cn.chronicle.core.*
 @Composable fun CharacterChat(vm:GameViewModel,w:World){
  val chat by vm.chat.collectAsState();val model by vm.models.state.collectAsState()
  val p=w.people.find {it.id==chat.person}?:return
- var text by rememberSaveable(p.id){mutableStateOf("")};var approach by rememberSaveable(p.id){mutableStateOf("倾听")};var formal by rememberSaveable(p.id){mutableStateOf(false)}
+ var text by rememberSaveable(p.id){mutableStateOf("")};var approach by rememberSaveable(p.id){mutableStateOf("倾听")}
  val list=rememberLazyListState()
  LaunchedEffect(chat.records.size,chat.partial){if(chat.records.isNotEmpty())list.animateScrollToItem(chat.records.size-1)}
  Dialog(onDismissRequest={vm.closeChat()},properties=DialogProperties(usePlatformDefaultWidth=false,decorFitsSystemWindows=true)){
@@ -32,12 +32,11 @@ import cn.chronicle.core.*
     itemsIndexed(chat.records){_,d->Card(Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=if(d.role=="user")MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh)){Column(Modifier.padding(12.dp)){Text(if(d.role=="user")"你 · 第${d.day}日" else "${p.name} · ${if(d.source=="model")"本地模型"else"规则模板"}",style=MaterialTheme.typography.labelSmall);Text(d.text)}}}
     if(chat.partial.isNotBlank())item {Text(chat.partial)}
    }
-   Text(chat.note,maxLines=3,style=MaterialTheme.typography.labelSmall)
+   Text("自由交流 · 相同话题不会反复增加关系。\n"+chat.note,maxLines=3,style=MaterialTheme.typography.labelSmall)
    if(DialogueEngine.access(w,p.id)==null){
-    Row {Checkbox(checked=formal,onCheckedChange={formal=it},enabled=!chat.working);Text("正式交流：2万两 / 1日 / 30日冷却",Modifier.padding(top=12.dp),style=MaterialTheme.typography.labelSmall)}
-    if(formal)Row {DialogueEngine.approaches.take(3).forEach {a->FilterChip(selected=a==approach,onClick={approach=a},label={Text(a)})}}
+    Row {DialogueEngine.approaches.take(3).forEach {a->FilterChip(selected=a==approach,onClick={approach=a},label={Text(a)})}}
     OutlinedTextField(text,{text=it.take(400)},modifier=Modifier.fillMaxWidth().heightIn(max=120.dp),label={Text("说些什么…")},enabled=!chat.working,maxLines=3)
-    Row {if(chat.working)OutlinedButton(onClick={vm.cancelAi()}){Text("取消生成")}else Button(onClick={vm.sendChat(text,approach,formal);text=""},enabled=text.isNotBlank()){Text(if(formal)"确认交流并发送"else"发送对话")}}
+    Row {if(chat.working)OutlinedButton(onClick={vm.cancelAi()}){Text("取消生成")}else Button(onClick={vm.sendChat(text,approach);text=""},enabled=text.isNotBlank()){Text("发送对话")}}
    }
   }}
  }
