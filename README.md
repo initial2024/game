@@ -1,4 +1,4 @@
-> 已交付 0.3.1 开发版：疆域细化、人物对话、学院与 Hugging Face 搜索。范围与证据见 [升级测试报告](docs/UPGRADE_0.3_TESTING.md)。
+> 已交付 0.4.0 开发版：免费即时交流、原图14府59县、城市档案与真实城内建设。[下载APK](https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.4.0-arm64.apk) · [测试与限制](docs/UPGRADE_0.4_TESTING.md)。
 
 # 山河纪年 · Chronicle AI
 
@@ -6,7 +6,7 @@
 
 ## 安装与实测
 
-[下载0.3.1 ARM64 APK（约12.3 MiB）](https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.3.1-arm64.apk) · [构建与测试报告](docs/UPGRADE_0.3_TESTING.md) · [开发 Draft PR](https://github.com/initial2024/game/pull/2)
+[下载0.4.0 ARM64 APK（约12.3 MiB）](https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.4.0-arm64.apk) · [构建与测试报告](docs/UPGRADE_0.4_TESTING.md) · [开发 Draft PR](https://github.com/initial2024/game/pull/2)
 
 旧版：[0.2.1 ARM64 APK](https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.2.1-arm64.apk) · [0.1.1 ARM64 APK](https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.1.1-arm64.apk) · [0.1.1交付报告](docs/TESTING.md)。0.3.1已实际替换为最新上传的v3_2 HTML升级版；输入原文件、升级补丁与输出资源可复现校验，详见 integration/map-upgrade/PROVENANCE.md。
 
@@ -75,7 +75,7 @@ Actions 包含 JVM 测试、Android界面与存档测试、真实GGUF专项测�
 
 官方 Qwen2.5-0.5B-Instruct Q4_K_M（491,400,032 字节，约 469 MiB，Apache 2.0），或从 Android 文件选择器导入 GGUF。下载固定到上游提交并校验 SHA-256，支持暂停与续传。模型加载仍要通过 llama.cpp 架构验证。建议先用 1024 上下文、2–4 线程。
 
-模型还可与已登记人物聊天，使用GGUF聊天模板与角色可知信息过滤；对话可取消、按人物及存档持久化。正式交流须额外确认费用及冷却，由规则结算信任、忠诚等关系。模型只生成辅助叙述或提出结构化政策。结构化输出严格拒绝未知字段、未知指令、越界地区、过多政策和无法支付的行动。最多两次解析尝试，失败回到基础规则解析。数值、案件真相和人物生死不交由模型修改。生成可取消，原生推理有截止时间；规则提交先持久化。
+模型还可与已登记人物聊天，使用GGUF聊天模板与角色可知信息过滤；对话可取消、按人物及存档持久化。人物交谈即时免费，不占政令队列，不需要等待冷却。关系由话题、语气与真实经历结算，重复表态不刷属性。模型只生成辅助叙述或提出结构化政策。结构化输出严格拒绝未知字段、未知指令、越界地区、过多政策和无法支付的行动。最多两次解析尝试，失败回到基础规则解析。数值、案件真相和人物生死不交由模型修改。生成可取消，原生推理有截止时间；规则提交先持久化。
 
 本次模型实测与设备范围以交付的测试报告为准，不能从参数量推断手机速度或质量。
 
