@@ -1,0 +1,44 @@
+{
+  "package": "cn.chronicle.shanhe",
+  "version": "0.6.0-dev",
+  "versionCode": 10,
+  "bytes": 13139344,
+  "sha256": "b8bb462889282cef0d2f7d255027d6c9e9ee888cb8cb495064458b365b7955c9",
+  "certificate_sha256": "ebd2aa94bee6d781d020e45a203c9b8f2d416a4f4b654da7cfadc9a67e438c49",
+  "map_sha256": "e108876791c3cedfff360aa8df7b98730cf0dcb5fb00e1bfef0f719565819bcf",
+  "native": [
+    {
+      "path": "lib/arm64-v8a/libandroidx.graphics.path.so",
+      "load_alignment": [
+        16384,
+        16384,
+        16384
+      ],
+      "compressed": true,
+      "elf_machine": "EM_AARCH64 (183)"
+    },
+    {
+      "path": "lib/arm64-v8a/libc++_shared.so",
+      "load_alignment": [
+        16384,
+        16384,
+        16384,
+        16384
+      ],
+      "compressed": true,
+      "elf_machine": "EM_AARCH64 (183)"
+    },
+    {
+      "path": "lib/arm64-v8a/libchronicle.so",
+      "load_alignment": [
+        16384,
+        16384,
+        16384
+      ],
+      "compressed": true,
+      "elf_machine": "EM_AARCH64 (183)"
+    }
+  ],
+  "source_commit": "23f4975819b0759ef0ad46522f5ab05fe1fd47f1",
+  "ci_run": 43845486808
+}

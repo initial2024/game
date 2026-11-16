@@ -1,0 +1,99 @@
+{
+  "source_commit": "23f4975819b0759ef0ad46522f5ab05fe1fd47f1",
+  "run_id": 43845486808,
+  "artifact_id": 14214689961,
+  "tests": 81,
+  "failures": 0,
+  "suites": [
+    {
+      "name": "cn.chronicle.core.CartographyTest",
+      "tests": "10",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-11-16T10:06:47.219Z",
+      "hostname": "runnervmccnms",
+      "time": "15.104"
+    },
+    {
+      "name": "cn.chronicle.core.CharacterDevelopmentTest",
+      "tests": "8",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-11-16T10:07:02.327Z",
+      "hostname": "runnervmccnms",
+      "time": "0.31"
+    },
+    {
+      "name": "cn.chronicle.core.CourtDevelopmentTest",
+      "tests": "10",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-11-16T10:07:02.640Z",
+      "hostname": "runnervmccnms",
+      "time": "0.37"
+    },
+    {
+      "name": "cn.chronicle.core.FamilyTest",
+      "tests": "3",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-11-16T10:07:03.012Z",
+      "hostname": "runnervmccnms",
+      "time": "0.075"
+    },
+    {
+      "name": "cn.chronicle.core.GeographyMilitaryTest",
+      "tests": "10",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-11-16T10:07:03.091Z",
+      "hostname": "runnervmccnms",
+      "time": "0.209"
+    },
+    {
+      "name": "cn.chronicle.core.MunicipalTest",
+      "tests": "11",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-11-16T10:07:03.305Z",
+      "hostname": "runnervmccnms",
+      "time": "0.445"
+    },
+    {
+      "name": "cn.chronicle.core.RealtimeTest",
+      "tests": "5",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-11-16T10:07:03.752Z",
+      "hostname": "runnervmccnms",
+      "time": "8.926"
+    },
+    {
+      "name": "cn.chronicle.core.SimulationTest",
+      "tests": "17",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-11-16T10:07:12.682Z",
+      "hostname": "runnervmccnms",
+      "time": "54.05"
+    },
+    {
+      "name": "cn.chronicle.core.WorldExpansionTest",
+      "tests": "7",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-11-16T10:08:06.734Z",
+      "hostname": "runnervmccnms",
+      "time": "0.64"
+    }
+  ]
+}

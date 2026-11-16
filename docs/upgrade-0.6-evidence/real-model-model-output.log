@@ -1,0 +1,9 @@
+--------- beginning of main
+11-16 09:26:23.523  2241  2333 I System.out: REAL_MODEL load_ms=1040 inference_ms=9169 max_tokens=12 text=你好！
+11-16 09:26:54.202  2241  2333 I System.out: REAL_NARRATIVE text=澄江工厂在三季后建成，耗资140万两。
+11-16 09:27:21.543  2241  2333 I System.out: REAL_INTENT_STRUCTURED_VALID=true text={"commands":[{"type":"FARM","region":0}]}
+11-16 09:28:22.654  2241  2333 I System.out: REAL_CHARACTER_CHAT chunks=9 text=整顿军需，提升军备实力。
+11-16 09:28:22.669  2241  2333 I System.out: ANDROID_OBSERVED_PSS_KIB=696778
+11-16 09:28:46.813  2241  2333 I System.out: ANDROID_PROCESS_RESIDENT VmHWM:	  796872 kB; VmRSS:	  782628 kB
+11-16 09:29:48.080  2241  2333 I System.out: REAL_APP_CHARACTER_CHAT elapsed_ms=58668 chunks=15 person=11 role=长安县县令 town=county-jingji-01 text=我担任长安县县令，负责治理和管理县内的事务。
+11-16 09:30:51.767  2241  2333 I System.out: REAL_APP_LOCAL_OFFICER_CHAT elapsed_ms=63663 chunks=15 person=578 role=长安县县尉 salary_liang=100 text=我担任长安县县尉，负责管理县里的军务事务。

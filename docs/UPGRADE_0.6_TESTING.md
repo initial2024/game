@@ -8,7 +8,7 @@
 
 这是真正使用当前地图的地形数据，但原图本身是架空舆图。0–100 的相对高差不是测绘海拔，矿林潜力是世界种子与地形共同决定的剧情资源，不冒充实测矿床或真实水文。
 
-- 高原、山地、荒漠及起伏提高施工成本和工期；已有施工记录保留原报价，不追补款项。
+- 城内营建在高原、山地、荒漠及起伏处提高成本和工期；国家工厂、水利及道路投入也使用地形造价系数。已有施工记录保留原报价，不追补款项。
 - 矿场须有矿源，林场须有林木，码头须临水。新增灌溉、矿场、林场、码头均需真实拨款、物资和工期。
 - 行军与地方征调对路径九个采样点计算地形、涉水和海域代价；战役综合防守地形、严寒、主将、士气、补给及情报；海上动员检查码头运力。
 - 运河测算坡度与海域施工代价，完工后才登记地图水运路线和实际交通收益。不是逐米选线、水力与船舶模拟。
@@ -39,10 +39,34 @@ SQLite世界快照改为同一事务内分块读取，避免人物和记忆增�
 
 ## 验证状态
 
-本地 JDK17 / Gradle8.13 / SDK36；81项规则测试及Debug/androidTest/ARM64 Release构建、lint已通过，包含1000季度、多种种子与难度、相同种子重放、资源耗竭/旧档/贸易/工资/征调守恒。新增 Android 验证涵盖地方军官交流、募兵与征调、地形与俸禄界面、超过2MiB的世界快照创建/重启/导入/隔离。首轮快速Android验收20项通过（43836542289）。完整CI首轮出现人物打开超时，排查发现内存压力取消AI也可能作废排队的人物界面请求；修复为独立打开序号，另加内存压力专项检查。正在重新验收，完成后填写最终证据与APK链接。
+- [最终源码构建、lint与地图浏览器检查](https://github.com/initial2024/game/actions/runs/43845486808)：运行源码 `23f4975819b0759ef0ad46522f5ab05fe1fd47f1`。CI的9组、81项JVM规则测试全部通过，包括连续1000个季度（90000游戏日）的确定性连续时间重放，以及多种种子/难度、财政上界、人物生死、资源耗竭、工资与征调守恒。证据为 `upgrade-0.6-evidence/ci-core-tests.json`。
+- [最终21项Android快速验收](https://github.com/initial2024/game/actions/runs/43845548834)：同一源码，Hugging Face在线API1项、人物/培养/军政界面9项、原生界面与SQLite存档7项、地图3项、强停后重启1项，全部通过。游戏用例关闭模拟器访客网络；在线目录用例独立执行。包含3.54MB世界快照创建、重启、导入和三槽隔离。界面自动化同时使用可见性检查、真实滚动/触摸及Android语义动作，之后校验规则和数据库，不仅检查文字存在。
+- 滚动定位曾将控件滚到导航栏下方：测试现在按实际裁剪后的视口补足滚动，并等待存档标题、对话输入框确实出现。保留界面与数值断言，不用重试点击掩盖失败。
+- [真实GGUF专项](https://github.com/initial2024/game/actions/runs/43838626999/job/133204356773)：官方Qwen2.5-0.5B-Instruct Q4_K_M，491400032字节，SHA-256 `74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db`，llama.cpp b5046，2线程/512上下文。包含真实叙事、JSON验证、流式交谈、连续生成、取消/恢复，以及应用ModelManager的导入→加载→县令/县尉聊天。
+- 模型专项源码为 `16bc7d4b99df4ea866f70c3f7ead9c35a854b1a0`；其后仅修改学院/人物界面、加载导航和测试同步。GameCore、GameViewModel、ModelManager、JNI、RealModelTest均逐文件核对未变。没有把后续界面修复冒充另一轮模型推理。详见 `upgrade-0.6-evidence/real-model-source.json` 及原始日志。
+
+真实输出示例：县令“我担任长安县县令，负责治理和管理县内的事务。”；县尉“我担任长安县县尉，负责管理县里的军务事务。”应用适配器分别耗时58.668秒、63.663秒，回调各15个文本块（不是15个token）。首次JNI加载1.040秒；这些仅为此次x86_64模拟器结果，不是手机速度或吞吐承诺。
+
+模型测试的原始JNI观察点PSS为696778KiB，随后进程VmHWM为796872KiB；这两个观察点位于后面的应用聊天前，不能当作整段测试或vivo的峰值内存。当前仅完成短程连续推理与取消恢复，数百轮真机负载和手机完整峰值尚未测量。
+
+[县尉交流截图](upgrade-0.6-evidence/county-military-officer-chat.png)、[征调后兵籍](upgrade-0.6-evidence/county-garrison-mobilized.png)、[地形与资源](upgrade-0.6-evidence/county-terrain-and-resources.png)、[俸禄账册](upgrade-0.6-evidence/payroll-ledger.png)、[学院在读](upgrade-0.6-evidence/academy-student.png)。界面截图使用无模型模式，明确显示“规则模板”；真实模型结果另以JNI/ModelManager原始日志证明。
+
+完整流水线最后一组Android复核也已通过，同一源码再运行21项，结果与快速验收一致；两次执行不是42种不同测试。JVM/构建/lint、浏览器和Android三个必需job均为success。此次可选签名job与模型job未在同一流水线重复执行：Release由Actions构建，在私密工作区使用原开发证书签名；真实模型结果使用上文列明的独立专项。
 
 ## 未完成与边界
 
 未连接 vivo Android16 ARM64 真机。Android运行验证使用 API35 x86_64模拟器（Pixel4配置、390×844、density160、2vCPU、约2.42GiB RAM）；浏览器测试为独立桌面Chromium，两者均不是vivo性能实测。ARM64安装包另做构建、原生16KiB页对齐、地图资源与稳定证书校验。
 
-仍不是完整P2：各州独立财政与六部制度、全面外交自治、海军舰船/战术攻城/真实水利、所有府县独立案件、复杂派系联盟与后宫继承制度尚未完成。当前人物名册上限1000、组织4个、运河12段；无法用这些闭环宣称无限世界与全部历史制度已经完成。正式生产签名由用户后续提供，开发版沿用固定开发身份；未擅自商业发布。
+仍不是完整P2：各州独立财政与六部制度、全面外交自治、海军舰船/战术攻城/真实水利、所有府县独立案件、复杂派系联盟与后宫继承制度尚未完成。县府人口和预算目前按大区份额分摊，尚非189套完全自治的经济。当前人物名册上限1000、组织4个、运河12段；整档导出限8MiB、10000条决策、2000条对话，全部对话可另行导出。无法用这些闭环宣称无限世界与全部历史制度已经完成。正式生产签名由用户后续提供，开发版沿用固定开发身份；未擅自商业发布。
+
+
+## APK、源码与校验
+
+- [直接下载0.6.0 ARM64开发版](https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.6.0-arm64.apk)；[固定提交直链](https://raw.githubusercontent.com/initial2024/game/142c4b46495a7dd14fb29095d9ba96383434ff14/chronicle-ai-0.6.0-arm64.apk)。
+- 文件13139344字节，约12.53MiB。APK仅含ARM64库，模型另外下载；原生库使用标准APK压缩，安装无需电脑。
+- SHA-256：`b8bb462889282cef0d2f7d255027d6c9e9ee888cb8cb495064458b365b7955c9`。
+- 固定开发证书SHA-256：`ebd2aa94bee6d781d020e45a203c9b8f2d416a4f4b654da7cfadc9a67e438c49`；包名`cn.chronicle.shanhe`，versionCode10，可覆盖此前同证书开发包。私钥未提交。
+- 运行源码提交：[23f4975](https://github.com/initial2024/game/commit/23f4975819b0759ef0ad46522f5ab05fe1fd47f1)，[完整开发分支/Draft PR #2](https://github.com/initial2024/game/pull/2)。未合并main。
+- Actions的ARM64 Release ZIP SHA-256为`8ae54f8efc7065436323f0e488a48a0041c7c294ddbc421bfa8241d189d07c81`，取自artifact14215811390。校验包名/版本、每个ELF的EM_AARCH64、全部LOAD段16KiB对齐、apksigner签名、zipalign及APK地图与当前源码逐字一致后签署；详细元数据见`upgrade-0.6-evidence/signed-arm64-build.json`。
+
+上述两个公开APK直链均已完整下载，字节数与SHA-256一致；证据为`upgrade-0.6-evidence/public-download-check.json`。
