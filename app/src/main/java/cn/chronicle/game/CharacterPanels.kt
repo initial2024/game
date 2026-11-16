@@ -46,16 +46,18 @@ import cn.chronicle.core.*
 
 @Composable fun AcademyPanel(w:World,ask:(Command)->Unit){
  var section by rememberSaveable {mutableStateOf("学院")};var person by rememberSaveable {mutableIntStateOf(1)};var destination by rememberSaveable {mutableIntStateOf(-1)}
+ var chooseTutor by remember {mutableStateOf(false)};var chooseStudent by remember {mutableStateOf(false)}
+ if(chooseTutor)PersonPicker(w,"选择讲席",{it.alive&&it.ability>=40&&!EducationEngine.busy(w,it.id)&&w.journey?.companion!=it.id},{chooseTutor=false}){ask(Command("APPOINT_TUTOR",target=it.toString()))}
+ if(chooseStudent)PersonPicker(w,"选择派学人物",{it.alive&&it.ageQuarters>=72&&it.id!=w.academy.tutor&&!EducationEngine.busy(w,it.id)&&w.journey?.let {j->j.companion==it.id||j.regent==it.id}!=true},{chooseStudent=false}){person=it}
  Row {listOf("学院","派学","在读").forEach {t->FilterChip(selected=t==section,onClick={section=t},label={Text(t)})}}
  when(section){
   "学院"->{Text("国家学院 · ${w.academy.level}级",style=MaterialTheme.typography.titleLarge);Text("学额${w.academy.level}，每季维护${w.academy.level*2}万两。学习收益按每日实际学院等级与讲席能力累计。")
    val tutor=EducationEngine.teacher(w);Text("现任讲席：${tutor?.let {"${it.name} · ${EducationEngine.grade(it)}级"}?:"缺席，国内授课暂停"}")
    if(w.academy.level<5)OutlinedButton(onClick={ask(Command("ACADEMY_UPGRADE"))}){Text("扩建学院 · 120万两 / 180日")}
-   var appoint by rememberSaveable {mutableStateOf(false)};TextButton(onClick={appoint=!appoint}){Text("更换讲席")}
-   if(appoint)w.people.filter {it.alive&&it.ability>=40&&!EducationEngine.busy(w,it.id)}.forEach {p->TextButton(onClick={ask(Command("APPOINT_TUTOR",target=p.id.toString()))}){Text("聘${p.name} · 师资${EducationEngine.grade(p)}级 · 10万两")}}
+   TextButton(onClick={chooseTutor=true}){Text("更换讲席")}
   }
   "派学"->{val candidates=w.people.filter {it.alive&&it.ageQuarters>=72};val p=candidates.firstOrNull {it.id==person}?:candidates.firstOrNull()
-   if(p!=null){Text("派学人物：${p.name} · 能力${p.ability}");Row {TextButton(onClick={val i=candidates.indexOf(p);person=candidates[(i+candidates.size-1)%candidates.size].id}){Text("上一位")};TextButton(onClick={person=candidates[(candidates.indexOf(p)+1)%candidates.size].id}){Text("下一位")}}
+   if(p!=null){Text("派学人物：${p.name} · 能力${p.ability}");OutlinedButton(onClick={chooseStudent=true}){Text("点选派学人物")}
     Column {FilterChip(selected=destination<0,onClick={destination=-1},label={Text("国家学院 · ${w.academy.level}级")});w.neighbors.forEachIndexed {i,n->FilterChip(selected=destination==i,onClick={destination=i},label={Text("${n.name} · 学宫${n.academyLevel}级 / 师资${n.teacherLevel}级")})}}
     Text("完整学期预计能力+${EducationEngine.expected(w,destination)}，受100上限限制；途中不授课，师资缺席或邦交恶化会影响学业。")
     Text("国内：7+90+7日，50万两；国外：往返各${14+destination.coerceAtLeast(0)*7}日，研习180日，140万两。")

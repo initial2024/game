@@ -44,6 +44,8 @@ class CharacterFeatureTest {
   compose.waitUntil(15000){!vm.chat.value.working&&vm.chat.value.records.size>=2};assertEquals("template",vm.chat.value.records.last().source);assertEquals(beforeChat.nation.treasury,vm.state.value.world!!.nation.treasury);assertEquals(beforeChat.day,vm.state.value.world!!.day);assertTrue(vm.state.value.world!!.pending.none {it.command.type=="CONVERSE"})
   screenshot("character-chat");val store=Store(compose.activity);assertTrue(store.dialogues(vm.state.value.slot,1).size>=2);store.close()
   compose.onNodeWithText("关闭对话").performClick();compose.onNodeWithText("学院",useUnmergedTree=true).performScrollTo().performClick()
+  compose.onNodeWithText("更换讲席").performScrollTo().performClick();compose.onNodeWithText("选择讲席").assertIsDisplayed();compose.onNodeWithText("关闭选择").performClick()
+  compose.onNodeWithText("派学",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("点选派学人物").performScrollTo().performClick();compose.onNodeWithText("选择派学人物").assertIsDisplayed();compose.onNodeWithText("韩砺 ·",substring=true).performScrollTo().performClick()
   compose.onNodeWithText("派学",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("预览派学").performScrollTo().performClick();confirm()
   compose.waitUntil(10000){vm.state.value.world!!.studies.any {it.person==1}}
   compose.onNodeWithText("在读",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("韩砺 · 国家学院").assertIsDisplayed();screenshot("academy-student")

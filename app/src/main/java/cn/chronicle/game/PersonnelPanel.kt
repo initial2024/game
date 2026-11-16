@@ -13,11 +13,12 @@ import cn.chronicle.core.*
  var selected by remember {mutableStateOf<Int?>(null)}
  var tab by rememberSaveable {mutableStateOf("名册")};var query by rememberSaveable {mutableStateOf("")};var group by rememberSaveable {mutableStateOf("朝廷")};var page by rememberSaveable {mutableIntStateOf(0)}
  var candidate by rememberSaveable {mutableIntStateOf(-1)};var townId by rememberSaveable {mutableStateOf(w.towns.firstOrNull()?.id?:"")};var townQuery by rememberSaveable {mutableStateOf("")};var post by rememberSaveable {mutableStateOf("长官")}
+ val localOfficers=remember(w.people,w.towns,w.regions,w.localDefense){buildSet {w.towns.forEach {t->add(MunicipalEngine.officer(w,t)?.id?:-1);add(t.deputy);add(t.clerk)};w.localDefense.units.forEach {add(it.commander);add(it.governor)}}}
  Row{listOf("名册","招贤","任官").forEach {s->FilterChip(selected=tab==s,onClick={tab=s},label={Text(s)})}}
  when(tab){
   "名册"->{FlowRow{listOf("朝廷","地方","将领","待选","全部").forEach {s->FilterChip(selected=group==s,onClick={group=s;page=0},label={Text(s)})}}
    OutlinedTextField(query,{query=it;page=0},label={Text("查找姓名、官职或辖区")},singleLine=true,modifier=Modifier.fillMaxWidth())
-   val people=w.people.filter {p->(group=="全部"||when(group){"朝廷"->p.id<10;"地方"->TalentEngine.town(w,p.id)!=null||LocalDefenseEngine.office(w,p.id)!=null;"将领"->CrownEngine.units(w).any {it.commander==p.id};else->p.role=="待选人才"})&&(query.isBlank()||p.name.contains(query)||p.role.contains(query))}
+   val people=w.people.filter {p->(group=="全部"||when(group){"朝廷"->p.id<10;"地方"->p.id in localOfficers;"将领"->CrownEngine.units(w).any {it.commander==p.id};else->p.role=="待选人才"})&&(query.isBlank()||p.name.contains(query)||p.role.contains(query))}
    val pages=maxOf(1,(people.size+2)/3);val current=page.coerceAtMost(pages-1)
    people.drop(current*3).take(3).forEach {p->OutlinedCard(Modifier.fillMaxWidth()){Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
     Text("${p.name} · ${p.role}",style=MaterialTheme.typography.titleMedium);Text("${p.ageQuarters/4}岁 · 能力${p.ability} · 忠诚${p.loyalty} · 信任${p.trust}",style=MaterialTheme.typography.bodySmall)
