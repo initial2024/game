@@ -39,13 +39,13 @@ val SaveJson = Json { encodeDefaults = true; ignoreUnknownKeys = false; isLenien
  val cooldowns: Map<String, Int> = emptyMap(), val journey: Journey? = null, val caseFile: CaseFile,
  val recent: List<Entry> = emptyList(), val summary: String = "", val ended: Boolean = false,
  val era:String="启元",val eraDay:Int=0,val household:Household=Household(),
- val scale:String="中等国家",val atmosphere:String="均势博弈",val pending:List<PendingOrder> = emptyList(),val setting:String="工业初兴",val cartography:MapScenario?=null,val academy:Academy=Academy(),val studies:List<StudyCourse> = emptyList(),val socialDays:Map<Int,Int> = emptyMap(),val socialTopics:Map<Int,List<String>> = emptyMap(),val towns:List<Town> = emptyList()) {
+ val scale:String="中等国家",val atmosphere:String="均势博弈",val pending:List<PendingOrder> = emptyList(),val setting:String="工业初兴",val cartography:MapScenario?=null,val academy:Academy=Academy(),val studies:List<StudyCourse> = emptyList(),val socialDays:Map<Int,Int> = emptyMap(),val socialTopics:Map<Int,List<String>> = emptyMap(),val towns:List<Town> = emptyList(),val talentRound:Int=0,val lastExam:Int=-360,val lastRecruit:Int=-30,val estate:RoyalEstate=RoyalEstate(),val armies:List<ArmyUnit> = emptyList(),val familyPeople:Map<Int,Int> = emptyMap()) {
  val turn: Int get() = day / 90
  val date: String get() = "${era}${1 + day / 360 - eraDay / 360}年 · ${listOf("春", "夏", "秋", "冬")[(day / 90) % 4]} · 第${day % 90 + 1}日"
 }
 @Serializable data class Command(val type: String, val region: Int = 0, val mode: String = "微服私访",
  val disguise: String = "商人", val companion: Int = 2, val regent: Int = 0,
- val objective: String = "财政审计", val days: Int = 30, val target: String = "",val level:Int=0)
+ val objective: String = "财政审计", val days: Int = 30, val target: String = "",val level:Int=0,val text:String="")
 
 data class Preview(val commands: List<Command>, val description: String, val uncertain: Boolean = false)
 data class Outcome(val world: World, val entry: Entry)

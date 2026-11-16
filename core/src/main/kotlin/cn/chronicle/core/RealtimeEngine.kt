@@ -3,8 +3,14 @@ import kotlinx.serialization.Serializable
 
 @Serializable data class PendingOrder(val id:Long,val command:Command,val remainingDays:Int,val escrow:Long)
 object RealtimeEngine {
- private val immediate=setOf("TALK","URBAN_BUILD","CONVERSE","ACADEMY_UPGRADE","STUDY_HOME","STUDY_ABROAD","RECALL_STUDENT","CITY_FOUND","CITY_RESTORE","ERA","RULER_NAME","CHILD_NAME_PLAN","NAME_CHILD","FAMILY_PLAN","STRATEGY","FACTORY","WORKSHOP","FARM","ROAD","DEPART","REMOTE","REPAY")
+ private val immediate=setOf("FAMILY_CONTACT","PALACE_BUILD","TALK","URBAN_BUILD","CONVERSE","ACADEMY_UPGRADE","STUDY_HOME","STUDY_ABROAD","RECALL_STUDENT","CITY_FOUND","CITY_RESTORE","ERA","RULER_NAME","CHILD_NAME_PLAN","NAME_CHILD","FAMILY_PLAN","STRATEGY","FACTORY","WORKSHOP","FARM","ROAD","DEPART","REMOTE","REPAY")
  fun duration(c:Command)=when(c.type) {
+  "CONSORT_AUDIENCE","ARMY_TRAIN","ARMY_RECRUIT" -> 30
+  "CONSORT_ACCEPT","ARMY_ASSIGN" -> 7
+  "ARMY_MOVE" -> 14+c.region*3
+  "EXAM" -> 90
+  "RECRUIT" -> 30
+  "APPOINT" -> 7
   "CONVERSE" -> 0
   "URBAN_AUDIT","URBAN_RELIEF" -> 5
   "APPOINT_TUTOR" -> 7
@@ -23,7 +29,7 @@ object RealtimeEngine {
   else -> 1
  }
  fun describe(c:Command):String {
-  val time=when(c.type){"URBAN_BUILD"->"即刻立项，${MunicipalEngine.duration(c)}日后建筑升至${c.level}级";"ACADEMY_UPGRADE"->"即刻立项，180日后竣工；每级维护2万两/季";"STUDY_HOME"->"赴学7日，研习90日，返程7日；离岗期间影响公务";"STUDY_ABROAD"->"赴学与返程各${14+c.region*7}日，研习180日；邦交恶化可能中断";"RECALL_STUDENT"->"开始返程，按实际课业结算，不退学费";"CONVERSE"->"自由交谈，不收费、不推进时间、无需冷却；关系按话题与真实经历变化";"CITY_FOUND"->"即刻立项，120日后验收";"CITY_RESTORE"->"即刻立项，90日后验收";"CANCEL_TASK"->"即刻撤销，返还80%预留资金";"FACTORY","WORKSHOP"->"即刻立项，约270日后完工";"FARM","ROAD"->"即刻立项，约180日后完工";"REMOTE"->"即刻委派，30日后归报";"DEPART"->"即刻出发，旅程随时间推进";else->if(duration(c)==0)"即刻登记" else "办理${duration(c)}日"}
+  val time=when(c.type){"PALACE_BUILD"->"即刻开工，${(CrownEngine.buildings.find {it.id==c.objective}?.days?:0)+c.level*20}日后竣工；新增等级维护2万两/季";"URBAN_BUILD"->"即刻立项，${MunicipalEngine.duration(c)}日后建筑升至${c.level}级";"ACADEMY_UPGRADE"->"即刻立项，180日后竣工；每级维护2万两/季";"STUDY_HOME"->"赴学7日，研习90日，返程7日；离岗期间影响公务";"STUDY_ABROAD"->"赴学与返程各${14+c.region*7}日，研习180日；邦交恶化可能中断";"RECALL_STUDENT"->"开始返程，按实际课业结算，不退学费";"CONVERSE"->"自由交谈，不收费、不推进时间、无需冷却；关系按话题与真实经历变化";"CITY_FOUND"->"即刻立项，120日后验收";"CITY_RESTORE"->"即刻立项，90日后验收";"CANCEL_TASK"->"即刻撤销，返还80%预留资金";"FACTORY","WORKSHOP"->"即刻立项，约270日后完工";"FARM","ROAD"->"即刻立项，约180日后完工";"REMOTE"->"即刻委派，30日后归报";"DEPART"->"即刻出发，旅程随时间推进";else->if(duration(c)==0)"即刻登记" else "办理${duration(c)}日"}
   return "${Rules.label(c)} · ${Rules.cost(c)}万两 · $time"
  }
  fun suggestions(w:World):List<Command> {
@@ -73,8 +79,9 @@ object RealtimeEngine {
    x=FamilyEngine.advance(x,1,events)
    x=EducationEngine.advance(x,events)
    x=MunicipalEngine.advance(x,events)
+   x=CrownEngine.advance(x,events)
    x=ProjectEngine.advance(x,events)
-   if(x.day%90==0) {x=EconomyEngine.quarter(x,ledger,events,advanceProjects=false);x=MunicipalEngine.quarter(x,ledger);x=CharacterEngine.quarter(x,events);x=EventEngine.quarter(x,ledger,events)}
+   if(x.day%90==0) {x=EconomyEngine.quarter(x,ledger,events,advanceProjects=false);x=MunicipalEngine.quarter(x,ledger);x=CharacterEngine.quarter(x,events);x=TalentEngine.quarter(x,ledger);x=CrownEngine.quarter(x,ledger);x=EventEngine.quarter(x,ledger,events)}
    val due=x.pending.filter {it.remainingDays<=1}
    x=x.copy(pending=x.pending.filter {it.remainingDays>1}.map {it.copy(remainingDays=it.remainingDays-1)})
    due.forEach {task->

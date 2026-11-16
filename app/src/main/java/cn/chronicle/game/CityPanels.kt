@@ -58,6 +58,9 @@ import cn.chronicle.core.*
      else->{OutlinedTextField(rename,{rename=it.take(16)},label={Text("城邑新名称")},singleLine=true);TextButton(onClick={ask(Command("CITY_RENAME",region=t.region,target=t.id,objective=rename))}){Text("预览更名 · 5万两")}
       val p=MunicipalEngine.officer(w,t)
       if(p==null)Text("地方职位暂缺。旧任者的经历仍保存在人物档案。")else{Text("${p.name} · ${p.role}",style=MaterialTheme.typography.titleMedium);Text("${p.ageQuarters/4}岁 · 能力${p.ability} · 忠诚${p.loyalty}");Text("立场：${p.stance}；目标：${p.goal}");TextButton(onClick={close();chat(p.id)}){Text("与地方官交谈")}}
+      listOf("副官" to t.deputy,"主簿" to t.clerk).forEach {(post,id)->val aide=w.people.find {it.id==id&&it.alive}
+       if(aide==null)Text("${TalentEngine.role(t,post)}：暂缺")else OutlinedCard(Modifier.fillMaxWidth()){Column(Modifier.padding(12.dp)){Text("${aide.name} · ${TalentEngine.role(t,post)}");Text("能力${aide.ability} · 忠诚${aide.loyalty} · ${aide.goal}",style=MaterialTheme.typography.bodySmall);TextButton(onClick={close();chat(aide.id)}){Text("与${aide.name}交谈")}}}
+      }
       OutlinedButton(onClick={ask(Command("URBAN_AUDIT",region=t.region,target=t.id))}){Text("地方财政审计 · 15万两 / 5日")}
       OutlinedButton(onClick={ask(Command("URBAN_RELIEF",region=t.region,target=t.id))}){Text("地方赈济 · 20万两 / 5日")}
       Text("审计可改善财政记录与腐败情况，不能仅凭数值认定官员有罪。",style=MaterialTheme.typography.bodySmall)

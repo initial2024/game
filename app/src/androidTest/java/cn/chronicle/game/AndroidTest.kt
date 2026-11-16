@@ -178,10 +178,12 @@ class RealModelTest {
    assertTrue(manager.state.value.status,manager.state.value.exists)
    manager.load();runBlocking {withTimeout(120000){while(manager.state.value.working)delay(100)}}
    assertTrue(manager.state.value.status,manager.isLoaded)
+   val county=world.towns.first {it.rank=="县城"};val magistrate=world.people.first {it.id==county.official}
+   assertTrue(DialogueEngine.context(world,magistrate,true).contains(county.name))
    var appChunks=0;val appStart=System.nanoTime()
-   val reply=runBlocking {withTimeout(210000){manager.chat(world,person,emptyList(),"请用一句话谈谈你的目标。",{appChunks++})}}
+   val reply=runBlocking {withTimeout(210000){manager.chat(world,magistrate,emptyList(),"请用一句话介绍你的任所和职责。",{appChunks++})}}
    assertEquals("model",reply.source);assertTrue(reply.text.any {it in '\u4e00'..'\u9fff'});assertTrue(appChunks>0)
-   println("REAL_APP_CHARACTER_CHAT elapsed_ms=${(System.nanoTime()-appStart)/1000000} chunks=$appChunks text=${reply.text}")
+   println("REAL_APP_CHARACTER_CHAT elapsed_ms=${(System.nanoTime()-appStart)/1000000} chunks=$appChunks person=${magistrate.id} role=${magistrate.role} town=${county.id} text=${reply.text}")
   } finally {manager.unloadAsync();runBlocking {withTimeout(60000){while(manager.isLoaded)delay(100)}};manager.close()}
  }
 }

@@ -12,7 +12,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 data class UiState(val world:World?=null,val slot:Int=1,val slots:List<Slot> = emptyList(),val busy:Boolean=false,val message:String="",val archive:List<Entry> = emptyList(),val offset:Int=0,val aiText:String="",val generating:Boolean=false,val paused:Boolean=true,val speed:Int=1,val ready:Boolean=false,val cityId:String?=null)
-data class ChatState(val person:Int?=null,val records:List<DialogueRecord> = emptyList(),val working:Boolean=false,val partial:String="",val note:String="")
+data class ChatState(val person:Int?=null,val records:List<DialogueRecord> = emptyList(),val working:Boolean=false,val partial:String="",val note:String="",val relationship:String="")
 class GameViewModel(app:Application):AndroidViewModel(app) {
  private val store=Store(app)
  private val resumePrefs=app.getSharedPreferences("resume-world",0)
@@ -110,6 +110,11 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
   cancelAi();val w=mutable.value.world?:error("请先新建游戏");require(w.people.any {it.id==id})
   chatMutable.value=ChatState(id,store.dialogues(mutable.value.slot,id,100),note=DialogueEngine.access(w,id)?:"对话仅供交流；实际政策须通过行动确认。")
  }
+ fun openFamilyChat(family:Int)=task {
+  cancelAi();var w=mutable.value.world?:error("请先新建游戏")
+  if(family !in w.familyPeople){val out=RealtimeEngine.submit(w,Command("FAMILY_CONTACT",target=family.toString()),w.revision);store.commit(mutable.value.slot,w.revision,out);w=out.world;mutable.update {it.copy(world=out.world)}}
+  val id=w.familyPeople.getValue(family);chatMutable.value=ChatState(id,store.dialogues(mutable.value.slot,id,100),note=DialogueEngine.access(w,id)?:"家族交流免费；关系按规则结算，宫廷和备孕安排须单独确认。")
+ }
  fun closeChat(){cancelAi();chatMutable.value=ChatState()}
  fun sendChat(text:String,approach:String){
   if(chatMutable.value.working||mutable.value.busy||text.isBlank())return
@@ -120,13 +125,13 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
    try {
     lock.withLock {
      val w=mutable.value.world?:error("请先新建游戏");val id=chatMutable.value.person?:error("人物已关闭");val p=w.people.first {it.id==id};require(DialogueEngine.access(w,id)==null){DialogueEngine.access(w,id)?:"无法交谈"}
-     val clean=text.trim().take(400);val cmd=Command("CONVERSE",target=id.toString(),mode=DialogueEngine.approach(approach,clean),objective=DialogueEngine.topic(clean))
+     val clean=text.trim().take(400);val cmd=Command("CONVERSE",target=id.toString(),mode=DialogueEngine.approach(approach,clean),objective=DialogueEngine.topic(clean),text=clean)
      val out=RealtimeEngine.submit(w,cmd,w.revision)
      slot=mutable.value.slot;previous=store.dialogues(slot,id,6)
      val record=DialogueRecord(id,"user",clean,w.day,"player");store.startDialogue(slot,w.revision,out,record)
      val x=out.world;world=x;person=x.people.first {it.id==p.id}
      mutable.update {it.copy(world=x,message="交谈已保存；无需支付资金或等待冷却。")}
-     chatMutable.value=chatMutable.value.copy(records=(chatMutable.value.records+record).takeLast(100),note=if(models.isLoaded)"本地模型生成中…"else"未加载模型，使用规则模板。")
+     chatMutable.value=chatMutable.value.copy(records=(chatMutable.value.records+record).takeLast(100),relationship=DialogueEngine.relationship(p,person!!)+(if(p==person)"（重复内容或话题已充分交流）"else""),note=out.entry.events.lastOrNull().orEmpty()+if(models.isLoaded)" 本地模型生成中…"else" 未加载模型，使用规则模板。")
     }
     val w=world!!;val p=person!!
     val reply=if(models.isLoaded)try {
@@ -141,7 +146,7 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
      if(!currentPerson.alive){chatMutable.value=chatMutable.value.copy(partial="",note="对方已故，未完成的回复已停止，旧记录仍可查看。");return@withLock}
      val safe=DialogueEngine.sanitize(current,currentPerson,reply.text)?:DialogueEngine.fallback(current,currentPerson,text)
      val record=DialogueRecord(p.id,"assistant",safe,current.day,if(safe==reply.text)reply.source else "template")
-     store.appendDialogue(slot,record);chatMutable.value=chatMutable.value.copy(records=(chatMutable.value.records+record).takeLast(100),partial="",note=if(record.source=="model")"本地模型回复 · 不直接改变世界状态"else"规则模板回复 · 可继续游戏")
+     store.appendDialogue(slot,record);chatMutable.value=chatMutable.value.copy(records=(chatMutable.value.records+record).takeLast(100),partial="",note=if(record.source=="model")"本地模型回复 · 关系已按规则结算；政策须拟旨确认"else"规则模板回复 · 可继续游戏")
     }
    }catch(e:CancellationException){}catch(e:Exception){if(token==chatEpoch)chatMutable.value=chatMutable.value.copy(note=e.message?:"对话未完成",partial="")}
    finally {if(token==chatEpoch)chatMutable.value=chatMutable.value.copy(working=false)}

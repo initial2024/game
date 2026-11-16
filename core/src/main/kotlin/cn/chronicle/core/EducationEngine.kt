@@ -39,13 +39,15 @@ object EducationEngine {
  fun execute(w:World,c:Command,events:MutableList<String>):World {
   val id=c.target.toIntOrNull();val p=w.people.find {it.id==id}
   return when(c.type){
-   "CONVERSE" -> {p!!;val masked=DialogueEngine.hidden(w,p);val topic=if(c.objective=="财政审计")"闲谈"else c.objective;val key=DialogueEngine.socialKey(w,p,topic)
-    val known=w.socialTopics[p.id].orEmpty();val repeat=key in known
-    if(repeat&&c.mode!="威胁"){events+="与${p.name}继续交流${topic}。相同经历下重复表态不会反复增加关系；可以继续交谈，无费用、无等待。";w}
+   "CONVERSE" -> {p!!;val masked=DialogueEngine.hidden(w,p);val topic=if(c.objective=="财政审计")"闲谈"else c.objective;val base=DialogueEngine.socialKey(w,p,topic);val key=DialogueEngine.exchangeKey(w,p,topic,c.text)
+    val known=w.socialTopics[p.id].orEmpty();val count=known.count {it==base||it.startsWith("$base|")};val repeat=key in known||count>=4
+    if(repeat&&c.mode!="威胁"){events+="与${p.name}继续交流${topic}。本次关系不变：重复内容或本话题已充分交流（最多四次新内容）；可谈其他事情，或待共同经历变化，无费用、无等待。";w}
     else {
      val effect=when(c.mode){"倾听"->listOf(if(topic=="闲谈")1 else 3,if(masked||topic=="闲谈")0 else 1,0,0);"勉励"->listOf(2,if(masked||p.loyalty<30||topic=="闲谈")0 else 2,0,0);"质询"->listOf(-2,if(masked)0 else -1,3,1);else->listOf(-6,if(masked)0 else -4,5,4)}
-     events+="与${p.name}${c.mode}交流${topic}：信任${effect[0]}、忠诚${effect[1]}、怀疑${effect[2]}、敌意${effect[3]}，受百分制边界约束。${if(masked)"对方只认识当前伪装，不增加对统治者的忠诚。"else ""}"
-     w.copy(socialTopics=w.socialTopics+(p.id to (known+key).distinct().takeLast(64)),people=w.people.map {if(it.id==p.id)it.copy(trust=(it.trust+effect[0]).coerceIn(0,100),loyalty=(it.loyalty+effect[1]).coerceIn(0,100),suspicion=(it.suspicion+effect[2]).coerceIn(0,100),hostility=(it.hostility+effect[3]).coerceIn(0,100),memories=(it.memories+"${w.day}日，与${DialogueEngine.identity(w,it)}${c.mode}谈论${topic}").takeLast(8))else it})
+     val adjusted=effect.map {if(it>0&&count>0)1 else it}
+     val after=p.copy(trust=(p.trust+adjusted[0]).coerceIn(0,100),loyalty=(p.loyalty+adjusted[1]).coerceIn(0,100),suspicion=(p.suspicion+adjusted[2]).coerceIn(0,100),hostility=(p.hostility+adjusted[3]).coerceIn(0,100),memories=(p.memories+"${w.day}日，与${DialogueEngine.identity(w,p)}${c.mode}谈论${topic}：${c.text.take(60)}").takeLast(8))
+     events+="与${p.name}${c.mode}交流${topic}：${DialogueEngine.relationship(p,after)}，受百分制边界约束。${if(masked)"对方只认识当前伪装，不增加对统治者的忠诚。"else ""}"
+     w.copy(household=w.household.copy(members=w.household.members.map {f->if(w.familyPeople[f.id]==p.id)f.copy(relationship=after.trust)else f}),socialTopics=w.socialTopics+(p.id to (known+key).distinct().takeLast(64)),people=w.people.map {if(it.id==p.id)after else it})
     }
    }
    "ACADEMY_UPGRADE"->{events+="国家学院扩建立项，180日后增级；未竣工前不提前增加学额与教学效果。";w.copy(projects=w.projects+Project(c.type,0,2,180))}

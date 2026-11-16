@@ -10,10 +10,11 @@ import kotlinx.serialization.Serializable
  val members:List<FamilyMember> = listOf(FamilyMember(1,"林映书","成年伴侣",-27*360)),
  val pregnancy:Pregnancy?=null,val attempts:Int=0)
 object FamilyEngine {
- val types=setOf("ERA","RULER_NAME","CHILD_NAME_PLAN","NAME_CHILD","FAMILY_PLAN","TRY_HEIR","FAMILY_TIME")
+ val types=setOf("FAMILY_CONTACT","ERA","RULER_NAME","CHILD_NAME_PLAN","NAME_CHILD","FAMILY_PLAN","TRY_HEIR","FAMILY_TIME")
  fun validName(name:String)=name.isNotBlank() && name.length<=16 && name.none {it.isISOControl() || it=='|'}
  fun validate(w:World,c:Command):String? {
   val h=w.household
+  if(c.type=="FAMILY_CONTACT")return when {h.members.none {it.id==c.target.toIntOrNull()&&it.alive}->"须选择在世家族成员。";c.target.toInt() in w.familyPeople->"此人已在对话名册中。";w.people.size>=500->"人物名册已满，不能新增对话身份。";else->null}
   if(c.type in listOf("ERA","RULER_NAME","CHILD_NAME_PLAN") && !validName(c.target)) return "名称须为 1–16 字且不含控制字符。"
   if(c.type=="FAMILY_PLAN" && c.target !in listOf("允许","暂停")) return "备孕设置无效。"
   if(c.type=="NAME_CHILD") {
@@ -32,6 +33,8 @@ object FamilyEngine {
  fun execute(w:World,c:Command,events:MutableList<String>):World {
   var x=w;val h=w.household
   when(c.type) {
+   "FAMILY_CONTACT"->{val f=h.members.first {it.id==c.target.toInt()};val id=(w.people.maxOfOrNull {it.id}?:-1)+1;val p=Person(id,f.name,f.role,0,((w.day-f.bornDay)/90).coerceAtLeast(0),40,60,"自主表达",if(f.ageAt(w.day)<18)"平安成长与读书"else if(!f.willing)"婉拒入宫，自主生活"else"珍惜家人与自主选择",alive=f.alive,trust=f.relationship);x=w.copy(people=w.people+p,familyPeople=w.familyPeople+(f.id to id));events+="${f.name}的独立交流身份已登记，沿用原家族关系，不收费、不推进时间。"}
+
    "ERA" -> {x=x.copy(era=c.target,eraDay=w.day);events+="改元${c.target}，旧纪年及历史保留。"}
    "RULER_NAME" -> {x=x.copy(ruler=c.target);events+="君主登记姓名改为${c.target}，此前史料不改写。"}
    "CHILD_NAME_PLAN" -> {x=x.copy(household=h.copy(nextChildName=c.target));events+="下一次登记孕期将使用预备名${c.target}；既有孕期与子女名字不变。"}
@@ -47,6 +50,11 @@ object FamilyEngine {
   }
   return x
  }
+ fun syncPeople(w:World):World {
+  if(w.familyPeople.isEmpty())return w
+  val members=w.household.members.associateBy {it.id};val mapping=w.familyPeople.entries.associate {it.value to it.key}
+  return w.copy(people=w.people.map {p->val f=mapping[p.id]?.let {members[it]};if(f==null)p else p.copy(name=f.name,role=if(f.alive)f.role else "已故",ageQuarters=((if(f.alive)w.day else f.diedDay?:w.day)-f.bornDay)/90,alive=f.alive,trust=f.relationship)})
+ }
  fun advance(w:World,days:Int,events:MutableList<String>):World {
   var h=w.household
   h=h.copy(members=h.members.map {m->if(m.alive && w.day-m.bornDay>=100*360){events+="宗室${m.name}寿终，其身份改记已故。";m.copy(alive=false,diedDay=w.day)}else m})
@@ -59,6 +67,6 @@ object FamilyEngine {
     h=h.copy(pregnancy=null,members=h.members+child);events+="${parent.name}平安分娩，子女${p.childName}登记入册；可在宗室中再次命名。"
    } else h=h.copy(pregnancy=p.copy(remainingDays=p.remainingDays-days))
   }
-  return w.copy(household=h)
+  return syncPeople(w.copy(household=h))
  }
 }

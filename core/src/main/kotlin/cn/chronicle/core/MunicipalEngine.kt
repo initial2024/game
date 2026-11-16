@@ -6,7 +6,7 @@ import kotlin.math.abs
 @Serializable data class UrbanWork(val kind:String,val level:Int,val remainingDays:Int,val paid:Long)
 @Serializable data class Town(val id:String,val name:String,val prefecture:String,val region:Int,val rank:String,val official:Int,
  val security:Int,val corruption:Int,val morale:Int,val agriculture:Int,val commerce:Int,val industry:Int,
- val buildings:Map<String,Int>,val work:UrbanWork?=null)
+ val buildings:Map<String,Int>,val work:UrbanWork?=null,val deputy:Int=-1,val clerk:Int=-1,val staffed:Boolean=false)
 data class BuildingSpec(val id:String,val name:String,val category:String,val cost:Long,val days:Int,val effect:String)
 object MunicipalEngine {
  val types=setOf("URBAN_BUILD","URBAN_AUDIT","URBAN_RELIEF")
@@ -33,19 +33,20 @@ object MunicipalEngine {
   return capitals+townSeeds.mapIndexed {i,s->template(s.id,s.name,s.prefecture,s.region,s.rank,next+i,w.seed,w.regions[s.region])}
  }
  fun initialize(w:World):World {
-  if(w.towns.isNotEmpty()||w.cartography?.let {it.geography.kind=="custom"||it.extraPlaces.none {p->p.id=="city-r0"}}==true)return w
+  if(w.towns.isNotEmpty())return TalentEngine.staff(w)
+  if(w.cartography?.let {it.geography.kind=="custom"||it.extraPlaces.none {p->p.id=="city-r0"}}==true)return w
   val towns=all(w)
   val surnames=listOf("陈","谢","江","林","程","苏","杜","叶","宋","黎","温","方","季")
   val given=listOf("明远","知行","清岳","文昭","守正","怀川","景和","子谦","闻礼","承安","望舒","若衡","慎言")
   val people=towns.filter {t->w.people.none {it.id==t.official}}.mapIndexed {i,t->
    Person(t.official,surnames[i%surnames.size]+given[(i/surnames.size+i)%given.size],"${t.name}${if(t.rank=="县城")"县令"else"知府"}",i%3,112+i%96,45+i%39,50+i%31,"依法施政","治理${t.name}")
   }
-  return w.copy(towns=towns,people=w.people+people)
+  return TalentEngine.staff(w.copy(towns=towns,people=w.people+people))
  }
  fun register(w:World,id:String,region:Int,name:String):World {
   val x=initialize(w);if(x.towns.any {it.id==id})return x
   val pref=townSeeds.firstOrNull {it.region==region&&it.rank=="府城"}?.prefecture?:""
-  return x.copy(towns=x.towns+template(id,name,pref,region,"县城",-1,x.seed,x.regions[region]))
+  return TalentEngine.staff(x.copy(towns=x.towns+template(id,name,pref,region,"县城",-1,x.seed,x.regions[region])))
  }
  fun prefectureName(t:Town)=townSeeds.firstOrNull {it.prefecture==t.prefecture}?.administration?:""
  fun name(w:World,t:Town)=w.cartography?.places?.get(t.id)?.name?.takeIf {it.isNotBlank()}?:t.name

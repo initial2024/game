@@ -10,12 +10,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import cn.chronicle.core.*
 
-@Composable fun CharacterChat(vm:GameViewModel,w:World){
+@Composable fun CharacterChat(vm:GameViewModel,w:World,onDecree:(Int,String)->Unit){
  val chat by vm.chat.collectAsState();val model by vm.models.state.collectAsState()
  val p=w.people.find {it.id==chat.person}?:return
  var text by rememberSaveable(p.id){mutableStateOf("")};var approach by rememberSaveable(p.id){mutableStateOf("倾听")}
@@ -29,10 +30,11 @@ import cn.chronicle.core.*
    HorizontalDivider()
    LazyColumn(Modifier.weight(1f).fillMaxWidth(),state=list,verticalArrangement=Arrangement.spacedBy(10.dp)){
     if(chat.records.isEmpty())item {Text("可以询问近况、政策或求学意愿。正式调查、派学和任免需要单独确认。")}
-    itemsIndexed(chat.records){_,d->Card(Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=if(d.role=="user")MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh)){Column(Modifier.padding(12.dp)){Text(if(d.role=="user")"你 · 第${d.day}日" else "${p.name} · ${if(d.source=="model")"本地模型"else"规则模板"}",style=MaterialTheme.typography.labelSmall);Text(d.text)}}}
+    itemsIndexed(chat.records){_,d->Card(Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=if(d.role=="user")MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh)){Column(Modifier.padding(12.dp)){Text(if(d.role=="user")"你 · 第${d.day}日" else "${p.name} · ${if(d.source=="model")"本地模型"else"规则模板"}",style=MaterialTheme.typography.labelSmall);Text(d.text);TextButton(onClick={onDecree(p.id,d.text)},enabled=!chat.working,modifier=Modifier.testTag("decree-${d.role}")){Text("拟为旨意")}}}}
     if(chat.partial.isNotBlank())item {Text(chat.partial)}
    }
-   Text("自由交流 · 相同话题不会反复增加关系。\n"+chat.note,maxLines=3,style=MaterialTheme.typography.labelSmall)
+   if(chat.relationship.isNotBlank())Text("本次：${chat.relationship}",color=MaterialTheme.colorScheme.primary,style=MaterialTheme.typography.labelSmall)
+   Text(chat.note,maxLines=2,style=MaterialTheme.typography.labelSmall)
    if(DialogueEngine.access(w,p.id)==null){
     Row {DialogueEngine.approaches.take(3).forEach {a->FilterChip(selected=a==approach,onClick={approach=a},label={Text(a)})}}
     OutlinedTextField(text,{text=it.take(400)},modifier=Modifier.fillMaxWidth().heightIn(max=120.dp),label={Text("说些什么…")},enabled=!chat.working,maxLines=3)

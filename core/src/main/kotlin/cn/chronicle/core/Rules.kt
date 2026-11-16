@@ -5,9 +5,9 @@ import kotlin.math.min
 
 object Rules {
  val policies = listOf("WORKSHOP","FACTORY","FARM","RESEARCH","ROAD","TAX_DOWN","TAX_UP","DIPLOMACY","DRILL","RELIEF","REPAY","REFORM","REST")
- private val labels = mapOf("URBAN_BUILD" to "升级城内建筑", "URBAN_AUDIT" to "城邑财政审计", "URBAN_RELIEF" to "城邑赈济","CONVERSE" to "人物交谈", "ACADEMY_UPGRADE" to "扩建国家学院", "APPOINT_TUTOR" to "聘任讲席", "STUDY_HOME" to "入国家学院", "STUDY_ABROAD" to "派往海外学习", "RECALL_STUDENT" to "召回学员", "WORKSHOP" to "营造官营作坊", "CITY_FOUND" to "营建新邑", "CITY_RESTORE" to "修复旧城", "CITY_RENAME" to "城邑更名", "BORDER_TREATY" to "议定边地移交", "ERA" to "更改纪元", "RULER_NAME" to "君主更名", "CHILD_NAME_PLAN" to "预设子女名字", "NAME_CHILD" to "子女更名", "FAMILY_PLAN" to "设置备孕", "TRY_HEIR" to "自愿备孕", "FAMILY_TIME" to "陪伴家人", "STRATEGY" to "调整战略", "FACTORY" to "筹建工厂", "FARM" to "兴修水利", "RESEARCH" to "资助研究", "ROAD" to "修筑道路", "TAX_DOWN" to "减税惠民", "TAX_UP" to "提高税率", "DIPLOMACY" to "派遣使节", "DRILL" to "整训军队", "RELIEF" to "赈济百姓", "REPAY" to "偿还债务", "REFORM" to "考核改革", "REST" to "休养生息", "DEPART" to "出发巡游", "TRAVEL" to "继续行程", "VISIT" to "探访场景", "TALK" to "询问人物", "INVESTIGATE" to "暗访取证", "AUDIT" to "核验账册", "REVEAL" to "公开身份", "TRIAL" to "依法审理", "DISMISS" to "行政撤换", "CLOSE" to "撤销指控", "REMOTE" to "委派监察官", "RETURN" to "返回朝廷")
+ private val labels = mapOf("FAMILY_CONTACT" to "登记家族交流身份","PALACE_BUILD" to "营建宫廷建筑", "CONSORT_AUDIENCE" to "安排选妃面见", "CONSORT_ACCEPT" to "登记自愿伴侣", "ARMY_ASSIGN" to "任命将领", "ARMY_TRAIN" to "军队训练", "ARMY_MOVE" to "调防军队", "ARMY_RECRUIT" to "募集兵员","EXAM" to "举办科举", "RECRUIT" to "公开招贤", "APPOINT" to "任命地方官","URBAN_BUILD" to "升级城内建筑", "URBAN_AUDIT" to "城邑财政审计", "URBAN_RELIEF" to "城邑赈济","CONVERSE" to "人物交谈", "ACADEMY_UPGRADE" to "扩建国家学院", "APPOINT_TUTOR" to "聘任讲席", "STUDY_HOME" to "入国家学院", "STUDY_ABROAD" to "派往海外学习", "RECALL_STUDENT" to "召回学员", "WORKSHOP" to "营造官营作坊", "CITY_FOUND" to "营建新邑", "CITY_RESTORE" to "修复旧城", "CITY_RENAME" to "城邑更名", "BORDER_TREATY" to "议定边地移交", "ERA" to "更改纪元", "RULER_NAME" to "君主更名", "CHILD_NAME_PLAN" to "预设子女名字", "NAME_CHILD" to "子女更名", "FAMILY_PLAN" to "设置备孕", "TRY_HEIR" to "自愿备孕", "FAMILY_TIME" to "陪伴家人", "STRATEGY" to "调整战略", "FACTORY" to "筹建工厂", "FARM" to "兴修水利", "RESEARCH" to "资助研究", "ROAD" to "修筑道路", "TAX_DOWN" to "减税惠民", "TAX_UP" to "提高税率", "DIPLOMACY" to "派遣使节", "DRILL" to "整训军队", "RELIEF" to "赈济百姓", "REPAY" to "偿还债务", "REFORM" to "考核改革", "REST" to "休养生息", "DEPART" to "出发巡游", "TRAVEL" to "继续行程", "VISIT" to "探访场景", "TALK" to "询问人物", "INVESTIGATE" to "暗访取证", "AUDIT" to "核验账册", "REVEAL" to "公开身份", "TRIAL" to "依法审理", "DISMISS" to "行政撤换", "CLOSE" to "撤销指控", "REMOTE" to "委派监察官", "RETURN" to "返回朝廷")
  fun label(c: Command)=if(c.type=="CANCEL_TASK") "撤销事务" else labels[c.type] ?: c.type
- fun cost(c: Command): Long = when(c.type) { in MunicipalEngine.types->MunicipalEngine.cost(c); "CONVERSE"->0; "APPOINT_TUTOR"->10; "STUDY_HOME"->50; "STUDY_ABROAD"->140; "ACADEMY_UPGRADE"->120; "WORKSHOP" -> 100; "CITY_FOUND" -> 120; "CITY_RESTORE" -> 80; "CITY_RENAME" -> 5; "BORDER_TREATY" -> 180; "TRY_HEIR" -> 20; "FAMILY_TIME" -> 10; "FACTORY" -> 140; "FARM" -> 75; "RESEARCH" -> 65; "ROAD" -> 100; "DIPLOMACY" -> 35; "DRILL" -> 60; "RELIEF" -> 50; "REPAY" -> 80; "REFORM" -> 95; "DEPART" -> if(c.mode=="公开巡幸") 95 else if(c.mode=="秘密调查") 55 else 35; "TRAVEL" -> 8; "TALK" -> 0; "VISIT" -> 3; "INVESTIGATE" -> 12; "AUDIT" -> 20; "REVEAL" -> 10; "TRIAL" -> 25; "DISMISS" -> 20; "REMOTE" -> 65; "RETURN" -> 20; else -> 0 }
+ fun cost(c: Command): Long = when(c.type) { in CrownEngine.types->CrownEngine.cost(c); "EXAM"->60;"RECRUIT"->20;"APPOINT"->25; in MunicipalEngine.types->MunicipalEngine.cost(c); "CONVERSE"->0; "APPOINT_TUTOR"->10; "STUDY_HOME"->50; "STUDY_ABROAD"->140; "ACADEMY_UPGRADE"->120; "WORKSHOP" -> 100; "CITY_FOUND" -> 120; "CITY_RESTORE" -> 80; "CITY_RENAME" -> 5; "BORDER_TREATY" -> 180; "TRY_HEIR" -> 20; "FAMILY_TIME" -> 10; "FACTORY" -> 140; "FARM" -> 75; "RESEARCH" -> 65; "ROAD" -> 100; "DIPLOMACY" -> 35; "DRILL" -> 60; "RELIEF" -> 50; "REPAY" -> 80; "REFORM" -> 95; "DEPART" -> if(c.mode=="公开巡幸") 95 else if(c.mode=="秘密调查") 55 else 35; "TRAVEL" -> 8; "TALK" -> 0; "VISIT" -> 3; "INVESTIGATE" -> 12; "AUDIT" -> 20; "REVEAL" -> 10; "TRIAL" -> 25; "DISMISS" -> 20; "REMOTE" -> 65; "RETURN" -> 20; else -> 0 }
  fun duration(c: Command)=when(c.type) { "URBAN_BUILD" -> 0; "URBAN_AUDIT","URBAN_RELIEF"->5; "CONVERSE" -> 0; "APPOINT_TUTOR" -> 7; "ACADEMY_UPGRADE","STUDY_HOME","STUDY_ABROAD","RECALL_STUDENT" -> 0; "ERA","RULER_NAME","CHILD_NAME_PLAN","NAME_CHILD","FAMILY_PLAN","STRATEGY" -> 0; "DEPART" -> 1; "TRAVEL" -> 7; "TALK" -> 0; "VISIT" -> 2; "INVESTIGATE","AUDIT" -> 5; "REVEAL","TRIAL","DISMISS","CLOSE" -> 1; "RETURN" -> 7; else -> 90 }
  fun suggestions(w: World): List<Command> {
   val j=w.journey
@@ -15,6 +15,7 @@ object Rules {
   return when(w.strategy) { "工业强国","商工兴国" -> listOf(Command(EraRules.factory(w)),Command("RESEARCH"),Command("REST")); "富民治国" -> listOf(Command("FARM"),Command("RELIEF"),Command("REST")); else -> listOf(Command("ROAD"),Command("DIPLOMACY"),Command("REST")) }
  }
  fun validate(w: World, c: Command): String? {
+  if(c.text.length>600)return "行动原文过长。"
   if(w.ended) return "本纪年已结束，请新建或读取存档。"
   if(w.day>900000) return "已达到本版纪年上限，请保留档案。"
   if(c.type=="FACTORY" && w.setting==EraRules.ANCIENT)return "纯古代模式使用手工作坊，不可建设工业工厂。"
@@ -25,6 +26,8 @@ object Rules {
   if(c.type in MapActions.types) MapActions.validate(w,c)?.let {return it}
   if(c.type in MunicipalEngine.types)MunicipalEngine.validate(w,c)?.let {return it}
   if(c.type in EducationEngine.types)EducationEngine.validate(w,c)?.let {return it}
+  if(c.type in TalentEngine.types)TalentEngine.validate(w,c)?.let {return it}
+  if(c.type in CrownEngine.types)CrownEngine.validate(w,c)?.let {return it}
   if(w.nation.treasury<cost(c)) return "国库不足：需要 ${cost(c)} 万两。可休养、调整税率或削减研究。"
   if(c.type in listOf("FACTORY","WORKSHOP","FARM","ROAD") && w.projects.any { it.kind==c.type && it.region==c.region }) return "该地区已有同类在建项目。"
   if(c.type=="STRATEGY" && c.target !in listOf("工业强国","商工兴国","富民治国","综合发展")) return "发展方向无效。"
@@ -109,6 +112,8 @@ object Rules {
   if(c.type in MapActions.types) x=MapActions.execute(x,c,events)
   if(c.type in MunicipalEngine.types)x=MunicipalEngine.execute(x,c,events)
   if(c.type in EducationEngine.types)x=EducationEngine.execute(x,c,events)
+  if(c.type in TalentEngine.types)x=TalentEngine.execute(x,c,events)
+  if(c.type in CrownEngine.types)x=CrownEngine.execute(x,c,events)
   if(x.journey!=null) {
    var j=x.journey!!.copy(spentDays=x.journey!!.spentDays+elapsed)
    if(j.exposure>=85 && !j.revealed) { j=j.copy(revealed=true); events+="调查动静与朝臣随行引起驿站核查，身份经印信验明确认。" }
@@ -119,14 +124,15 @@ object Rules {
    val left=max(0,x.caseFile.remoteDays-elapsed); x=x.copy(caseFile=x.caseFile.copy(remoteDays=left))
    if(left==0) { evidence(Evidence("ledger","监察使核验账册",50,true)); if(x.caseFile.guilty) evidence(Evidence("receipt","监察使复核收费凭据",30,true)); else evidence(Evidence("forgery","证人笔迹不符的伪证",0,false)); events+="监察使归报，材料已存入案卷；处分仍须另行决定。" }
   }
-  repeat(elapsed){x=EducationEngine.advance(x.copy(day=x.day+1),events);x=MunicipalEngine.advance(x,events)}
+  repeat(elapsed){x=EducationEngine.advance(x.copy(day=x.day+1),events);x=MunicipalEngine.advance(x,events);x=CrownEngine.advance(x,events)}
   x=FamilyEngine.advance(x.copy(day=newDay),elapsed,events)
   repeat(newDay/90-oldQuarter) {
    x=EconomyEngine.quarter(x,ledger,events);x=MunicipalEngine.quarter(x,ledger)
    x=CharacterEngine.quarter(x,events)
+   x=TalentEngine.quarter(x,ledger);x=CrownEngine.quarter(x,ledger)
    x=EventEngine.quarter(x,ledger,events)
   }
-  val clamped=bounded(x)
+  val clamped=bounded(FamilyEngine.syncPeople(x))
   if(clamped!=x) ledger+="部分属性触及规定边界，超出部分未计入。"
   x=clamped
   ledger+=delta(w.nation,x.nation)
@@ -140,6 +146,9 @@ object Rules {
   return w.copy(nation=n.copy(treasury=n.treasury.coerceIn(0,1000000),debt=n.debt.coerceIn(0,1000000),population=n.population.coerceIn(100000,100000000),tax=n.tax.coerceIn(5,40),morale=p(n.morale),stability=p(n.stability),administration=p(n.administration),corruption=p(n.corruption),agriculture=p(n.agriculture),commerce=p(n.commerce),industry=p(n.industry),technology=p(n.technology),infrastructure=p(n.infrastructure),military=p(n.military),research=n.research.coerceIn(0,30)),people=w.people.map { it.copy(ability=p(it.ability),loyalty=p(it.loyalty),hostility=p(it.hostility),trust=p(it.trust),fear=p(it.fear),suspicion=p(it.suspicion)) })
  }
  fun verify(w:World) {
+  require(w.familyPeople.size<=100&&w.familyPeople.values.distinct().size==w.familyPeople.size&&w.familyPeople.all {(family,person)->w.household.members.any {it.id==family}&&w.people.any {it.id==person}})
+  CrownEngine.verify(w)
+  TalentEngine.verify(w)
   MunicipalEngine.verify(w)
   w.cartography?.let(MapValidation::verify)
   require(w.academy.level in 1..5&&w.people.any {it.id==w.academy.tutor})
@@ -180,7 +189,9 @@ object EconomyEngine {
   if(absent>0){n=n.copy(administration=n.administration-absent);ledger+="官员赴学离岗，行政效率 -$absent"}
   val tuitionMaintenance=w.academy.level*2L
   ledger+="国家学院维护 -$tuitionMaintenance 万两（计入季度开支）"
-  val expense=tuitionMaintenance+mapCost+35L+n.military/2+n.infrastructure/4+n.research+n.debt*2/100 + familyCost + borderCost + if(w.difficulty=="艰难") 12 else 0
+  val crownCost=CrownEngine.maintenance(w)
+  if(crownCost>0)ledger+="宫廷新增维护与扩编军费 -$crownCost 万两（计入季度开支）"
+  val expense=crownCost+tuitionMaintenance+mapCost+35L+n.military/2+n.infrastructure/4+n.research+n.debt*2/100 + familyCost + borderCost + if(w.difficulty=="艰难") 12 else 0
   var cash=n.treasury+income-expense; var debt=n.debt
   if(cash<0) { val need=-cash; val borrowed=min(need,max(0,2000-debt)); debt+=borrowed; cash+=borrowed; ledger+="赤字借款 $borrowed 万两"; if(cash<0) { events+="信用枯竭，削减预算并发生财政危机。"; n=n.copy(stability=n.stability-7,morale=n.morale-5,military=max(0,n.military-4),research=0); cash=0 } }
   if(borderCost>0) ledger+="边境战备 -$borderCost 万两（计入季度经常支出）"
@@ -211,7 +222,7 @@ object EconomyEngine {
 object CharacterEngine {
  fun quarter(w:World,events:MutableList<String>):World {
   var people=w.people.map { p ->
-   if(!p.alive) p else {
+   if(!p.alive||p.id in w.familyPeople.values) p else {
     val age=p.ageQuarters+1
     val dies=age>=320 && Math.floorMod(w.seed+p.id*37L+w.turn*17L,19L)==0L || age>=400
     if(dies) { events+="${p.name}去世，原职不再保留。"; p.copy(ageQuarters=age,alive=false,role="已故",memories=(p.memories+"寿终").takeLast(8)) }

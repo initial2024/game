@@ -18,7 +18,7 @@ class CharacterDevelopmentTest {
   val w=days(submit(game(),Command("DEPART")),7);val p=w.people[6];assertNull(DialogueEngine.access(w,6));assertTrue(DialogueEngine.hidden(w,p))
   val ctx=DialogueEngine.context(w,p);assertFalse(ctx.contains(w.ruler));assertFalse(ctx.contains("guilty"));assertTrue(ctx.contains("商人"));assertNull(DialogueEngine.sanitize(w,p,"陛下，臣已撤职地方官。"))
   val done=days(submit(w,Command("CONVERSE",target="6",mode="勉励",objective="志向")),1);assertEquals(p.loyalty,done.people[6].loyalty);assertTrue(done.people[6].trust>p.trust)
-  assertNotNull(DialogueEngine.access(game(),6));assertNotNull(DialogueEngine.access(w.copy(people=w.people.map {if(it.id==6)it.copy(alive=false)else it}),6))
+  assertNull(DialogueEngine.access(game(),6));assertNotNull(DialogueEngine.access(w.copy(people=w.people.map {if(it.id==6)it.copy(alive=false)else it}),6))
  }
  @Test fun studyRequiresPaidTravelAndSchoolAndTeacherMatter(){
   val w=game();val c=Command("STUDY_HOME",target="1");val enrolled=submit(w,c);assertEquals(w.nation.treasury-50,enrolled.nation.treasury);assertEquals(1,enrolled.studies.size)

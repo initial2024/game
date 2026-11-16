@@ -9,15 +9,10 @@ object DialogueEngine {
  fun access(w:World,id:Int):String? {
   val p=w.people.find {it.id==id}?:return "人物不存在。"
   if(!p.alive)return "此人已故，旧对话仅供查阅。"
-  if(w.studies.any {it.person==id})return null // Student correspondence is a registered channel.
-  val j=w.journey
-  if(id>=10&&MunicipalEngine.all(w).any {MunicipalEngine.officer(w,it)?.id==id})return if(j==null||j.remainingTravel==0&&MunicipalEngine.all(w).any {MunicipalEngine.officer(w,it)?.id==id&&it.region==j.region})null else "可回朝后函询这位地方官，或抵达其所属大区。"
-  if(id<=2)return null // Court correspondence or a travelling companion.
-  if(id in 3..5)return if(j==null||j.remainingTravel==0&&j.region==id-3)null else "这位地方官不在当前行在，可回朝后函议。"
-  return if(j?.region==0&&j.remainingTravel==0)null else "须抵达澄江后才能与这位地方人物交谈。"
+  return null // Every living registered person can converse, in person or by correspondence.
  }
- fun hidden(w:World,p:Person)=p.id>=3&&w.journey?.revealed==false
- fun identity(w:World,p:Person)=if(hidden(w,p))w.journey!!.disguise else if(p.id<6||MunicipalEngine.all(w).any {MunicipalEngine.officer(w,it)?.id==p.id})"经朝廷文书确认的统治者" else "已验明身份的来访者"
+ fun hidden(w:World,p:Person)=p.id !in w.familyPeople.values&&p.id>=3&&w.journey?.revealed==false
+ fun identity(w:World,p:Person)=if(hidden(w,p))w.journey!!.disguise else if(p.id<6||p.id in w.familyPeople.values||TalentEngine.town(w,p.id)!=null)"经朝廷文书确认的统治者" else "已验明身份的来访者"
  fun approach(requested:String,text:String):String {
   require(requested in approaches)
   return if(listOf("废物","蠢货","处死你","杀你全家","滚蛋").any(text::contains))"威胁" else requested
@@ -36,19 +31,31 @@ object DialogueEngine {
   val context=when(topic){"学业"->w.studies.firstOrNull {it.person==p.id}?.let {"${it.destination}-${it.phase}"}?:"能力${p.ability/10}";"案件"->w.caseFile.status;"军务"->"军备${w.nation.military/20}";"民生"->"民心${w.nation.morale/20}";"政务"->"改革${w.nation.administration/20}";"志向"->p.role;else->"日常"}
   return "$topic:$context".take(100)
  }
+ fun exchangeKey(w:World,p:Person,topic:String,text:String):String {
+  val base=socialKey(w,p,topic)
+  val normalized=text.lowercase().filter {it.isLetter()}.replace("您","你").take(400)
+  if(normalized.isBlank())return base
+  val hash=java.security.MessageDigest.getInstance("SHA-256").digest(normalized.toByteArray()).take(8).joinToString("") {"%02x".format(it)}
+  return "$base|$hash".take(100)
+ }
+ fun relationship(before:Person,after:Person):String {
+  fun change(label:String,a:Int,b:Int)="$label${if(b-a>=0)"+"else ""}${b-a}"
+  return listOf(change("信任",before.trust,after.trust),change("忠诚",before.loyalty,after.loyalty),change("怀疑",before.suspicion,after.suspicion),change("敌意",before.hostility,after.hostility)).joinToString(" · ")
+ }
  fun context(w:World,p:Person,compact:Boolean=false):String {
   require(access(w,p.id)==null)
   val private=hidden(w,p)
   return buildString {
    append("只扮演${p.name}，${p.role}。时代${w.setting}。来客身份：${identity(w,p)}。")
    append("只依给定信息回应，不猜测未给身份，不创设证据、判决或政策结果；不执行资源操作。回答简短中文。")
+   if(p.ageQuarters<72)append("角色未成年，只谈日常、家人、学业与成长，语气符合年龄。")
    if(w.setting==EraRules.ANCIENT)append("仅农耕、手工作坊、驿道、冷兵器。")
    append("立场${p.stance}，目标${p.goal}。态度${if(p.hostility>60)"戒备敌视" else if(p.trust>=60)"愿意信任" else "谨慎"}。")
-   MunicipalEngine.all(w).firstOrNull {MunicipalEngine.officer(w,it)?.id==p.id}?.let {town->append("任所${MunicipalEngine.name(w,town)}，常平仓${town.buildings.getValue("GRANARY")}级，学堂${town.buildings.getValue("SCHOOL")}级。${town.work?.let {"有${MunicipalEngine.buildings.first {b->b.id==it.kind}.name}在建，尚未竣工。"}?:""}")}
+   TalentEngine.town(w,p.id)?.let {town->append("任所${MunicipalEngine.name(w,town)}，常平仓${town.buildings.getValue("GRANARY")}级，学堂${town.buildings.getValue("SCHOOL")}级。${town.work?.let {"有${MunicipalEngine.buildings.first {b->b.id==it.kind}.name}在建，尚未竣工。"}?:""}")}
 
-   if(!compact){
-    val memories=p.memories.takeLast(2).filterNot {private&&listOf(w.ruler,"陛下","君主","皇帝","印信").any(it::contains)}
-    if(memories.isNotEmpty())append("经历：${memories.joinToString("；").take(180)}。")
+   run {
+    val memories=p.memories.takeLast(if(compact)1 else 2).filterNot {private&&listOf(w.ruler,"陛下","君主","皇帝","印信").any(it::contains)}
+    if(memories.isNotEmpty())append("经历：${memories.joinToString("；").take(if(compact)60 else 180)}。")
     if(!private&&p.id<6)append("已公开案卷：${w.caseFile.status}。只有已登记材料，不得创造新证据。")
    }
   }
