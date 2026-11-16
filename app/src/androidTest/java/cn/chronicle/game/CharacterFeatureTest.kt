@@ -29,6 +29,13 @@ class CharacterFeatureTest {
  }
  private fun scrollActivate(node:SemanticsNodeInteraction){
   node.performScrollTo();compose.waitForIdle()
+  // performScrollTo can use the scroll layout's bounds before ancestor clipping.
+  // Respect the real viewport above the persistent navigation bar as a finger scroll would.
+  val viewport=node.onAncestors().filter(SemanticsMatcher.keyIsDefined(SemanticsActions.ScrollBy)).onFirst()
+  val visible=viewport.fetchSemanticsNode().boundsInRoot;val target=node.getUnclippedBoundsInRoot();val density=compose.activity.resources.displayMetrics.density
+  val top=target.top.value*density;val bottom=target.bottom.value*density
+  val correction=when {bottom>visible.bottom-12->bottom-visible.bottom+12;top<visible.top+12->top-visible.top-12;else->0f}
+  if(correction!=0f){viewport.performSemanticsAction(SemanticsActions.ScrollBy){it(0f,correction)};compose.waitForIdle()}
   compose.waitUntil(10000){runCatching {node.assertIsDisplayed()}.isSuccess}
   node.performSemanticsAction(SemanticsActions.OnClick){it()}
  }
@@ -37,12 +44,7 @@ class CharacterFeatureTest {
   compose.onNodeWithText("确认执行").performClick()
  }
  private fun recruitEntry(){
-  val node=compose.onNodeWithText("公开招贤 · 20万两");node.performScrollTo();compose.waitForIdle()
-  val bounds=node.fetchSemanticsNode().boundsInRoot
-  val decor=compose.activity.window.decorView;val ime=if(android.os.Build.VERSION.SDK_INT>=30)decor.rootWindowInsets?.isVisible(android.view.WindowInsets.Type.ime())else null
-  println("RECRUIT_ENTRY bounds=$bounds ime=$ime window=${decor.width}x${decor.height}")
-  compose.onAllNodes(isRoot()).onFirst().printToLog("ChronicleUiDiagnostic")
-  compose.waitUntil(10000){runCatching {node.assertIsDisplayed()}.isSuccess};node.performSemanticsAction(SemanticsActions.OnClick){it()}
+  scrollActivate(compose.onNodeWithText("公开招贤 · 20万两"))
  }
  private fun screenshot(name:String){
   prepareEmulator()
