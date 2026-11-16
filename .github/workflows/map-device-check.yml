@@ -17,9 +17,11 @@ jobs:
           java-version: '17'
       - name: Download paired development APKs
         run: |
-          curl -fL https://raw.githubusercontent.com/initial2024/game/apk-preview/map-check-app.apk -o app.apk
-          curl -fL https://raw.githubusercontent.com/initial2024/game/apk-preview/map-check-test.apk -o test.apk
-          curl -fL https://raw.githubusercontent.com/initial2024/game/apk-preview/map-check.sha256 -o map-check.sha256
+          apk_revision="$(cat .github/device-apk-revision)"
+          [[ "$apk_revision" =~ ^[a-f0-9]{40}$ ]]
+          curl -fL https://raw.githubusercontent.com/initial2024/game/$apk_revision/map-check-app.apk -o app.apk
+          curl -fL https://raw.githubusercontent.com/initial2024/game/$apk_revision/map-check-test.apk -o test.apk
+          curl -fL https://raw.githubusercontent.com/initial2024/game/$apk_revision/map-check.sha256 -o map-check.sha256
           sha256sum -c map-check.sha256
       - name: Enable KVM
         run: |
