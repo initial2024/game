@@ -25,6 +25,7 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
  val chat=chatMutable.asStateFlow()
  private var chatJob:Job?=null
  private var chatEpoch=0L
+ private val chatOpenEpoch=java.util.concurrent.atomic.AtomicLong()
  @Volatile private var foreground=true
  fun foreground(active:Boolean) {foreground=active}
  fun toggleClock() {mutable.update { currentUi -> currentUi.copy(paused=!currentUi.paused) }}
@@ -107,21 +108,21 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
   }
  }
  fun openChat(id:Int){
-  cancelAi();val request=chatEpoch
+  cancelAi();val request=chatOpenEpoch.incrementAndGet()
   viewTask {
-  if(request!=chatEpoch)return@viewTask
+  if(request!=chatOpenEpoch.get())return@viewTask
   val w=mutable.value.world?:error("请先新建游戏");require(w.people.any {it.id==id})
   chatMutable.value=ChatState(id,store.dialogues(mutable.value.slot,id,100),note=DialogueEngine.access(w,id)?:"对话仅供交流；实际政策须通过行动确认。")
  }}
  fun openFamilyChat(family:Int){
-  cancelAi();val request=chatEpoch
+  cancelAi();val request=chatOpenEpoch.incrementAndGet()
   viewTask {
-  if(request!=chatEpoch)return@viewTask
+  if(request!=chatOpenEpoch.get())return@viewTask
   var w=mutable.value.world?:error("请先新建游戏")
   if(family !in w.familyPeople){val out=RealtimeEngine.submit(w,Command("FAMILY_CONTACT",target=family.toString()),w.revision);store.commit(mutable.value.slot,w.revision,out);w=out.world;mutable.update {it.copy(world=out.world)}}
   val id=w.familyPeople.getValue(family);chatMutable.value=ChatState(id,store.dialogues(mutable.value.slot,id,100),note=DialogueEngine.access(w,id)?:"家族交流免费；关系按规则结算，宫廷和备孕安排须单独确认。")
  }}
- fun closeChat(){cancelAi();chatMutable.value=ChatState()}
+ fun closeChat(){chatOpenEpoch.incrementAndGet();cancelAi();chatMutable.value=ChatState()}
  fun sendChat(text:String,approach:String){
   if(chatMutable.value.working||mutable.value.busy||text.isBlank())return
   cancelAi();val token=++chatEpoch

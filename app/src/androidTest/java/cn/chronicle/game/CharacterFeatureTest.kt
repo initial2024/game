@@ -37,7 +37,7 @@ class CharacterFeatureTest {
   if(vm.state.value.world==null){vm.newGame("对话测试","景衡","综合发展","标准","1847");compose.waitUntil(10000){vm.state.value.world!=null&&!vm.state.value.busy}}
   if(!vm.state.value.paused)vm.toggleClock()
   navigate(2);compose.onNodeWithText("人物",useUnmergedTree=true).performScrollTo().performClick()
-  compose.onNodeWithText("与韩砺交谈").performScrollTo().performClick();compose.waitUntil(10000){vm.chat.value.person==1}
+  compose.onNodeWithText("与韩砺交谈").performScrollTo().performClick();try{compose.waitUntil(10000){vm.chat.value.person==1}}catch(e:Exception){println("OPEN_CHAT_MISSING person=${vm.chat.value.person} note=${vm.chat.value.note} message=${vm.state.value.message} busy=${vm.state.value.busy}");compose.onRoot().printToLog("ChronicleUiDiagnostic");screenshot("open-person-diagnostic");throw e}
   val beforeChat=vm.state.value.world!!
   compose.onAllNodesWithText("2万两",substring=true).assertCountEquals(0)
   compose.onNodeWithText("说些什么…").performTextInput("你希望到国家学院学习吗？");compose.onNodeWithText("发送对话").performClick()
@@ -95,6 +95,13 @@ class CharacterFeatureTest {
   compose.waitUntil(30000){vm.state.value.ready&&!vm.state.value.busy};vm.newGame(name,"景衡","综合发展","宽裕","1847",scale=scale,setting=EraRules.ANCIENT);compose.waitUntil(15000){vm.state.value.world?.name==name&&!vm.state.value.busy};if(!vm.state.value.paused)vm.toggleClock();while(vm.state.value.speed!=64)vm.changeSpeed();compose.waitForIdle()
  }
  private fun flowTime(vm:GameViewModel,done:()->Boolean){if(vm.state.value.paused)vm.toggleClock();compose.waitUntil(20000){done()};if(!vm.state.value.paused)vm.toggleClock()}
+ @Test fun memoryPressureCancelsInferenceWithoutDroppingPersonNavigation(){
+  val vm=ViewModelProvider(compose.activity)[GameViewModel::class.java];compose.waitUntil(30000){vm.state.value.ready&&!vm.state.value.busy}
+  if(vm.state.value.world==null){vm.newGame("内存压力验证","景衡","综合发展","标准","1847");compose.waitUntil(15000){vm.state.value.world!=null&&!vm.state.value.busy}}
+  if(!vm.state.value.paused)vm.toggleClock()
+  compose.runOnUiThread {vm.openChat(2);vm.closeChat();vm.openChat(1);compose.activity.onTrimMemory(android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW)}
+  compose.waitUntil(15000){vm.chat.value.person==1};compose.onNodeWithText("关闭对话").assertIsDisplayed().performClick();compose.waitUntil(10000){vm.chat.value.person==null}
+ }
  @Test fun countyTroopsOfficersResourcesAndPayrollArePlayable(){
   val vm=ViewModelProvider(compose.activity)[GameViewModel::class.java];fresh(vm,"地方军物资验收")
   val start=vm.state.value.world!!;val town=start.towns.first {it.id=="county-jingji-01"};val garrison=start.localDefense.units.first {it.home==town.id&&it.kind=="县兵"};val officer=start.people.first {it.id==garrison.commander}
