@@ -1,5 +1,5 @@
---- chronicle_world_map_v3_2.html
-+++ chronicle_world_map.html
+--- a/chronicle_world_map_v3_2.html
++++ b/chronicle_world_map_v3_2.html
 @@ -1,7 +1,9 @@
  <!DOCTYPE html>
  <html lang="zh-CN">
@@ -47,7 +47,7 @@
  (()=>{
  const el=id=>document.getElementById(id),canvas=el('map'),ctx=canvas.getContext('2d',{alpha:true}),panel=el('panel'),notice=el('notice');
  if(!ctx){notice.hidden=false;notice.textContent='当前浏览器不支持 Canvas 2D';return}
-@@ -178,22 +189,23 @@
+@@ -178,28 +189,29 @@
  // Narrative-layer names are separate from geographic node identities.
  // The former historical catalogue is an optional reference overlay, NOT an active era.
  const GEO_PLACE_IDS=new Set(names.map(p=>p.id));
@@ -77,6 +77,13 @@
     if(!p||typeof p!=='object'||Array.isArray(p)||id.length>90)continue;
     obj.places[id]={name:scrubString(p.name,60),rank:scrubString(p.rank,28),description:scrubString(p.description,500),groupId:scrubString(p.groupId,72),polityId:scrubString(p.polityId,72)};
    }
+  }
+  if(Array.isArray(v.groups)){
+-  if(v.groups.length>200)throw Error('区域超过 200 项限制');
++  if(v.groups.length>300)throw Error('区域超过 300 项限制');
+   const ids=new Set();for(const g of v.groups){const id=scrubString(g?.id,72);if(!id||ids.has(id))throw Error('区域 ID 为空或重复');ids.add(id);
+    const memberIds=Array.isArray(g.memberIds)?[...new Set(g.memberIds.filter(x=>typeof x==='string'&&x.length<=90))].slice(0,800):[];
+    obj.groups.push({id,name:scrubString(g.name,70),rank:scrubString(g.rank,28),parentId:scrubString(g.parentId,72),polityId:scrubString(g.polityId,72),memberIds})
 @@ -212,17 +224,73 @@
     const type=['d','c','s','f','h','x','o','p'].includes(p.type)?p.type:'s';obj.extraPlaces.push({id,lon,lat,type})
    }
@@ -92,7 +99,7 @@
 +  }
 + }
 + if(Array.isArray(v.territories)){
-+  if(v.territories.length>80)throw Error('疆域超过 80 个');const ids=new Set();let totalVertices=0;
++  if(v.territories.length>256)throw Error('疆域超过 256 个');const ids=new Set();let totalVertices=0;
 +  for(const t of v.territories){const id=scrubString(t?.id,72);if(!id||ids.has(id))throw Error('疆域 ID 无效或重复');ids.add(id);
 +   if(t.polityId&&!obj.polities.some(p=>p.id===t.polityId))throw Error('疆域指向不存在的势力：'+id);
 +   const polygon=validateRing(t.polygon,'疆域 '+id,60);totalVertices+=polygon.length;if(totalVertices>2500)throw Error('疆域顶点总数超过 2500');
@@ -103,7 +110,7 @@
 +  if(v.routes.length>250)throw Error('交通线超过 250 条');const ids=new Set();
 +  for(const r of v.routes){const id=scrubString(r?.id,72),fromId=scrubString(r?.fromId,85),toId=scrubString(r?.toId,85);
 +   if(!id||ids.has(id)||!placeIds.has(fromId)||!placeIds.has(toId)||fromId===toId)throw Error('交通线 ID 或地点引用无效：'+id);
-+   ids.add(id);obj.routes.push({id,name:scrubString(r.name,60),fromId,toId,kind:['road','trail','sea'].includes(r.kind)?r.kind:'road',status:r.status==='closed'?'closed':'open'});
++   ids.add(id);obj.routes.push({id,name:scrubString(r.name,60),fromId,toId,kind:['road','trail','sea','canal'].includes(r.kind)?r.kind:'road',status:r.status==='closed'?'closed':'open'});
 +  }
 + }
 + if(v.geography&&typeof v.geography==='object'){
@@ -230,7 +237,7 @@
  // Keep the title/toolbar/search panel clear of vertical names.
  const reserve=[[W-96,0,W+10,155],[0,H-73,W,H+10]];if(!panel.hidden)reserve.push([0,H-Math.min(H*.52,480)-80,W,H]);
  if(layers.labels){for(const p of sorted){if(p.type==='r'&&!layers.regions)continue;if(p.type==='x'&&(!layers.counties||cam.zoom<3.45)&&selected!==p)continue;if(['o','p'].includes(p.type)&&!layers.foreign)continue;if(p.type==='p'&&cam.zoom<1.35&&selected!==p)continue;if(['d','c','s','f','h','x','o','p'].includes(p.type)&&!layers.cities)continue;if(p.type==='s'&&cam.zoom<1.35)continue;if(p.type==='v'&&cam.zoom<1.35)continue;if(p.type==='n'&&cam.zoom<1.2)continue;if(p.type==='y'&&!layers.mountains)continue;let s=p.anchor;if(!s){const q=screen(p.x,p.y,p.z+4);s=[q[0],q[1]]}if(s[0]<-60||s[0]>W+60||s[1]<-70||s[1]>H+70)continue;
-@@ -320,21 +395,60 @@
+@@ -320,21 +395,61 @@
   }
   ctx.restore();
  }
@@ -238,6 +245,7 @@
 + if(!layers.territories)return;
 + ctx.save();ctx.beginPath();for(const poly of (customGeography()?scene.geography.landPolygons.map(projectedPolygon):coast))trace(poly,base);ctx.clip();
 + for(const t of scene.territories){
++  const county=t.rank==='县';if(county&&(!layers.counties||cam.zoom<2.4))continue;
 +  const polygon=projectedPolygon(t.polygon),owner=scene.polities.find(p=>p.id===t.polityId),col=owner?.color||'#98816b';
 +  if(polygon.length<3)continue;
 +  const contour=[];
@@ -245,9 +253,9 @@
 +   for(let j=0;j<n;j++){const x=a[0]+(b[0]-a[0])*j/n,y=a[1]+(b[1]-a[1])*j/n,z=customGeography()?base:elevation(x,y)+5;contour.push(screen(x,y,z))}
 +  }
 +  const path=()=>{ctx.beginPath();contour.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath()};
-+  ctx.save();path();ctx.fillStyle=col;ctx.globalAlpha=t.status==='neutral'?.07:t.status==='contested'?.17:.16;ctx.fill();
++  ctx.save();path();ctx.fillStyle=col;ctx.globalAlpha=county?0:t.status==='neutral'?.07:t.status==='contested'?.17:.16;ctx.fill();
 +  if(t.status==='contested'){ctx.save();ctx.clip();ctx.globalAlpha=.34;ctx.strokeStyle=col;ctx.lineWidth=1;for(let x=-H;x<W+H;x+=14){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x+H,H);ctx.stroke()}ctx.restore()}
-+  path();ctx.globalAlpha=.92;ctx.strokeStyle=colors.halo;ctx.lineWidth=3.7;ctx.stroke();ctx.strokeStyle=col;ctx.lineWidth=Math.max(1.3,Math.min(2.8,cam.zoom*.75));if(t.status==='contested')ctx.setLineDash([6,4]);ctx.stroke();ctx.setLineDash([]);
++  path();ctx.globalAlpha=.92;ctx.strokeStyle=colors.halo;ctx.lineWidth=county?1.5:3.7;ctx.stroke();ctx.strokeStyle=col;ctx.lineWidth=county?.65:Math.max(1.3,Math.min(2.8,cam.zoom*.75));if(t.status==='contested')ctx.setLineDash([6,4]);ctx.stroke();ctx.setLineDash([]);
 +  if(t.id===selectedTerritoryId){path();ctx.strokeStyle=colors.ink;ctx.lineWidth=2;ctx.setLineDash([3,4]);ctx.stroke()}
 +  ctx.restore();
 + }
@@ -256,7 +264,7 @@
 +function drawTerritoryLabels(){
 + if(!layers.territories||!layers.labels||cam.zoom<1.15)return;
 + const occupied=[];
-+ for(const t of scene.territories){if(!t.name)continue;const ring=projectedPolygon(t.polygon),x=ring.reduce((s,p)=>s+p[0],0)/ring.length,y=ring.reduce((s,p)=>s+p[1],0)/ring.length,p=screen(x,y,customGeography()?base:elevation(x,y)+12);
++ for(const t of scene.territories){if(!t.name||t.rank==='县'&&cam.zoom<4.5)continue;const ring=projectedPolygon(t.polygon),x=ring.reduce((s,p)=>s+p[0],0)/ring.length,y=ring.reduce((s,p)=>s+p[1],0)/ring.length,p=screen(x,y,customGeography()?base:elevation(x,y)+12);
 +  if(p[0]<15||p[0]>W-15||p[1]<40||p[1]>H-30)continue;
 +  const title=t.name+(t.status==='contested'?' · 争议':''),width=Math.min(220,title.length*13+18),rect=[p[0]-width/2,p[1]-12,p[0]+width/2,p[1]+13];
 +  if([...labelRects,...occupied].some(a=>intersects(a,rect)))continue;occupied.push(rect);
@@ -265,7 +273,7 @@
 +}
 +function drawScenarioRoutes(){
 + if(!layers.scenarioRoutes)return;ctx.save();ctx.lineWidth=1.8;ctx.setLineDash([4,5]);ctx.strokeStyle=colors.region;
-+ for(const route of scene.routes){const a=cityById.get(route.fromId),b=cityById.get(route.toId);if(!a||!b||!shownCity(a)||!shownCity(b))continue;
++ for(const route of scene.routes){ctx.strokeStyle=route.kind==='canal'?colors.river:colors.region;ctx.lineWidth=route.kind==='canal'?2.8:1.8;ctx.setLineDash(route.kind==='canal'?[]:[4,5]);const a=cityById.get(route.fromId),b=cityById.get(route.toId);if(!a||!b||!shownCity(a)||!shownCity(b))continue;
 +  if(route.status==='closed')ctx.globalAlpha=.25;else ctx.globalAlpha=.7;
 +  ctx.beginPath();const n=24;for(let i=0;i<=n;i++){const x=a.x+(b.x-a.x)*i/n,y=a.y+(b.y-a.y)*i/n,z=customGeography()?base:elevation(x,y)+8,p=screen(x,y,z);if(i)ctx.lineTo(p[0],p[1]);else ctx.moveTo(p[0],p[1])}ctx.stroke();
 + }
@@ -298,7 +306,7 @@
   const own=ownerOf(p);if(own)children.push(txt('span',own,'tag'));
   children.push(txt('div',`稳定地点 ID：${p.id}`,'caption'));
   children.push(txt('p',`参考坐标：${p.lon.toFixed(2)}°、${p.lat.toFixed(2)}°`));
-@@ -345,35 +459,46 @@
+@@ -345,35 +460,46 @@
   nameInput.type='text';nameInput.maxLength=60;nameInput.value=scene.places[p.id]?.name||'';nameInput.placeholder='暂不命名';
   const rankLabel=txt('p','行政级别／剧情身份（可选）：','caption'),rankInput=document.createElement('input');rankInput.type='text';rankInput.maxLength=28;rankInput.placeholder='例如：县治、郡城、自由市、港镇';rankInput.value=scene.places[p.id]?.rank||'';
   const nameBtn=txt('button','保存地点设定');nameBtn.onclick=()=>{savePlaceName(p,nameInput.value);scene.places[p.id].rank=scrubString(rankInput.value,28);persistScene();details(p)};
@@ -350,7 +358,7 @@
   count.textContent=`共 ${found.length} 处匹配 · 可点击地点赋名或定位`;
   if(!found.length)results.append(txt('p','没有找到符合条件的地点。'));
   for(const p of found.slice(0,110)){const b=txt('button',`${displayPlace(p)||placeholder(p)} · ${typeOf(p)}`);b.className='listing';b.title=p.id;b.onclick=()=>{centerPlace(p,p.type==='x'?5:3.6);details(p)};results.append(b)}
-@@ -382,6 +507,7 @@
+@@ -382,6 +508,7 @@
   input.addEventListener('input',build);build();setPanel({type:'search',title:'查找地点',children:[input,filter,count,results,txt('p','尚未命名的地点可按稳定 ID 查找；历史名称只有主动开启参考显示后才可搜索。','muted')]});input.focus({preventScroll:true})
  }
  function showScene(){
@@ -358,7 +366,7 @@
   const children=[txt('p','此地图默认没有朝代、年号、国家或城市名称。剧情可以通过独立 JSON 赋名、修改地区归属或新增城邑节点，不改变地形坐标。','notice-area')];
   const metaForm=document.createElement('div');metaForm.className='form-line';
   const titleInput=document.createElement('input'),eraInput=document.createElement('input');
-@@ -396,8 +522,8 @@
+@@ -396,8 +523,8 @@
   }
   slots.append(list);children.push(slots);
   const refLabel=document.createElement('label'),ref=document.createElement('input');ref.type='checkbox';ref.checked=referenceMode;ref.onchange=()=>{referenceMode=ref.checked;request()};refLabel.append(ref,txt('span','仅调试：显示旧历史参考名称（不作为当前剧情）'));children.push(refLabel);
@@ -369,7 +377,7 @@
   fileInput.onchange=async()=>{const file=fileInput.files?.[0];if(!file)return;if(file.size>1024*1024){alert('文件不能超过 1 MiB');return}try{const payload=validateScene(JSON.parse(await file.text()));if(sceneLibrary[payload.id]&&!confirm('该剧情 ID 已存在，导入会覆盖同 ID 的本地存档。是否继续？'))return;applyScene(payload);showScene()}catch(e){alert('载入失败：'+e.message)}};children.push(fileInput);
   const actions=document.createElement('div');actions.className='actions';const exportB=txt('button','导出当前剧情 JSON');exportB.onclick=downloadScene;
   const clear=txt('button','清空当前剧情');clear.className='danger';clear.onclick=()=>{if(confirm('确定清空当前槽位的全部赋名与关系吗？其他剧情不受影响。建议先导出备份。')){clearScene();showScene()}};
-@@ -406,14 +532,59 @@
+@@ -406,14 +533,59 @@
   const api=txt('p','供后续游戏调用：ChronicleMap.applyScenario(data)、ChronicleMap.patchScenario(patch)、ChronicleMap.exportScenario()。仅为显示／编辑协议，不包含游戏结算。','muted');children.push(api);
   setPanel({type:'scene',title:'剧情场景与命名',children})
  }
@@ -431,7 +439,7 @@
  canvas.addEventListener('pointerup',pointerEnd);canvas.addEventListener('pointercancel',pointerEnd);canvas.addEventListener('lostpointercapture',e=>{if(pointers.has(e.pointerId))pointerEnd(e)});
  canvas.addEventListener('wheel',e=>{e.preventDefault();zoomAt(Math.exp(-e.deltaY*.0014),e.clientX,e.clientY)},{passive:false});
  canvas.addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','+','-','0'].includes(e.key)){e.preventDefault();if(e.key==='ArrowUp')cam.oy+=30;if(e.key==='ArrowDown')cam.oy-=30;if(e.key==='ArrowLeft')cam.ox+=30;if(e.key==='ArrowRight')cam.ox-=30;if(e.key==='+')zoomAt(1.18,W/2,H/2);if(e.key==='-')zoomAt(.85,W/2,H/2);if(e.key==='0')Object.assign(cam,{yaw:0,pitch:34,zoom:1.8,ox:0,oy:0});clamp();request()}});
-@@ -421,14 +592,14 @@
+@@ -421,14 +593,14 @@
  el('reset').onclick=()=>{Object.assign(cam,{yaw:0,pitch:34,zoom:1.8,ox:0,oy:0});selected=null;request()};
  el('theme').onclick=()=>{themeName=themeName==='classic'?'night':themeName==='night'?'eye':'classic';colors=palettes[themeName];document.documentElement.dataset.theme=themeName;document.querySelector('meta[name="theme-color"]').content=getComputedStyle(document.documentElement).getPropertyValue('--bg1').trim();request()};
  el('font').onclick=()=>{fontScale=fontScale===1?1.2:fontScale===1.2?1.4:1;request()};
@@ -450,7 +458,7 @@
   listGroups:()=>activeGroups().map(g=>({id:g.id,name:displayGroup(g),memberIds:g.memberIds||g.counties||g.places||[]}))
  });
  try{
-@@ -436,13 +607,21 @@
+@@ -436,13 +608,21 @@
     for(const item of data.scenes.slice(0,30)){try{const entry=validateScene(item);sceneLibrary[entry.id]=entry}catch{}}
     if(sceneLibrary[data.activeId])applyScene(sceneLibrary[data.activeId],false)
   }}else{

@@ -14,7 +14,7 @@ object FamilyEngine {
  fun validName(name:String)=name.isNotBlank() && name.length<=16 && name.none {it.isISOControl() || it=='|'}
  fun validate(w:World,c:Command):String? {
   val h=w.household
-  if(c.type=="FAMILY_CONTACT")return when {h.members.none {it.id==c.target.toIntOrNull()&&it.alive}->"须选择在世家族成员。";c.target.toInt() in w.familyPeople->"此人已在对话名册中。";w.people.size>=500->"人物名册已满，不能新增对话身份。";else->null}
+  if(c.type=="FAMILY_CONTACT")return when {h.members.none {it.id==c.target.toIntOrNull()&&it.alive}->"须选择在世家族成员。";c.target.toInt() in w.familyPeople->"此人已在对话名册中。";w.people.size>=1000->"人物名册已满，不能新增对话身份。";else->null}
   if(c.type in listOf("ERA","RULER_NAME","CHILD_NAME_PLAN") && !validName(c.target)) return "名称须为 1–16 字且不含控制字符。"
   if(c.type=="FAMILY_PLAN" && c.target !in listOf("允许","暂停")) return "备孕设置无效。"
   if(c.type=="NAME_CHILD") {

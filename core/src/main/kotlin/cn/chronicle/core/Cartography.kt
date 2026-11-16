@@ -32,7 +32,7 @@ object MapValidation {
  fun verify(s:MapScenario) {
   require(s.schema==MAP_SCHEMA && id(s.id) && s.id.length<=65 && s.revision in 0..9007199254740991L)
   text(s.meta.title,40);text(s.meta.era,65);text(s.meta.seal,5)
-  require(s.polities.size<=40 && s.groups.size<=200 && s.extraPlaces.size<=200 && s.places.size<=1500 && s.placeStates.size<=1700 && s.territories.size<=80 && s.routes.size<=250)
+  require(s.polities.size<=40 && s.groups.size<=300 && s.extraPlaces.size<=200 && s.places.size<=1500 && s.placeStates.size<=1700 && s.territories.size<=256 && s.routes.size<=250)
   fun ids(values:List<String>,max:Int=72) {require(values.all {id(it)&&it.length<=max} && values.distinct().size==values.size)}
   ids(s.polities.map {it.id});ids(s.groups.map {it.id});ids(s.extraPlaces.map {it.id},85);require(s.extraPlaces.none {it.id in builtinMapPlaceIds});ids(s.territories.map {it.id});ids(s.routes.map {it.id})
   fun place(id:String)=s.extraPlaces.any {it.id==id} || id in builtinMapPlaceIds
@@ -48,7 +48,7 @@ object MapValidation {
   }
   require(s.territories.sumOf {it.polygon.size}<=2500)
   s.territories.forEach {require(polity(it.polityId)&&group(it.groupId)&&it.status in listOf("controlled","contested","neutral"));text(it.name,65);text(it.rank,35);text(it.description,350);ring(it.polygon,60)}
-  s.routes.forEach {require(place(it.fromId)&&place(it.toId)&&it.fromId!=it.toId&&it.kind in listOf("road","trail","sea")&&it.status in listOf("open","closed"));text(it.name,60)}
+  s.routes.forEach {require(place(it.fromId)&&place(it.toId)&&it.fromId!=it.toId&&it.kind in listOf("road","trail","sea","canal")&&it.status in listOf("open","closed"));text(it.name,60)}
   require(s.geography.kind in listOf("builtin","custom")&&s.geography.landPolygons.size<=12)
   if(s.geography.kind=="custom")require(s.geography.landPolygons.isNotEmpty())
   s.geography.landPolygons.forEach {ring(it,150)}

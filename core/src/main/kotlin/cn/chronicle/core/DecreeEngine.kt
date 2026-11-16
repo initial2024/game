@@ -9,6 +9,12 @@ object DecreeEngine {
   if(w.people.none {it.id==person&&it.alive})return refuse("对话人物已不在世或不存在，请重新选择。")
   if(listOf("不要","不可","不应","勿","是否","吗","？","?","如果","除非","暂缓","停止","取消").any(text::contains))return refuse("原文包含否定、疑问或条件，不能直接颁行。请编辑为明确肯定的行动；尚未执行任何事项。")
   if(listOf("处死","定罪","证据充分","撤职","统一世界","无限","免费","立即成功").any(text::contains))return refuse("该内容涉及未支持的任免、裁罪或超出规则的结果。请使用案件、人员或其他已有功能；对话不会替代证据与审理。")
+  if(text.contains("运河")){
+   val found=w.towns.filter {text.contains(MunicipalEngine.name(w,it))};val names=found.filter {a->found.none {b->a.id!=b.id&&MunicipalEngine.name(w,b).contains(MunicipalEngine.name(w,a))}}.sortedBy {text.indexOf(MunicipalEngine.name(w,it))}
+   if(names.size!=2)return refuse("请在朝政→建设→运河直接点选起终点，或明确写出两个不同县邑的名称。不会将运河替换成普通道路。")
+   val command=CanalEngine.plan(w,names[0].id,names[1].id);val error=Rules.validate(w,command);if(error!=null)return refuse(error)
+   return Preview(listOf(command),"${names[0].name}—${names[1].name}运河：${Rules.cost(command)}万两，${command.days}日后竣工，维护3万两/季。仅执行这一段标准水运工程，自定比例与额外条款不执行。",true)
+  }
   val named=w.towns.filter {text.contains(MunicipalEngine.name(w,it))};val longest=named.maxOfOrNull {MunicipalEngine.name(w,it).length}
   val matches=named.filter {MunicipalEngine.name(w,it).length==longest}
   if(matches.size>1)return refuse("出现同名城邑，请在地方治理界面选择稳定ID后任官。")

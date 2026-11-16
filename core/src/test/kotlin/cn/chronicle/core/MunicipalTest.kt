@@ -10,9 +10,9 @@ class MunicipalTest {
  private fun submit(w:World,c:Command)=RealtimeEngine.submit(w,c,w.revision).world
  private fun days(w:World,n:Int):World {var x=w;var left=n;while(left>0){val d=minOf(90,left);x=RealtimeEngine.advance(x,d).world;left-=d};return x}
  @Test fun originalFourteenPrefecturesAndFiftyNineCountiesAreRegistered(){
-  val w=game();assertEquals(77,w.towns.size);assertEquals(14,w.towns.count {it.rank=="府城"});assertEquals(59,w.towns.count {it.rank=="县城"});assertEquals(620,w.nation.treasury)
-  assertEquals(w.nation.population,w.towns.sumOf {MunicipalEngine.population(w,it)});assertEquals(237,w.people.size);Rules.verify(w)
-  val scene=MapSnapshotMapper.scene(w,1);assertEquals(59,scene.groups.count {it.rank=="县"});assertEquals(14,scene.groups.count {it.rank=="府"});assertEquals("pref-jingji",scene.groups.first {it.id=="admin-county-jingji-01"}.parentId)
+  val w=game();assertEquals(189,w.towns.size);assertEquals(14,w.towns.count {it.rank=="府城"});assertEquals(171,w.towns.count {it.rank=="县城"});assertEquals(620,w.nation.treasury)
+  assertEquals(w.nation.population,w.towns.sumOf {MunicipalEngine.population(w,it)});assertEquals(573,w.people.size);Rules.verify(w)
+  val scene=MapSnapshotMapper.scene(w,1);assertEquals(171,scene.groups.count {it.rank=="县"});assertEquals(14,scene.groups.count {it.rank=="府"});assertEquals("pref-jingji",scene.groups.first {it.id=="admin-county-jingji-01"}.parentId)
   assertEquals(1,MapSnapshotMapper.regionId(w,"county-jingji-01"));assertTrue(scene.places.containsKey("county-jingji-01"));MapValidation.verify(scene)
  }
  @Test fun constructionPaysOnceHasRealDurationAndCannotBeReplayed(){

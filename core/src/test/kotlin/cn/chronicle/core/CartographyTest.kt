@@ -12,7 +12,7 @@ class CartographyTest {
   val json=SaveJson.encodeToJsonElement(game()).jsonObject
   val legacy=JsonObject(json.filterKeys {it !in listOf("cartography","setting")})
   val w=SaveJson.decodeFromJsonElement<World>(legacy);assertNull(w.cartography);assertEquals("工业初兴",w.setting)
-  val s=MapSnapshotMapper.scene(w,1);MapValidation.verify(s);assertEquals(8,s.extraPlaces.size);assertEquals(w.name,s.polities.first().name);assertTrue(w.recent.isEmpty())
+  val s=MapSnapshotMapper.scene(w,1);MapValidation.verify(s);assertEquals(120,s.extraPlaces.size);assertEquals(w.name,s.polities.first().name);assertTrue(w.recent.isEmpty())
   assertEquals(s,MapValidation.parse(SaveJson.encodeToString(s)))
  }
  @Test fun stableIdsSurviveNamesAndWorldSlotsAreIsolated(){

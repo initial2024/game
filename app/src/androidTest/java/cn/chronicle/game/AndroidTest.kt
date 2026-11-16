@@ -43,7 +43,7 @@ class StorageTest {
   val world=strip(JsonObject(original.filterKeys {it !in listOf("towns","socialTopics")}.toMutableMap().apply {put("people",SaveJson.parseToJsonElement(SaveJson.encodeToString(out.world.people.take(10))))})).toString()
   val history=strip(SaveJson.parseToJsonElement(SaveJson.encodeToString(listOf(out.entry))));val digest=Store.sha(world+history.toString()+"[]")
   val snapshot=buildJsonObject {put("format",2);put("world",world);put("history",history);put("dialogues",JsonArray(emptyList()));put("sha256",digest)}.toString()
-  Store(context,"old-command-import-test.db").use {store->store.import(snapshot,1);assertEquals(out.world.nation,store.load(1)!!.nation);assertEquals(59,store.load(1)!!.towns.count {it.rank=="县城"});assertEquals("FARM",store.history(1).single().commands.single().type)}
+  Store(context,"old-command-import-test.db").use {store->store.import(snapshot,1);assertEquals(out.world.nation,store.load(1)!!.nation);assertEquals(171,store.load(1)!!.towns.count {it.rank=="县城"});assertEquals("FARM",store.history(1).single().commands.single().type)}
  }
  @Test fun corruptModelHeaderRejected() {
   val f=File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir,"invalid.gguf");f.writeBytes(ByteArray(64))

@@ -12,6 +12,7 @@ object EraRules {
   .replace("铁路","驿道").replace("岚海联邦","岚海国").replace("白榆公国","白榆国")
  fun label(c:Command,setting:String)=render(Rules.label(c),setting)
  fun parse(text:String,w:World):Preview {
+  if(text.contains("运河"))return Preview(emptyList(),"请在朝政→建设→运河点选两个城邑并预览工期、费用，不会将水运工程替换为普通道路。",true)
   if(w.setting!=ANCIENT)return IntentParser.parse(text)
   if(listOf("蒸汽","铁路","电力","火车","机枪","飞机").any(text::contains))return Preview(emptyList(),"当前是纯古代王朝，不能直接建设近现代设施。可兴修驿道、营造作坊或资助格物。",true)
   val p=IntentParser.parse(text.replace("作坊","工厂").replace("格物","科研").replace("驿道","基建"))

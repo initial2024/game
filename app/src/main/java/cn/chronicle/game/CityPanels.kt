@@ -12,16 +12,21 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import cn.chronicle.core.*
 
-@Composable fun CountyBrowser(w:World,region:Int,onCity:(String)->Unit){
+private fun townSeedsForUi(w:World,t:Town)=AdministrativeEngine.seeds.firstOrNull {it.prefecture==t.prefecture}?.let {AdministrativeEngine.state(it)}
+
+@Composable fun CountyBrowser(w:World,region:Int,onCity:(String)->Unit,selectLabel:String="城市情况与建筑"){
  val towns=MunicipalEngine.all(w).filter {it.region==region};val prefs=towns.filter {it.rank=="府城"}
- var pref by rememberSaveable(region){mutableStateOf("")};var page by rememberSaveable(region,pref){mutableIntStateOf(0)}
+ var state by rememberSaveable(region){mutableStateOf("")}
+ var pref by rememberSaveable(region,state){mutableStateOf("")};var page by rememberSaveable(region,pref){mutableIntStateOf(0)}
+ val states=prefs.mapNotNull {t->townSeedsForUi(w,t)}.distinct()
+ FlowRow{FilterChip(state.isEmpty(),{state=""},label={Text("全州")});states.forEach {id->FilterChip(state==id,{state=id},label={Text(AdministrativeEngine.stateName(w,id))})}}
  Text("${w.regions[region].name}大区 · ${prefs.size}府 · ${towns.count {it.rank=="县城"}}县",style=MaterialTheme.typography.titleMedium)
- FlowRow(horizontalArrangement=Arrangement.spacedBy(6.dp)){FilterChip(pref.isEmpty(),{pref=""},label={Text("全部")});prefs.forEach {p->FilterChip(pref==p.prefecture,{pref=p.prefecture},label={Text(MunicipalEngine.prefectureName(p))})}}
- val filtered=towns.filter {pref.isEmpty()||it.prefecture==pref}
+ FlowRow(horizontalArrangement=Arrangement.spacedBy(6.dp)){FilterChip(pref.isEmpty(),{pref=""},label={Text("全部")});prefs.filter {state.isEmpty()||townSeedsForUi(w,it)==state}.forEach {p->FilterChip(pref==p.prefecture,{pref=p.prefecture},label={Text(MunicipalEngine.prefectureName(p))})}}
+ val filtered=towns.filter {(pref.isEmpty()||it.prefecture==pref)&&(state.isEmpty()||townSeedsForUi(w,it)==state)}
  filtered.drop(page*3).take(3).forEach {t->OutlinedCard(Modifier.fillMaxWidth()){Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
   Text("${MunicipalEngine.name(w,t)} · ${t.rank}",style=MaterialTheme.typography.titleMedium)
   Text("人口${MunicipalEngine.population(w,t)} · 地方官${MunicipalEngine.officer(w,t)?.name?:"暂缺"}",style=MaterialTheme.typography.labelSmall)
-  TextButton(onClick={onCity(t.id)}){Text("城市情况与建筑")}
+  TextButton(onClick={onCity(t.id)}){Text(selectLabel)}
  }}}
  Row{TextButton(onClick={page--},enabled=page>0){Text("上一页")};Text("${page+1} / ${maxOf(1,(filtered.size+2)/3)}",Modifier.padding(top=12.dp));TextButton(onClick={page++},enabled=(page+1)*3<filtered.size){Text("下一页")}}
 }

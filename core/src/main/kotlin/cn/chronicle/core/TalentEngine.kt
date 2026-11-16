@@ -10,18 +10,19 @@ object TalentEngine {
  fun staff(w:World):World {
   if(w.towns.all {it.staffed})return w
   val people=w.people.toMutableList();var next=(people.maxOfOrNull {it.id}?:-1)+1
-  val towns=w.towns.map {t->if(t.staffed||people.size+2>500)t else {
+  val towns=w.towns.map {t->if(t.staffed||people.size+2>1000)t else {
    fun aide(post:String):Int {val id=next++;val n=if(post=="副官")"${t.name.take(3)}·周谨"else"${t.name.take(3)}·柳书";people+=Person(id,n,"${t.name}${role(t,post)}",Math.floorMod(id,3),104+id%100,42+Math.floorMod(w.seed+id,40L).toInt(),48+id%31,"恪守职分",if(post=="副官")"协理治安与政务"else"核对户籍与钱粮");return id}
    t.copy(deputy=aide("副官"),clerk=aide("主簿"),staffed=true)
   }}
   return w.copy(towns=towns,people=people)
  }
  fun validate(w:World,c:Command):String? = when(c.type){
-  "EXAM","RECRUIT"->when {w.people.size>498->"人才名册已满（最多500人），请保留现有人物。";c.type=="EXAM"&&w.day-w.lastExam<360->"本届科举已结束，下一届须相隔360日。";c.type=="RECRUIT"&&w.day-w.lastRecruit<30->"本轮招贤刚结束，须筹备30日。";else->null}
+  "EXAM","RECRUIT"->when {w.people.size>998->"人才名册已满（最多1000人），请保留现有人物。";c.type=="EXAM"&&w.day-w.lastExam<360->"本届科举已结束，下一届须相隔360日。";c.type=="RECRUIT"&&w.day-w.lastRecruit<30->"本轮招贤刚结束，须筹备30日。";else->null}
   "APPOINT"->{val p=w.people.find {it.id==c.target.toIntOrNull()};val t=w.towns.find {it.id==c.objective};when {
    p==null||!p.alive||p.ageQuarters<72->"须选择在世成年人物。"
    t==null||c.mode !in posts||c.region!=t.region->"官职或辖区无效。"
    p.id<3||w.academy.tutor==p.id||w.journey?.let {it.companion==p.id||it.regent==p.id}==true->"此人正担任朝廷要职、讲席或行在职务，不能兼任地方官。"
+   IntelligenceEngine.membership(w,p.id)!=null->"此人已有组织职务，须先交卸。"
    CrownEngine.units(w).any {it.commander==p.id}->"此人正在统领军队，不能兼任地方官。"
    EducationEngine.busy(w,p.id)->"此人正在求学，须返程后任职。"
    p.ability<if(c.mode=="长官")50 else 35->"能力未达任职门槛（长官50，属官35）。"
@@ -43,7 +44,7 @@ object TalentEngine {
   var regions=w.regions.map {if(it.official==id)it.copy(official=-1)else it}
   if(target.id.startsWith("city-r")&&c.mode=="长官")regions=regions.map {if(it.id==target.region)it.copy(official=id)else it}
   val place=MunicipalEngine.name(w,target);val title=role(target,c.mode)
-  val people=w.people.map {p->when(p.id){id->p.copy(role="$place$title",loyalty=(p.loyalty+1).coerceAtMost(100),memories=(p.memories+"${w.day}日奉命赴任$place$title").takeLast(8));displaced->p.copy(role="待选人才",loyalty=(p.loyalty-2).coerceAtLeast(0),memories=(p.memories+"${w.day}日调离$place$title，未经刑事定罪").takeLast(8));else->p}}
+  val people=w.people.map {p->when(p.id){id->p.copy(role="$place$title",loyalty=(p.loyalty+1).coerceAtMost(100),memories=(p.memories+"${w.day}日奉命赴任$place$title").takeLast(8));displaced->if(!p.alive)p else p.copy(role="待选人才",loyalty=(p.loyalty-2).coerceAtLeast(0),memories=(p.memories+"${w.day}日调离$place$title，未经刑事定罪").takeLast(8));else->p}}
   events+="${people.first {it.id==id}.name}赴任$place$title；原职腾空。${if(displaced>=0)"前任转入待选名册，忠诚-2；行政调任不等于定罪。"else"补足空缺。"}新任忠诚+1（受上限约束），履历与管辖关系已更新。"
   return w.copy(towns=towns,regions=regions,people=people)
  }

@@ -21,7 +21,7 @@ object MunicipalEngine {
   BuildingSpec("BARRACKS","兵营","治理",60,75,"提高本城治安与驻防能力")
  )
  fun baseline(kind:String,rank:String)=if(kind=="BARRACKS"&&rank=="县城")0 else 1
- private fun template(id:String,name:String,pref:String,region:Int,rank:String,official:Int,seed:Long,r:Region):Town {
+ internal fun template(id:String,name:String,pref:String,region:Int,rank:String,official:Int,seed:Long,r:Region):Town {
   val variation=Math.floorMod(seed+id.hashCode(),13L).toInt()-6
   return Town(id,name,pref,region,rank,official,(r.security+variation).coerceIn(0,100),(r.corruption-variation).coerceIn(0,100),(r.morale+variation).coerceIn(0,100),r.agriculture,30+variation,r.industry,buildings.associate {it.id to baseline(it.id,rank)})
  }
@@ -33,7 +33,7 @@ object MunicipalEngine {
   return capitals+townSeeds.mapIndexed {i,s->template(s.id,s.name,s.prefecture,s.region,s.rank,next+i,w.seed,w.regions[s.region])}
  }
  fun initialize(w:World):World {
-  if(w.towns.isNotEmpty())return TalentEngine.staff(w)
+  if(w.towns.isNotEmpty())return AdministrativeEngine.expand(TalentEngine.staff(w))
   if(w.cartography?.let {it.geography.kind=="custom"||it.extraPlaces.none {p->p.id=="city-r0"}}==true)return w
   val towns=all(w)
   val surnames=listOf("陈","谢","江","林","程","苏","杜","叶","宋","黎","温","方","季")
@@ -41,7 +41,7 @@ object MunicipalEngine {
   val people=towns.filter {t->w.people.none {it.id==t.official}}.mapIndexed {i,t->
    Person(t.official,surnames[i%surnames.size]+given[(i/surnames.size+i)%given.size],"${t.name}${if(t.rank=="县城")"县令"else"知府"}",i%3,112+i%96,45+i%39,50+i%31,"依法施政","治理${t.name}")
   }
-  return TalentEngine.staff(w.copy(towns=towns,people=w.people+people))
+  return AdministrativeEngine.expand(TalentEngine.staff(w.copy(towns=towns,people=w.people+people)))
  }
  fun register(w:World,id:String,region:Int,name:String):World {
   val x=initialize(w);if(x.towns.any {it.id==id})return x
@@ -122,7 +122,7 @@ object MunicipalEngine {
  }
  fun verify(w:World){
   require(w.towns.size<=200&&w.towns.map {it.id}.distinct().size==w.towns.size)
-  w.towns.forEach {t->require(t.region in 0..3&&t.id in (townSeeds.map {it.id}+w.regions.map {"city-r${it.id}"}+w.regions.map {"settlement-r${it.id}"}+"ruin-r0")&&t.name.length in 1..60&&t.prefecture.length<=30&&t.rank in listOf("县城","府城","大区治所"));require(w.people.any {it.id==t.official}||t.official==-1)
+  w.towns.forEach {t->require(t.region in 0..3&&t.id in (AdministrativeEngine.seeds.map {it.id}+w.regions.map {"city-r${it.id}"}+w.regions.map {"settlement-r${it.id}"}+"ruin-r0")&&t.name.length in 1..60&&t.prefecture.length<=30&&t.rank in listOf("县城","府城","大区治所"));require(w.people.any {it.id==t.official}||t.official==-1)
    require(listOf(t.security,t.corruption,t.morale,t.agriculture,t.commerce,t.industry).all {it in 0..100});require(t.buildings.keys==buildings.map {it.id}.toSet()&&t.buildings.values.all {it in 0..5})
    t.work?.let {work->require(work.kind in t.buildings&&work.level in 1..5&&work.level==t.buildings.getValue(work.kind)+1&&work.remainingDays in 1..125&&work.paid==buildings.first {it.id==work.kind}.cost*work.level)}
   }

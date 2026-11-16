@@ -9,6 +9,7 @@ import androidx.compose.ui.unit.dp
 import cn.chronicle.core.*
 
 @Composable fun PersonnelPanel(w:World,vm:GameViewModel,ask:(Command)->Unit){
+ var chooseTown by remember {mutableStateOf(false)}
  var selected by remember {mutableStateOf<Int?>(null)}
  var tab by rememberSaveable {mutableStateOf("名册")};var query by rememberSaveable {mutableStateOf("")};var group by rememberSaveable {mutableStateOf("朝廷")};var page by rememberSaveable {mutableIntStateOf(0)}
  var candidate by rememberSaveable {mutableIntStateOf(-1)};var townId by rememberSaveable {mutableStateOf(w.towns.firstOrNull()?.id?:"")};var townQuery by rememberSaveable {mutableStateOf("")};var post by rememberSaveable {mutableStateOf("长官")}
@@ -41,6 +42,7 @@ import cn.chronicle.core.*
   else->{val p=w.people.find {it.id==candidate};val t=w.towns.find {it.id==townId}
    Text("任命与调任",style=MaterialTheme.typography.titleLarge)
    Text(p?.let {"拟任：${it.name} · 能力${it.ability} · ${it.role}"}?:"请先在名册选择人物，再点“安排官位”。")
+   OutlinedButton(onClick={chooseTown=true}){Text("点选任职州府县")}
    OutlinedTextField(townQuery,{townQuery=it.take(60)},label={Text("搜索任职府县")},singleLine=true,modifier=Modifier.fillMaxWidth())
    Text("选定辖区：${t?.let {MunicipalEngine.name(w,it)}?:"未选择"}")
    w.towns.filter {townQuery.isNotBlank()&&(MunicipalEngine.name(w,it).contains(townQuery)||MunicipalEngine.prefectureName(it).contains(townQuery))}.take(3).forEach {place->TextButton(onClick={townId=place.id;townQuery=""}){Text("选择${MunicipalEngine.name(w,place)} · ${place.rank}")}}
@@ -49,5 +51,6 @@ import cn.chronicle.core.*
    Button(onClick={if(p!=null&&t!=null)ask(Command("APPOINT",region=t.region,target=p.id.toString(),objective=t.id,mode=post))},enabled=p!=null&&t!=null){Text("预览任命")}
   }
  }
+ if(chooseTown)TownPicker(w,{chooseTown=false}){townId=it;townQuery=""}
  selected?.let {id->w.people.find {it.id==id}?.let {p->AlertDialog(onDismissRequest={selected=null},title={Text("${p.name} · ${p.role}")},text={Column {Text("能力${p.ability} / 忠诚${p.loyalty} / 信任${p.trust} / 怀疑${p.suspicion} / 敌意${p.hostility}");p.memories.takeLast(4).forEach {Text(it,style=MaterialTheme.typography.bodySmall)}}},confirmButton={TextButton(onClick={selected=null}){Text("关闭档案")}})}}
 }

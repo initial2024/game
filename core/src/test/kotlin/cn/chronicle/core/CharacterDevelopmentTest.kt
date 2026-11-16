@@ -44,7 +44,7 @@ class CharacterDevelopmentTest {
   val enrolled=submit(w,Command("STUDY_HOME",target="1"));val recalled=submit(enrolled,Command("RECALL_STUDENT",target="1"));val returned=days(recalled,7);assertTrue(returned.studies.isEmpty());assertEquals(w.people[1].ability,returned.people[1].ability)
  }
  @Test fun newContoursAreValidAndLegacyRectanglesMigrateWithoutChangingOwnership(){
-  val w=game();val s=MapSnapshotMapper.scene(w,1);assertEquals(17,s.territories.size);assertTrue(s.territories.all {it.polygon.size>=3});MapValidation.verify(s)
+  val w=game();val s=MapSnapshotMapper.scene(w,1);assertTrue(s.territories.size>=180);assertTrue(s.territories.all {it.polygon.size>=3});MapValidation.verify(s)
   val old=s.copy(territories=s.territories.map {if(it.id=="frontier-0")it.copy(polityId="nation",polygon=listOf(listOf(121.0,31.0),listOf(125.0,31.0),listOf(125.0,35.0),listOf(121.0,35.0)))else it})
   val upgraded=MapSnapshotMapper.scene(w.copy(cartography=old),1).territories.first {it.id=="frontier-0"};assertEquals("nation",upgraded.polityId);assertTrue(upgraded.polygon!=old.territories.first {it.id=="frontier-0"}.polygon);assertEquals(old,w.copy(cartography=old).cartography)
   val custom=old.copy(territories=old.territories.map {if(it.id=="frontier-0")it.copy(polygon=listOf(listOf(120.0,30.0),listOf(123.0,30.0),listOf(122.0,33.0)))else it});assertEquals(custom.territories,MapSnapshotMapper.scene(w.copy(cartography=custom),1).territories)

@@ -179,6 +179,7 @@ class ModelManager(private val app:Context) {
   val result=NativeBridge.generate(prompt,160,40000).toString(Charsets.UTF_8).trim();require(result.isNotBlank());result.take(1400)
  }
  suspend fun interpret(text:String,w:World):Preview=gate.withLock {
+  if(text.contains("运河"))return@withLock EraRules.parse(text,w)
   require(isLoaded)
   val instruction="把命令映射为JSON：{\"commands\":[{\"type\":\"FARM\",\"region\":0}]}。只输出JSON。时代${w.setting}。古代用WORKSHOP禁FACTORY，工业用FACTORY禁WORKSHOP。type仅WORKSHOP,FACTORY,FARM,RESEARCH,ROAD,TAX_DOWN,TAX_UP,DIPLOMACY,DRILL,RELIEF,REPAY,REFORM,REST。region 0至3，最多3项。不理解输出{\"commands\":[]}，不承诺成功。"
   val prompt=format(listOf("system" to instruction,"user" to DialogueEngine.safeText(text).take(240)))

@@ -64,7 +64,7 @@ class MainActivity:ComponentActivity() {
   val d=LocalDensity.current
   CompositionLocalProvider(LocalDensity provides Density(d.density,d.fontScale*scale),LocalWorldSetting provides (ui.world?.setting?:"工业初兴")) {
    var showMessage by remember {mutableStateOf(false)}
-   fun ask(c:Command) { val w=ui.world?:return;val error=if(c.type=="CANCEL_TASK") null else Rules.validate(w,c); if(error!=null) vm.message(error) else { expected=w.revision;plan=Preview(listOf(c),RealtimeEngine.describe(c)+"。事务随连续时间推进，最多同时办理3项。") } }
+   fun ask(c:Command) { val w=ui.world?:return;val error=if(c.type=="CANCEL_TASK") null else Rules.validate(w,c); if(error!=null) vm.message(error) else { expected=w.revision;val detail=when(c.type){"ORG_FOUND"->"${c.text} · ${c.objective} · ${w.towns.find {it.id==c.target}?.name}";"ORG_ASSIGN","ORG_RELEASE","ASSASSINATE"->"${w.intelligence.organizations.find {it.id==c.target}?.name} → ${w.people.find {it.id==c.objective.toIntOrNull()}?.name}";"DECLARE_WAR"->"${CrownEngine.units(w).find {it.id==c.target}?.name} → ${w.neighbors[c.region].name}";"CANAL"->"${w.towns.find {it.id==c.target}?.name} → ${w.towns.find {it.id==c.objective}?.name}";"ARMY_ASSIGN"->"${w.people.find {it.id==c.objective.toIntOrNull()}?.name} → ${CrownEngine.units(w).find {it.id==c.target}?.name}";else->""};plan=Preview(listOf(c),detail+"\n"+RealtimeEngine.describe(c)+"。事务随连续时间推进，最多同时办理3项。"+if(c.type=="ASSASSINATE")"此为游戏内暴力行动，不保证成功，无论成败民心-6、稳定-8，增加暴露与追查。目标死亡无法撤销。"else"") } }
    LaunchedEffect(ui.slot){plan=null;decreePerson=null}
    val pageState=rememberSaveableStateHolder()
    Scaffold(bottomBar={
@@ -147,7 +147,7 @@ class MainActivity:ComponentActivity() {
  val n=w.nation;var group by rememberSaveable {mutableStateOf("财政")};var projectPage by rememberSaveable {mutableIntStateOf(0)}
  LaunchedEffect(w.projects.size) {projectPage=projectPage.coerceAtMost((w.projects.size-1).coerceAtLeast(0)/4)}
  Page {
-  Choices(listOf("财政","产业","民生","军政","宫廷","项目","趋势"),group,{group=it})
+  Choices(listOf("财政","产业","民生","军政","建设","谍报","项目","趋势"),group,{group=it})
   when(group) {
    "财政" -> Panel("国库","资金：万两 · 年度数为最近季度的四倍估算") {
     Text("${n.treasury} 万两",style=MaterialTheme.typography.headlineLarge,color=MaterialTheme.colorScheme.primary)
@@ -164,7 +164,8 @@ class MainActivity:ComponentActivity() {
     ActionButton(Command("RELIEF"),ask);ActionButton(Command("REFORM"),ask);ActionButton(Command("DRILL"),ask)
    }
    "军政" -> ArmyPanel(w,ask)
-   "宫廷" -> PalacePanel(w,ask)
+   "建设" -> {var section by rememberSaveable {mutableStateOf("宫廷")};Choices(listOf("宫廷","运河"),section,{section=it});if(section=="宫廷")PalacePanel(w,ask)else CanalPanel(w,ask)}
+   "谍报" -> IntelligencePanel(w,ask)
    "项目" -> Panel("政策与在建项目") {
     Text("当前方向：${w.strategy}");Choices(listOf(if(w.setting==EraRules.ANCIENT)"商工兴国" else "工业强国","富民治国","综合发展"),w.strategy,{ask(Command("STRATEGY",target=it))})
     w.towns.filter {it.work!=null}.forEach {t->Text("${MunicipalEngine.name(w,t)} · ${MunicipalEngine.buildings.first {it.id==t.work!!.kind}.name} · 剩余${t.work!!.remainingDays}日")}

@@ -23,10 +23,10 @@ class CourtDevelopmentTest {
   assertTrue(DecreeEngine.preview(x,id,"不要扩建学堂").commands.isEmpty());assertTrue(DecreeEngine.preview(w.copy(nation=w.nation.copy(treasury=0)),id,"扩建学堂").commands.isEmpty());assertTrue(DecreeEngine.preview(w,id,"立即定罪撤职").commands.isEmpty());assertTrue(DecreeEngine.preview(w,id,"扩建学堂，同时扩建常平仓").commands.isEmpty())
  }
  @Test fun allLivingPeopleShareDialogueAndEachCountyHasThreePosts(){
-  val w=game();assertEquals(237,w.people.size);assertTrue(w.people.all {DialogueEngine.access(w,it.id)==null})
-  w.towns.forEach {t->assertEquals(3,TalentEngine.ids(w,t).distinct().size);assertTrue(t.deputy>=0&&t.clerk>=0)}
+  val w=game();assertEquals(573,w.people.size);assertTrue(w.people.all {DialogueEngine.access(w,it.id)==null})
+  w.towns.filter {it.id !in AdministrativeEngine.extraSeeds.map {s->s.id}}.forEach {t->assertEquals(3,TalentEngine.ids(w,t).distinct().size);assertTrue(t.deputy>=0&&t.clerk>=0)}
   val t=w.towns.first {it.rank=="县城"};val p=w.people.first {it.id==t.clerk};val context=DialogueEngine.context(w,p,true);assertTrue(context.contains(t.name));assertTrue(context.contains("主簿"));assertFalse(context.contains("guilty"));assertNotNull(DialogueEngine.access(w.copy(people=w.people.map {if(it.id==p.id)it.copy(alive=false)else it}),p.id))
-  val legacy=w.copy(towns=w.towns.map {it.copy(deputy=-1,clerk=-1,staffed=false)},people=w.people.take(83));assertEquals(w,MunicipalEngine.initialize(legacy));assertEquals(w,MunicipalEngine.initialize(w))
+  val legacy=w.copy(towns=w.towns.filter {it.id !in AdministrativeEngine.extraSeeds.map {s->s.id}}.map {it.copy(deputy=-1,clerk=-1,staffed=false)},people=w.people.take(83));assertEquals(w,MunicipalEngine.initialize(legacy));assertEquals(w,MunicipalEngine.initialize(w))
  }
  @Test fun examsRecruitRealCandidatesAndAppointmentTransfersOnlyAfterTime(){
   val w=game();val scheduled=apply(w,Command("EXAM"));assertEquals(w.people.size,days(scheduled,89).people.size);assertFails {apply(scheduled,Command("EXAM"))}

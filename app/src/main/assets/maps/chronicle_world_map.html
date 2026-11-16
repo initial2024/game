@@ -211,7 +211,7 @@ function validateScene(v){
   }
  }
  if(Array.isArray(v.groups)){
-  if(v.groups.length>200)throw Error('区域超过 200 项限制');
+  if(v.groups.length>300)throw Error('区域超过 300 项限制');
   const ids=new Set();for(const g of v.groups){const id=scrubString(g?.id,72);if(!id||ids.has(id))throw Error('区域 ID 为空或重复');ids.add(id);
    const memberIds=Array.isArray(g.memberIds)?[...new Set(g.memberIds.filter(x=>typeof x==='string'&&x.length<=90))].slice(0,800):[];
    obj.groups.push({id,name:scrubString(g.name,70),rank:scrubString(g.rank,28),parentId:scrubString(g.parentId,72),polityId:scrubString(g.polityId,72),memberIds})
@@ -235,7 +235,7 @@ function validateScene(v){
   }
  }
  if(Array.isArray(v.territories)){
-  if(v.territories.length>80)throw Error('疆域超过 80 个');const ids=new Set();let totalVertices=0;
+  if(v.territories.length>256)throw Error('疆域超过 256 个');const ids=new Set();let totalVertices=0;
   for(const t of v.territories){const id=scrubString(t?.id,72);if(!id||ids.has(id))throw Error('疆域 ID 无效或重复');ids.add(id);
    if(t.polityId&&!obj.polities.some(p=>p.id===t.polityId))throw Error('疆域指向不存在的势力：'+id);
    const polygon=validateRing(t.polygon,'疆域 '+id,60);totalVertices+=polygon.length;if(totalVertices>2500)throw Error('疆域顶点总数超过 2500');
@@ -246,7 +246,7 @@ function validateScene(v){
   if(v.routes.length>250)throw Error('交通线超过 250 条');const ids=new Set();
   for(const r of v.routes){const id=scrubString(r?.id,72),fromId=scrubString(r?.fromId,85),toId=scrubString(r?.toId,85);
    if(!id||ids.has(id)||!placeIds.has(fromId)||!placeIds.has(toId)||fromId===toId)throw Error('交通线 ID 或地点引用无效：'+id);
-   ids.add(id);obj.routes.push({id,name:scrubString(r.name,60),fromId,toId,kind:['road','trail','sea'].includes(r.kind)?r.kind:'road',status:r.status==='closed'?'closed':'open'});
+   ids.add(id);obj.routes.push({id,name:scrubString(r.name,60),fromId,toId,kind:['road','trail','sea','canal'].includes(r.kind)?r.kind:'road',status:r.status==='closed'?'closed':'open'});
   }
  }
  if(v.geography&&typeof v.geography==='object'){
@@ -399,6 +399,7 @@ function drawTerritories(){
  if(!layers.territories)return;
  ctx.save();ctx.beginPath();for(const poly of (customGeography()?scene.geography.landPolygons.map(projectedPolygon):coast))trace(poly,base);ctx.clip();
  for(const t of scene.territories){
+  const county=t.rank==='县';if(county&&(!layers.counties||cam.zoom<2.4))continue;
   const polygon=projectedPolygon(t.polygon),owner=scene.polities.find(p=>p.id===t.polityId),col=owner?.color||'#98816b';
   if(polygon.length<3)continue;
   const contour=[];
@@ -406,9 +407,9 @@ function drawTerritories(){
    for(let j=0;j<n;j++){const x=a[0]+(b[0]-a[0])*j/n,y=a[1]+(b[1]-a[1])*j/n,z=customGeography()?base:elevation(x,y)+5;contour.push(screen(x,y,z))}
   }
   const path=()=>{ctx.beginPath();contour.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath()};
-  ctx.save();path();ctx.fillStyle=col;ctx.globalAlpha=t.status==='neutral'?.07:t.status==='contested'?.17:.16;ctx.fill();
+  ctx.save();path();ctx.fillStyle=col;ctx.globalAlpha=county?0:t.status==='neutral'?.07:t.status==='contested'?.17:.16;ctx.fill();
   if(t.status==='contested'){ctx.save();ctx.clip();ctx.globalAlpha=.34;ctx.strokeStyle=col;ctx.lineWidth=1;for(let x=-H;x<W+H;x+=14){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x+H,H);ctx.stroke()}ctx.restore()}
-  path();ctx.globalAlpha=.92;ctx.strokeStyle=colors.halo;ctx.lineWidth=3.7;ctx.stroke();ctx.strokeStyle=col;ctx.lineWidth=Math.max(1.3,Math.min(2.8,cam.zoom*.75));if(t.status==='contested')ctx.setLineDash([6,4]);ctx.stroke();ctx.setLineDash([]);
+  path();ctx.globalAlpha=.92;ctx.strokeStyle=colors.halo;ctx.lineWidth=county?1.5:3.7;ctx.stroke();ctx.strokeStyle=col;ctx.lineWidth=county?.65:Math.max(1.3,Math.min(2.8,cam.zoom*.75));if(t.status==='contested')ctx.setLineDash([6,4]);ctx.stroke();ctx.setLineDash([]);
   if(t.id===selectedTerritoryId){path();ctx.strokeStyle=colors.ink;ctx.lineWidth=2;ctx.setLineDash([3,4]);ctx.stroke()}
   ctx.restore();
  }
@@ -417,7 +418,7 @@ function drawTerritories(){
 function drawTerritoryLabels(){
  if(!layers.territories||!layers.labels||cam.zoom<1.15)return;
  const occupied=[];
- for(const t of scene.territories){if(!t.name)continue;const ring=projectedPolygon(t.polygon),x=ring.reduce((s,p)=>s+p[0],0)/ring.length,y=ring.reduce((s,p)=>s+p[1],0)/ring.length,p=screen(x,y,customGeography()?base:elevation(x,y)+12);
+ for(const t of scene.territories){if(!t.name||t.rank==='县'&&cam.zoom<4.5)continue;const ring=projectedPolygon(t.polygon),x=ring.reduce((s,p)=>s+p[0],0)/ring.length,y=ring.reduce((s,p)=>s+p[1],0)/ring.length,p=screen(x,y,customGeography()?base:elevation(x,y)+12);
   if(p[0]<15||p[0]>W-15||p[1]<40||p[1]>H-30)continue;
   const title=t.name+(t.status==='contested'?' · 争议':''),width=Math.min(220,title.length*13+18),rect=[p[0]-width/2,p[1]-12,p[0]+width/2,p[1]+13];
   if([...labelRects,...occupied].some(a=>intersects(a,rect)))continue;occupied.push(rect);
@@ -426,7 +427,7 @@ function drawTerritoryLabels(){
 }
 function drawScenarioRoutes(){
  if(!layers.scenarioRoutes)return;ctx.save();ctx.lineWidth=1.8;ctx.setLineDash([4,5]);ctx.strokeStyle=colors.region;
- for(const route of scene.routes){const a=cityById.get(route.fromId),b=cityById.get(route.toId);if(!a||!b||!shownCity(a)||!shownCity(b))continue;
+ for(const route of scene.routes){ctx.strokeStyle=route.kind==='canal'?colors.river:colors.region;ctx.lineWidth=route.kind==='canal'?2.8:1.8;ctx.setLineDash(route.kind==='canal'?[]:[4,5]);const a=cityById.get(route.fromId),b=cityById.get(route.toId);if(!a||!b||!shownCity(a)||!shownCity(b))continue;
   if(route.status==='closed')ctx.globalAlpha=.25;else ctx.globalAlpha=.7;
   ctx.beginPath();const n=24;for(let i=0;i<=n;i++){const x=a.x+(b.x-a.x)*i/n,y=a.y+(b.y-a.y)*i/n,z=customGeography()?base:elevation(x,y)+8,p=screen(x,y,z);if(i)ctx.lineTo(p[0],p[1]);else ctx.moveTo(p[0],p[1])}ctx.stroke();
  }
