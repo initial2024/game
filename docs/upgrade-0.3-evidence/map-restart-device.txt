@@ -1,0 +1,54 @@
+15
+Physical size: 1080x2280
+Override size: 390x844
+Physical density: 440
+Override density: 160
+MemTotal:        2532900 kB
+MemFree:          393040 kB
+MemAvailable:    1443620 kB
+Buffers:           25108 kB
+Cached:          1242064 kB
+SwapCached:            0 kB
+Active:          1273172 kB
+Inactive:         461100 kB
+Active(anon):     486664 kB
+Inactive(anon):      736 kB
+Active(file):     786508 kB
+Inactive(file):   460364 kB
+Unevictable:        4040 kB
+Mlocked:            4040 kB
+SwapTotal:       1899668 kB
+SwapFree:        1730708 kB
+Dirty:              1188 kB
+Writeback:             0 kB
+AnonPages:        471184 kB
+Mapped:           547884 kB
+Shmem:             17260 kB
+KReclaimable:      28500 kB
+Slab:             153732 kB
+SReclaimable:      28500 kB
+SUnreclaim:       125232 kB
+KernelStack:       25872 kB
+PageTables:        67904 kB
+SecPageTables:         0 kB
+NFS_Unstable:          0 kB
+Bounce:                0 kB
+WritebackTmp:          0 kB
+CommitLimit:     3166116 kB
+Committed_AS:   125769456 kB
+VmallocTotal:   34359738367 kB
+VmallocUsed:       48592 kB
+VmallocChunk:          0 kB
+Percpu:             2280 kB
+AnonHugePages:         0 kB
+ShmemHugePages:        0 kB
+ShmemPmdMapped:        0 kB
+FileHugePages:         0 kB
+FilePmdMapped:         0 kB
+CmaTotal:              0 kB
+CmaFree:               0 kB
+DirectMap4k:       53080 kB
+DirectMap2M:     2568192 kB
+Guest network switches after disabling:
+0
+0
