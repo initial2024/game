@@ -67,7 +67,7 @@ class CharacterFeatureTest {
   compose.onNodeWithText("宗室",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("选妃",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("安排面见 · 25万两 / 30日").performScrollTo().assertIsDisplayed();screenshot("consort-audience")
   compose.onNodeWithText("名册",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("与林映书交谈").performScrollTo().performClick();compose.waitUntil(10000){vm.chat.value.person!=null&&!vm.state.value.busy}
   val relationship=vm.state.value.world!!.household.members.first().relationship
-  compose.onNodeWithText("说些什么…").performTextInput("家人近况如何");compose.onNodeWithText("发送对话").performClick();compose.waitUntil(15000){!vm.chat.value.working&&vm.chat.value.records.size>=2};assertTrue(vm.state.value.world!!.household.members.first().relationship>relationship);screenshot("household-conversation");compose.onNodeWithText("关闭对话").performClick()
+  compose.onNodeWithText("说些什么…").performTextInput("家人近况如何");compose.onNodeWithText("发送对话").performClick();try{compose.waitUntil(15000){!vm.chat.value.working&&vm.chat.value.records.size>=2}}catch(e:Exception){println("FAMILY_CHAT_DEBUG chat=${vm.chat.value} message=${vm.state.value.message} busy=${vm.state.value.busy}");screenshot("household-chat-diagnostic");throw e};assertTrue(vm.state.value.world!!.household.members.first().relationship>relationship);screenshot("household-conversation");compose.onNodeWithText("关闭对话").performClick()
 
  }
  @Test fun recruitThenAppointCountyDeputyThroughNativeControls(){
