@@ -22,6 +22,7 @@ object TalentEngine {
    p==null||!p.alive||p.ageQuarters<72->"须选择在世成年人物。"
    t==null||c.mode !in posts||c.region!=t.region->"官职或辖区无效。"
    p.id<3||w.academy.tutor==p.id||w.journey?.let {it.companion==p.id||it.regent==p.id}==true->"此人正担任朝廷要职、讲席或行在职务，不能兼任地方官。"
+   LocalDefenseEngine.office(w,p.id)!=null->"此人已有地方军政职务，请先交卸或由地方军政调任。"
    IntelligenceEngine.membership(w,p.id)!=null->"此人已有组织职务，须先交卸。"
    CrownEngine.units(w).any {it.commander==p.id}->"此人正在统领军队，不能兼任地方官。"
    EducationEngine.busy(w,p.id)->"此人正在求学，须返程后任职。"

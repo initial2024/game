@@ -9,9 +9,9 @@ class WorldExpansionTest {
  private fun apply(w:World,c:Command)=RealtimeEngine.submit(w,c,w.revision).world
  private fun days(w:World,n:Int):World {var x=w;repeat(n/90){x=RealtimeEngine.advance(x,90).world};if(n%90>0)x=RealtimeEngine.advance(x,n%90).world;return x}
  @Test fun denserAtlasHasRealCountiesStatesBoundariesAndConservedResources(){
-  val w=game();assertEquals(189,w.towns.size);assertEquals(171,w.towns.count {it.rank=="县城"});assertEquals(573,w.people.size);assertEquals(w.nation.population,w.towns.sumOf {MunicipalEngine.population(w,it)})
+  val w=game();assertEquals(189,w.towns.size);assertEquals(171,w.towns.count {it.rank=="县城"});assertEquals(778,w.people.size);assertEquals(w.nation.population,w.towns.sumOf {MunicipalEngine.population(w,it)})
   val s=MapSnapshotMapper.scene(w,1);assertEquals(171,s.groups.count {it.rank=="县"});assertTrue(s.groups.count {it.rank=="州"}>=7);assertTrue(s.territories.count {it.rank=="县"}>=160);assertEquals(120,s.extraPlaces.size);assertEquals(620,w.nation.treasury)
-  val original=w.copy(towns=w.towns.filter {it.id !in AdministrativeEngine.extraSeeds.map {s->s.id}},people=w.people.take(237));assertEquals(w,MunicipalEngine.initialize(original));assertEquals(w,MunicipalEngine.initialize(w));MapValidation.verify(s)
+  val original=w.copy(towns=w.towns.filter {it.id !in AdministrativeEngine.extraSeeds.map {s->s.id}},people=w.people.take(237),localDefense=LocalDefense(),resources=ResourceState(),payroll=PayrollState());assertEquals(w,WorldSetup.initialize(original));assertEquals(w,WorldSetup.initialize(w));MapValidation.verify(s)
  }
  private fun organization(w:World,kind:String):World {
   val founded=days(apply(w,Command("ORG_FOUND",target=w.towns.first().id,objective=kind,text="试行${kind}司")),45)

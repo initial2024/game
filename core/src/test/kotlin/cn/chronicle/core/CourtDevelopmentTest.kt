@@ -23,10 +23,10 @@ class CourtDevelopmentTest {
   assertTrue(DecreeEngine.preview(x,id,"不要扩建学堂").commands.isEmpty());assertTrue(DecreeEngine.preview(w.copy(nation=w.nation.copy(treasury=0)),id,"扩建学堂").commands.isEmpty());assertTrue(DecreeEngine.preview(w,id,"立即定罪撤职").commands.isEmpty());assertTrue(DecreeEngine.preview(w,id,"扩建学堂，同时扩建常平仓").commands.isEmpty())
  }
  @Test fun allLivingPeopleShareDialogueAndEachCountyHasThreePosts(){
-  val w=game();assertEquals(573,w.people.size);assertTrue(w.people.all {DialogueEngine.access(w,it.id)==null})
+  val w=game();assertEquals(778,w.people.size);assertTrue(w.people.all {DialogueEngine.access(w,it.id)==null})
   w.towns.filter {it.id !in AdministrativeEngine.extraSeeds.map {s->s.id}}.forEach {t->assertEquals(3,TalentEngine.ids(w,t).distinct().size);assertTrue(t.deputy>=0&&t.clerk>=0)}
   val t=w.towns.first {it.rank=="县城"};val p=w.people.first {it.id==t.clerk};val context=DialogueEngine.context(w,p,true);assertTrue(context.contains(t.name));assertTrue(context.contains("主簿"));assertFalse(context.contains("guilty"));assertNotNull(DialogueEngine.access(w.copy(people=w.people.map {if(it.id==p.id)it.copy(alive=false)else it}),p.id))
-  val legacy=w.copy(towns=w.towns.filter {it.id !in AdministrativeEngine.extraSeeds.map {s->s.id}}.map {it.copy(deputy=-1,clerk=-1,staffed=false)},people=w.people.take(83));assertEquals(w,MunicipalEngine.initialize(legacy));assertEquals(w,MunicipalEngine.initialize(w))
+  val legacy=w.copy(towns=w.towns.filter {it.id !in AdministrativeEngine.extraSeeds.map {s->s.id}}.map {it.copy(deputy=-1,clerk=-1,staffed=false)},people=w.people.take(83),localDefense=LocalDefense(),resources=ResourceState(),payroll=PayrollState());assertEquals(w,WorldSetup.initialize(legacy));assertEquals(w,WorldSetup.initialize(w))
  }
  @Test fun examsRecruitRealCandidatesAndAppointmentTransfersOnlyAfterTime(){
   val w=game();val scheduled=apply(w,Command("EXAM"));assertEquals(w.people.size,days(scheduled,89).people.size);assertFails {apply(scheduled,Command("EXAM"))}
@@ -64,7 +64,7 @@ class CourtDevelopmentTest {
  @Test fun armiesKeepRealCommandersCostsSoldiersAndDeployment(){
   val w=game();val before=CrownEngine.units(w).first();val x=days(apply(w,Command("ARMY_RECRUIT",target=before.id)),30);assertEquals(before.soldiers+1000,CrownEngine.units(x).first().soldiers);assertEquals(w.nation.treasury-35,x.nation.treasury);assertEquals(2L,CrownEngine.maintenance(x))
   val trained=days(apply(x,Command("ARMY_TRAIN",target=before.id)),30);assertEquals(before.training+6,CrownEngine.units(trained).first().training)
-  val moved=days(apply(trained,Command("ARMY_MOVE",target=before.id,region=2)),20);assertEquals(2,CrownEngine.units(moved).first().region)
+  val march=Command("ARMY_MOVE",target=before.id,region=2);val travel=RealtimeEngine.duration(trained,march);assertTrue(travel>=20);val enroute=days(apply(trained,march),travel-1);assertEquals(before.region,CrownEngine.units(enroute).first().region);val moved=days(enroute,1);assertEquals(2,CrownEngine.units(moved).first().region)
   val recruits=days(apply(w,Command("EXAM")),90);val leader=recruits.people.drop(w.people.size).first {it.ability>=55};val assigned=days(apply(recruits,Command("ARMY_ASSIGN",target="guard",objective=leader.id.toString())),7);assertEquals(leader.id,CrownEngine.units(assigned).first().commander);assertFails {apply(assigned,Command("ARMY_ASSIGN",target="field",objective=leader.id.toString()))}
  }
 }

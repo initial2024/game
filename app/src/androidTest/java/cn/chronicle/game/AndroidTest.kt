@@ -22,6 +22,21 @@ import org.junit.Rule
 
 @RunWith(AndroidJUnit4::class)
 class StorageTest {
+ @Test fun largeWorldBeyondCursorWindowRestartsWithoutTruncation(){
+  val context=InstrumentationRegistry.getInstrumentation().targetContext;val dbName="large-world-verification.db";context.deleteDatabase(dbName)
+  val original=NewGame.create("大档验证","景衡","综合发展","标准",1847)
+  val world=original.copy(people=original.people.map {p->p.copy(memories=List(8){i->"${p.id}号人物第${i}项经历："+"地方治安粮仓巡检".repeat(20)})})
+  val encoded=SaveJson.encodeToString(world);assertTrue("Must exceed SQLite's common 2 MiB CursorWindow",encoded.toByteArray().size>2*1024*1024)
+  Store(context,dbName).use {it.create(1,world)}
+  Store(context,dbName).use {store->
+   val loaded=requireNotNull(store.load(1));assertEquals(Store.sha(encoded),Store.sha(SaveJson.encodeToString(loaded)));assertEquals(778,loaded.people.size)
+   store.copyTo(1,2);store.import(store.export(1),3);assertEquals(Store.sha(encoded),Store.sha(SaveJson.encodeToString(store.load(3)!!)))
+   val changed=RealtimeEngine.submit(loaded,Command("CONVERSE",target=loaded.localDefense.units.first().commander.toString(),mode="倾听"),loaded.revision)
+   store.commit(1,loaded.revision,changed);assertEquals(0L,store.load(2)!!.revision)
+  }
+  Store(context,dbName).use {assertEquals(1L,it.load(1)!!.revision);assertEquals(0L,it.load(3)!!.revision)}
+  println("LARGE_WORLD_RESTART bytes=${encoded.toByteArray().size} people=${world.people.size} slots=3")
+ }
  @Test fun transactionRestartIsolationAndArchiveIntegrity() {
   val context=InstrumentationRegistry.getInstrumentation().targetContext
   context.deleteDatabase("chronicle-verification.db") // Test-only database; never the user's game database.
@@ -40,7 +55,7 @@ class StorageTest {
   val start=NewGame.create("旧格式","君主","综合发展","标准",1847);val out=RealtimeEngine.submit(start,Command("FARM"),0)
   fun strip(e:JsonElement):JsonElement=when(e){is JsonObject->JsonObject(e.filterKeys {it!="level"}.mapValues {strip(it.value)});is JsonArray->JsonArray(e.map {strip(it)});else->e}
   val original=SaveJson.parseToJsonElement(SaveJson.encodeToString(out.world)).jsonObject
-  val world=strip(JsonObject(original.filterKeys {it !in listOf("towns","socialTopics")}.toMutableMap().apply {put("people",SaveJson.parseToJsonElement(SaveJson.encodeToString(out.world.people.take(10))))})).toString()
+  val world=strip(JsonObject(original.filterKeys {it !in listOf("towns","socialTopics","resources","localDefense","payroll")}.toMutableMap().apply {put("people",SaveJson.parseToJsonElement(SaveJson.encodeToString(out.world.people.take(10))))})).toString()
   val history=strip(SaveJson.parseToJsonElement(SaveJson.encodeToString(listOf(out.entry))));val digest=Store.sha(world+history.toString()+"[]")
   val snapshot=buildJsonObject {put("format",2);put("world",world);put("history",history);put("dialogues",JsonArray(emptyList()));put("sha256",digest)}.toString()
   Store(context,"old-command-import-test.db").use {store->store.import(snapshot,1);assertEquals(out.world.nation,store.load(1)!!.nation);assertEquals(171,store.load(1)!!.towns.count {it.rank=="县城"});assertEquals("FARM",store.history(1).single().commands.single().type)}
@@ -184,6 +199,12 @@ class RealModelTest {
    val reply=runBlocking {withTimeout(210000){manager.chat(world,magistrate,emptyList(),"请用一句话介绍你的任所和职责。",{appChunks++})}}
    assertEquals("model",reply.source);assertTrue(reply.text.any {it in '\u4e00'..'\u9fff'});assertTrue(appChunks>0)
    println("REAL_APP_CHARACTER_CHAT elapsed_ms=${(System.nanoTime()-appStart)/1000000} chunks=$appChunks person=${magistrate.id} role=${magistrate.role} town=${county.id} text=${reply.text}")
+   val localUnit=world.localDefense.units.first {it.home==county.id&&it.kind=="县兵"};val captain=world.people.first {it.id==localUnit.commander}
+   assertTrue(DialogueEngine.context(world,captain,true).contains("俸禄"));assertTrue(DialogueEngine.context(world,captain,true).contains(localUnit.name))
+   var militaryChunks=0;val militaryStart=System.nanoTime()
+   val militaryReply=runBlocking {withTimeout(210000){manager.chat(world,captain,emptyList(),"请用一句话说明你的驻地与军务职责。",{militaryChunks++})}}
+   assertEquals("model",militaryReply.source);assertTrue(militaryReply.text.any {it in '\u4e00'..'\u9fff'});assertTrue(militaryChunks>0)
+   println("REAL_APP_LOCAL_OFFICER_CHAT elapsed_ms=${(System.nanoTime()-militaryStart)/1000000} chunks=$militaryChunks person=${captain.id} role=${captain.role} salary_liang=${PayrollEngine.salary(world,captain.id)} text=${militaryReply.text}")
   } finally {manager.unloadAsync();runBlocking {withTimeout(60000){while(manager.isLoaded)delay(100)}};manager.close()}
  }
 }

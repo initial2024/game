@@ -3,7 +3,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable data class PendingOrder(val id:Long,val command:Command,val remainingDays:Int,val escrow:Long)
 object RealtimeEngine {
- private val immediate=setOf("CONSORT_DECLINE","CANAL","FAMILY_CONTACT","PALACE_BUILD","TALK","URBAN_BUILD","CONVERSE","ACADEMY_UPGRADE","STUDY_HOME","STUDY_ABROAD","RECALL_STUDENT","CITY_FOUND","CITY_RESTORE","ERA","RULER_NAME","CHILD_NAME_PLAN","NAME_CHILD","FAMILY_PLAN","STRATEGY","FACTORY","WORKSHOP","FARM","ROAD","DEPART","REMOTE","REPAY")
+ private val immediate=setOf("PAY_ARREARS","CONSORT_DECLINE","CANAL","FAMILY_CONTACT","PALACE_BUILD","TALK","URBAN_BUILD","CONVERSE","ACADEMY_UPGRADE","STUDY_HOME","STUDY_ABROAD","RECALL_STUDENT","CITY_FOUND","CITY_RESTORE","ERA","RULER_NAME","CHILD_NAME_PLAN","NAME_CHILD","FAMILY_PLAN","STRATEGY","FACTORY","WORKSHOP","FARM","ROAD","DEPART","REMOTE","REPAY")
  fun duration(c:Command)=when(c.type) {
   "CONSORT_AUDIENCE","ARMY_TRAIN","ARMY_RECRUIT" -> 30
   "CONSORT_ACCEPT","ARMY_ASSIGN" -> 7
@@ -13,6 +13,9 @@ object RealtimeEngine {
   "INTEL_SCOUT","ASSASSINATE" -> 30
   "INTEL_COUNTER" -> 15
   "WAR_BATTLE" -> 14
+  "LOCAL_APPOINT","LOCAL_RELEASE","LOCAL_DEMOB","ARMY_DEMOB","TRADE_RESOURCE" -> 7
+  "LOCAL_MOBILIZE" -> 14
+  "LOCAL_TRAIN","LOCAL_RECRUIT" -> 30
   "EXAM" -> 90
   "RECRUIT" -> 30
   "APPOINT" -> 7
@@ -33,6 +36,12 @@ object RealtimeEngine {
   "TRIAL","DISMISS","CLOSE" -> 3
   else -> 1
  }
+ fun duration(w:World,c:Command):Int=when(c.type){
+  "ARMY_MOVE"->duration(c)*TerrainEngine.marchFactor(w,"city-r${CrownEngine.units(w).find {it.id==c.target}?.region?:0}","city-r${c.region}")/100
+  "LOCAL_MOBILIZE"->{val from=w.localDefense.units.find {it.id==c.target}?.home?:"city-r0";val to="city-r${CrownEngine.units(w).find {it.id==c.objective}?.region?:0}";duration(c)*TerrainEngine.marchFactor(w,from,to)/100}
+  else->duration(c)
+ }
+ fun describe(w:World,c:Command):String {val raw=describe(c);val shown=if(c.type=="URBAN_BUILD")raw.replace("${MunicipalEngine.duration(c)}日","${MunicipalEngine.duration(w,c)}日")else raw.replace("办理${duration(c)}日","办理${duration(w,c)}日");return shown.replace("${Rules.cost(c)}万两","${Rules.cost(w,c)}万两")+ResourceEngine.requirements(w,c).takeIf {it.isNotEmpty()}?.entries?.joinToString(prefix=" · 物资：") {"${ResourceEngine.labels[it.key]}${it.value}${ResourceEngine.unit(it.key)}"}.orEmpty()}
  fun describe(c:Command):String {
   val time=when(c.type){"CANAL"->"即刻立项，${c.days}日后竣工，维护3万两/季";"PALACE_BUILD"->"即刻开工，${(CrownEngine.buildings.find {it.id==c.objective}?.days?:0)+c.level*20}日后竣工；新增等级维护2万两/季";"URBAN_BUILD"->"即刻立项，${MunicipalEngine.duration(c)}日后建筑升至${c.level}级";"ACADEMY_UPGRADE"->"即刻立项，180日后竣工；每级维护2万两/季";"STUDY_HOME"->"赴学7日，研习90日，返程7日；离岗期间影响公务";"STUDY_ABROAD"->"赴学与返程各${14+c.region*7}日，研习180日；邦交恶化可能中断";"RECALL_STUDENT"->"开始返程，按实际课业结算，不退学费";"CONVERSE"->"自由交谈，不收费、不推进时间、无需冷却；关系按话题与真实经历变化";"CITY_FOUND"->"即刻立项，120日后验收";"CITY_RESTORE"->"即刻立项，90日后验收";"CANCEL_TASK"->"即刻撤销，返还80%预留资金";"FACTORY","WORKSHOP"->"即刻立项，约270日后完工";"FARM","ROAD"->"即刻立项，约180日后完工";"REMOTE"->"即刻委派，30日后归报";"DEPART"->"即刻出发，旅程随时间推进";else->if(duration(c)==0)"即刻登记" else "办理${duration(c)}日"}
   return "${Rules.label(c)} · ${Rules.cost(c)}万两 · $time"
@@ -59,8 +68,8 @@ object RealtimeEngine {
   if(c.type in immediate) return Rules.apply(w,c,w.revision,advanceDays=false)
   require(w.pending.size<3){"同时最多办理3项事务，请等待或撤销一项。"}
   require(w.pending.none {it.command.type==c.type || (c.type in listOf("TAX_UP","TAX_DOWN") && it.command.type in listOf("TAX_UP","TAX_DOWN"))}){"同类事务正在办理，不能重复排程。"}
-  val cost=Rules.cost(c)
-  val task=PendingOrder(w.revision+1,c,duration(c),cost)
+  val cost=Rules.cost(w,c)
+  val task=PendingOrder(w.revision+1,c,duration(w,c),cost)
   return finish(w,w.copy(pending=w.pending+task,nation=w.nation.copy(treasury=w.nation.treasury-cost)),"安排${Rules.label(c)}",listOf("预留资金 -$cost 万两，办理 ${task.remainingDays} 日；取消退还80%预留资金。"),listOf("${Rules.label(c)}已交付办理，时间连续推进，完成后另行记录结果。"),commands=listOf(c))
  }
  fun advance(w:World,days:Int):Outcome {
@@ -87,15 +96,15 @@ object RealtimeEngine {
    x=CrownEngine.advance(x,events)
    x=WarfareEngine.advance(x,ledger)
    x=ProjectEngine.advance(x,events)
-   if(x.day%90==0) {x=EconomyEngine.quarter(x,ledger,events,advanceProjects=false);x=MunicipalEngine.quarter(x,ledger);x=CharacterEngine.quarter(x,events);x=TalentEngine.quarter(x,ledger);x=CrownEngine.quarter(x,ledger);x=IntelligenceEngine.quarter(x,ledger);x=EventEngine.quarter(x,ledger,events)}
+   if(x.day%90==0) {x=ResourceEngine.quarter(x,ledger,events);x=EconomyEngine.quarter(x,ledger,events,advanceProjects=false);x=MunicipalEngine.quarter(x,ledger);x=CharacterEngine.quarter(x,events);x=TalentEngine.quarter(x,ledger);x=CrownEngine.quarter(x,ledger);x=IntelligenceEngine.quarter(x,ledger);x=LocalDefenseEngine.quarter(x,ledger);x=PayrollEngine.quarter(x,ledger);x=EventEngine.quarter(x,ledger,events)}
    val due=x.pending.filter {it.remainingDays<=1}
    x=x.copy(pending=x.pending.filter {it.remainingDays>1}.map {it.copy(remainingDays=it.remainingDays-1)})
    due.forEach {task->
     completed+=task.command
     val funded=x.copy(nation=x.nation.copy(treasury=x.nation.treasury+task.escrow))
-    val error=Rules.validate(funded,task.command)
+    val error=Rules.validate(funded,task.command,task.escrow)
     if(error==null) {
-     val result=Rules.apply(funded,task.command,funded.revision,advanceDays=false)
+     val result=Rules.apply(funded,task.command,funded.revision,advanceDays=false,quotedCost=task.escrow)
      x=result.world.copy(revision=w.revision,recent=w.recent)
      ledger+="${Rules.label(task.command)}结转预留 ${task.escrow} 万两，不重复扣款。"
      ledger+=result.entry.ledger.drop(1)
@@ -124,7 +133,7 @@ object ProjectEngine {
    if(p.kind=="CANAL"){x=CanalEngine.complete(x.copy(nation=n,regions=regions),p,events);n=x.nation;regions=x.regions;return@forEach}
    if(p.kind=="ACADEMY_UPGRADE"){x=EducationEngine.completeAcademy(x,events);return@forEach}
    if(p.kind in listOf("CITY_FOUND","CITY_RESTORE")){x=MapActions.complete(x,p,events);return@forEach}
-   val delta=when(p.kind) {"FACTORY","WORKSHOP"->{n=n.copy(industry=n.industry+6,commerce=n.commerce+2);"工业+6、商业+2"};"FARM"->{n=n.copy(agriculture=n.agriculture+7);"农业+7"};else->{n=n.copy(infrastructure=n.infrastructure+7,commerce=n.commerce+2);"基建+7、商业+2"}}
+   val delta=when(p.kind) {"FACTORY","WORKSHOP"->{x=x.copy(resources=x.resources.copy(plants=x.resources.plants.mapIndexed {i,c->if(i==p.region)c+1 else c}));n=n.copy(industry=n.industry+6,commerce=n.commerce+2);"工业+6、商业+2"};"FARM"->{x=x.copy(towns=x.towns.map {if(it.region==p.region)it.copy(agriculture=(it.agriculture+3).coerceAtMost(100))else it});n=n.copy(agriculture=n.agriculture+7);"农业+7"};else->{n=n.copy(infrastructure=n.infrastructure+7,commerce=n.commerce+2);"基建+7、商业+2"}}
    regions=regions.map {if(it.id==p.region)it.copy(industry=(it.industry+if(p.kind in listOf("FACTORY","WORKSHOP"))8 else 0).coerceAtMost(100),agriculture=(it.agriculture+if(p.kind=="FARM")8 else 0).coerceAtMost(100))else it}
    events+="${w.regions[p.region].name}${Rules.label(Command(p.kind))}竣工：$delta（受百分制上限约束）。"
   }

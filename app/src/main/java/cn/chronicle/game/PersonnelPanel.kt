@@ -17,7 +17,7 @@ import cn.chronicle.core.*
  when(tab){
   "名册"->{FlowRow{listOf("朝廷","地方","将领","待选","全部").forEach {s->FilterChip(selected=group==s,onClick={group=s;page=0},label={Text(s)})}}
    OutlinedTextField(query,{query=it;page=0},label={Text("查找姓名、官职或辖区")},singleLine=true,modifier=Modifier.fillMaxWidth())
-   val people=w.people.filter {p->(group=="全部"||when(group){"朝廷"->p.id<10;"地方"->TalentEngine.town(w,p.id)!=null;"将领"->CrownEngine.units(w).any {it.commander==p.id};else->p.role=="待选人才"})&&(query.isBlank()||p.name.contains(query)||p.role.contains(query))}
+   val people=w.people.filter {p->(group=="全部"||when(group){"朝廷"->p.id<10;"地方"->TalentEngine.town(w,p.id)!=null||LocalDefenseEngine.office(w,p.id)!=null;"将领"->CrownEngine.units(w).any {it.commander==p.id};else->p.role=="待选人才"})&&(query.isBlank()||p.name.contains(query)||p.role.contains(query))}
    val pages=maxOf(1,(people.size+2)/3);val current=page.coerceAtMost(pages-1)
    people.drop(current*3).take(3).forEach {p->OutlinedCard(Modifier.fillMaxWidth()){Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
     Text("${p.name} · ${p.role}",style=MaterialTheme.typography.titleMedium);Text("${p.ageQuarters/4}岁 · 能力${p.ability} · 忠诚${p.loyalty} · 信任${p.trust}",style=MaterialTheme.typography.bodySmall)
@@ -52,5 +52,5 @@ import cn.chronicle.core.*
   }
  }
  if(chooseTown)TownPicker(w,{chooseTown=false}){townId=it;townQuery=""}
- selected?.let {id->w.people.find {it.id==id}?.let {p->AlertDialog(onDismissRequest={selected=null},title={Text("${p.name} · ${p.role}")},text={Column {Text("能力${p.ability} / 忠诚${p.loyalty} / 信任${p.trust} / 怀疑${p.suspicion} / 敌意${p.hostility}");p.memories.takeLast(4).forEach {Text(it,style=MaterialTheme.typography.bodySmall)}}},confirmButton={TextButton(onClick={selected=null}){Text("关闭档案")}})}}
+ selected?.let {id->w.people.find {it.id==id}?.let {p->AlertDialog(onDismissRequest={selected=null},title={Text("${p.name} · ${p.role}")},text={Column {Text("能力${p.ability} / 忠诚${p.loyalty} / 信任${p.trust} / 怀疑${p.suspicion} / 敌意${p.hostility}");Text("季俸${PayrollEngine.salary(w,p.id)}两 · 欠俸${PayrollEngine.owed(w,"person:${p.id}")}两");p.memories.takeLast(4).forEach {Text(it,style=MaterialTheme.typography.bodySmall)}}},confirmButton={TextButton(onClick={selected=null}){Text("关闭档案")}})}}
 }

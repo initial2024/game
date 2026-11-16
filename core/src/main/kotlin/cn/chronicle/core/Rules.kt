@@ -5,16 +5,17 @@ import kotlin.math.min
 
 object Rules {
  val policies = listOf("WORKSHOP","FACTORY","FARM","RESEARCH","ROAD","TAX_DOWN","TAX_UP","DIPLOMACY","DRILL","RELIEF","REPAY","REFORM","REST")
- private val labels = mapOf("WAR_WITHDRAW" to "无条件撤军","CONSORT_DECLINE" to "结束宫廷相看","CANAL" to "修筑运河","ORG_RELEASE" to "交卸组织职务","ORG_FOUND" to "筹建组织", "ORG_ASSIGN" to "任用组织成员", "INTEL_SCOUT" to "派遣间谍", "INTEL_COUNTER" to "反谍排查", "ASSASSINATE" to "秘密刺杀", "DECLARE_WAR" to "宣战动员", "WAR_BATTLE" to "前线交战", "WAR_PEACE" to "谈判停战","FAMILY_CONTACT" to "登记家族交流身份","PALACE_BUILD" to "营建宫廷建筑", "CONSORT_AUDIENCE" to "安排选妃面见", "CONSORT_ACCEPT" to "登记自愿伴侣", "ARMY_ASSIGN" to "任命将领", "ARMY_TRAIN" to "军队训练", "ARMY_MOVE" to "调防军队", "ARMY_RECRUIT" to "募集兵员","EXAM" to "举办科举", "RECRUIT" to "公开招贤", "APPOINT" to "任命地方官","URBAN_BUILD" to "升级城内建筑", "URBAN_AUDIT" to "城邑财政审计", "URBAN_RELIEF" to "城邑赈济","CONVERSE" to "人物交谈", "ACADEMY_UPGRADE" to "扩建国家学院", "APPOINT_TUTOR" to "聘任讲席", "STUDY_HOME" to "入国家学院", "STUDY_ABROAD" to "派往海外学习", "RECALL_STUDENT" to "召回学员", "WORKSHOP" to "营造官营作坊", "CITY_FOUND" to "营建新邑", "CITY_RESTORE" to "修复旧城", "CITY_RENAME" to "城邑更名", "BORDER_TREATY" to "议定边地移交", "ERA" to "更改纪元", "RULER_NAME" to "君主更名", "CHILD_NAME_PLAN" to "预设子女名字", "NAME_CHILD" to "子女更名", "FAMILY_PLAN" to "设置备孕", "TRY_HEIR" to "自愿备孕", "FAMILY_TIME" to "陪伴家人", "STRATEGY" to "调整战略", "FACTORY" to "筹建工厂", "FARM" to "兴修水利", "RESEARCH" to "资助研究", "ROAD" to "修筑道路", "TAX_DOWN" to "减税惠民", "TAX_UP" to "提高税率", "DIPLOMACY" to "派遣使节", "DRILL" to "整训军队", "RELIEF" to "赈济百姓", "REPAY" to "偿还债务", "REFORM" to "考核改革", "REST" to "休养生息", "DEPART" to "出发巡游", "TRAVEL" to "继续行程", "VISIT" to "探访场景", "TALK" to "询问人物", "INVESTIGATE" to "暗访取证", "AUDIT" to "核验账册", "REVEAL" to "公开身份", "TRIAL" to "依法审理", "DISMISS" to "行政撤换", "CLOSE" to "撤销指控", "REMOTE" to "委派监察官", "RETURN" to "返回朝廷")
+ private val labels = mapOf("TRADE_RESOURCE" to "物资通商", "ARMY_DEMOB" to "裁减中央军", "LOCAL_DEMOB" to "裁减地方兵","PAY_ARREARS" to "补发欠俸军饷", "LOCAL_APPOINT" to "任命地方军政官", "LOCAL_RELEASE" to "交卸地方军政职务", "LOCAL_TRAIN" to "操练地方军", "LOCAL_RECRUIT" to "招募地方兵", "LOCAL_MOBILIZE" to "征调地方兵","WAR_WITHDRAW" to "无条件撤军","CONSORT_DECLINE" to "结束宫廷相看","CANAL" to "修筑运河","ORG_RELEASE" to "交卸组织职务","ORG_FOUND" to "筹建组织", "ORG_ASSIGN" to "任用组织成员", "INTEL_SCOUT" to "派遣间谍", "INTEL_COUNTER" to "反谍排查", "ASSASSINATE" to "秘密刺杀", "DECLARE_WAR" to "宣战动员", "WAR_BATTLE" to "前线交战", "WAR_PEACE" to "谈判停战","FAMILY_CONTACT" to "登记家族交流身份","PALACE_BUILD" to "营建宫廷建筑", "CONSORT_AUDIENCE" to "安排选妃面见", "CONSORT_ACCEPT" to "登记自愿伴侣", "ARMY_ASSIGN" to "任命将领", "ARMY_TRAIN" to "军队训练", "ARMY_MOVE" to "调防军队", "ARMY_RECRUIT" to "募集兵员","EXAM" to "举办科举", "RECRUIT" to "公开招贤", "APPOINT" to "任命地方官","URBAN_BUILD" to "升级城内建筑", "URBAN_AUDIT" to "城邑财政审计", "URBAN_RELIEF" to "城邑赈济","CONVERSE" to "人物交谈", "ACADEMY_UPGRADE" to "扩建国家学院", "APPOINT_TUTOR" to "聘任讲席", "STUDY_HOME" to "入国家学院", "STUDY_ABROAD" to "派往海外学习", "RECALL_STUDENT" to "召回学员", "WORKSHOP" to "营造官营作坊", "CITY_FOUND" to "营建新邑", "CITY_RESTORE" to "修复旧城", "CITY_RENAME" to "城邑更名", "BORDER_TREATY" to "议定边地移交", "ERA" to "更改纪元", "RULER_NAME" to "君主更名", "CHILD_NAME_PLAN" to "预设子女名字", "NAME_CHILD" to "子女更名", "FAMILY_PLAN" to "设置备孕", "TRY_HEIR" to "自愿备孕", "FAMILY_TIME" to "陪伴家人", "STRATEGY" to "调整战略", "FACTORY" to "筹建工厂", "FARM" to "兴修水利", "RESEARCH" to "资助研究", "ROAD" to "修筑道路", "TAX_DOWN" to "减税惠民", "TAX_UP" to "提高税率", "DIPLOMACY" to "派遣使节", "DRILL" to "整训军队", "RELIEF" to "赈济百姓", "REPAY" to "偿还债务", "REFORM" to "考核改革", "REST" to "休养生息", "DEPART" to "出发巡游", "TRAVEL" to "继续行程", "VISIT" to "探访场景", "TALK" to "询问人物", "INVESTIGATE" to "暗访取证", "AUDIT" to "核验账册", "REVEAL" to "公开身份", "TRIAL" to "依法审理", "DISMISS" to "行政撤换", "CLOSE" to "撤销指控", "REMOTE" to "委派监察官", "RETURN" to "返回朝廷")
  fun label(c: Command)=if(c.type=="CANCEL_TASK") "撤销事务" else labels[c.type] ?: c.type
- fun cost(c: Command): Long = when(c.type) { "CANAL"->CanalEngine.cost(c); "ORG_FOUND"->90;"ORG_ASSIGN"->10;"INTEL_SCOUT"->35;"INTEL_COUNTER"->25;"ASSASSINATE"->85;"DECLARE_WAR"->120;"WAR_BATTLE"->35;"WAR_PEACE"->40; in CrownEngine.types->CrownEngine.cost(c); "EXAM"->60;"RECRUIT"->20;"APPOINT"->25; in MunicipalEngine.types->MunicipalEngine.cost(c); "CONVERSE"->0; "APPOINT_TUTOR"->10; "STUDY_HOME"->50; "STUDY_ABROAD"->140; "ACADEMY_UPGRADE"->120; "WORKSHOP" -> 100; "CITY_FOUND" -> 120; "CITY_RESTORE" -> 80; "CITY_RENAME" -> 5; "BORDER_TREATY" -> 180; "TRY_HEIR" -> 20; "FAMILY_TIME" -> 10; "FACTORY" -> 140; "FARM" -> 75; "RESEARCH" -> 65; "ROAD" -> 100; "DIPLOMACY" -> 35; "DRILL" -> 60; "RELIEF" -> 50; "REPAY" -> 80; "REFORM" -> 95; "DEPART" -> if(c.mode=="公开巡幸") 95 else if(c.mode=="秘密调查") 55 else 35; "TRAVEL" -> 8; "TALK" -> 0; "VISIT" -> 3; "INVESTIGATE" -> 12; "AUDIT" -> 20; "REVEAL" -> 10; "TRIAL" -> 25; "DISMISS" -> 20; "REMOTE" -> 65; "RETURN" -> 20; else -> 0 }
+ fun cost(c: Command): Long = when(c.type) { "TRADE_RESOURCE"->if(c.target=="采购")c.level*2L else 0; "PAY_ARREARS"->1; in LocalDefenseEngine.types->LocalDefenseEngine.cost(c); "CANAL"->CanalEngine.cost(c); "ORG_FOUND"->90;"ORG_ASSIGN"->10;"INTEL_SCOUT"->35;"INTEL_COUNTER"->25;"ASSASSINATE"->85;"DECLARE_WAR"->120;"WAR_BATTLE"->35;"WAR_PEACE"->40; in CrownEngine.types->CrownEngine.cost(c); "EXAM"->60;"RECRUIT"->20;"APPOINT"->25; in MunicipalEngine.types->MunicipalEngine.cost(c); "CONVERSE"->0; "APPOINT_TUTOR"->10; "STUDY_HOME"->50; "STUDY_ABROAD"->140; "ACADEMY_UPGRADE"->120; "WORKSHOP" -> 100; "CITY_FOUND" -> 120; "CITY_RESTORE" -> 80; "CITY_RENAME" -> 5; "BORDER_TREATY" -> 180; "TRY_HEIR" -> 20; "FAMILY_TIME" -> 10; "FACTORY" -> 140; "FARM" -> 75; "RESEARCH" -> 65; "ROAD" -> 100; "DIPLOMACY" -> 35; "DRILL" -> 60; "RELIEF" -> 50; "REPAY" -> 80; "REFORM" -> 95; "DEPART" -> if(c.mode=="公开巡幸") 95 else if(c.mode=="秘密调查") 55 else 35; "TRAVEL" -> 8; "TALK" -> 0; "VISIT" -> 3; "INVESTIGATE" -> 12; "AUDIT" -> 20; "REVEAL" -> 10; "TRIAL" -> 25; "DISMISS" -> 20; "REMOTE" -> 65; "RETURN" -> 20; else -> 0 }
+ fun cost(w:World,c:Command):Long = cost(c)*TerrainEngine.constructionFactor(w,c)/100
  fun duration(c: Command)=when(c.type) { "URBAN_BUILD" -> 0; "URBAN_AUDIT","URBAN_RELIEF"->5; "CONVERSE" -> 0; "APPOINT_TUTOR" -> 7; "ACADEMY_UPGRADE","STUDY_HOME","STUDY_ABROAD","RECALL_STUDENT" -> 0; "ERA","RULER_NAME","CHILD_NAME_PLAN","NAME_CHILD","FAMILY_PLAN","STRATEGY" -> 0; "DEPART" -> 1; "TRAVEL" -> 7; "TALK" -> 0; "VISIT" -> 2; "INVESTIGATE","AUDIT" -> 5; "REVEAL","TRIAL","DISMISS","CLOSE" -> 1; "RETURN" -> 7; else -> 90 }
  fun suggestions(w: World): List<Command> {
   val j=w.journey
   if(j!=null) return if(j.remainingTravel>0) listOf(Command("TRAVEL"),Command("RETURN"),Command("REST")) else listOf(Command("INVESTIGATE"),Command("AUDIT"),Command("RETURN"))
   return when(w.strategy) { "工业强国","商工兴国" -> listOf(Command(EraRules.factory(w)),Command("RESEARCH"),Command("REST")); "富民治国" -> listOf(Command("FARM"),Command("RELIEF"),Command("REST")); else -> listOf(Command("ROAD"),Command("DIPLOMACY"),Command("REST")) }
  }
- fun validate(w: World, c: Command): String? {
+ fun validate(w: World, c: Command,quotedCost:Long?=null): String? {
   if(c.text.length>600)return "行动原文过长。"
   if(w.ended) return "本纪年已结束，请新建或读取存档。"
   if(w.day>900000) return "已达到本版纪年上限，请保留档案。"
@@ -30,8 +31,12 @@ object Rules {
   if(c.type in CrownEngine.types)CrownEngine.validate(w,c)?.let {return it}
   if(c.type in IntelligenceEngine.types)IntelligenceEngine.validate(w,c)?.let {return it}
   if(c.type in WarfareEngine.types)WarfareEngine.validate(w,c)?.let {return it}
+  if(c.type in LocalDefenseEngine.types)LocalDefenseEngine.validate(w,c)?.let {return it}
+  if(c.type=="PAY_ARREARS"&&w.payroll.arrears.values.sum()==0L)return "当前没有欠俸或欠饷。"
+  if(c.type=="TRADE_RESOURCE")ResourceEngine.tradeValidate(w,c)?.let {return it}
+  ResourceEngine.validate(w,c)?.let {return it}
   if(c.type=="CANAL")CanalEngine.validate(w,c)?.let {return it}
-  if(w.nation.treasury<cost(c)) return "国库不足：需要 ${cost(c)} 万两。可休养、调整税率或削减研究。"
+  if(w.nation.treasury<(quotedCost?:cost(w,c))) return "国库不足：需要 ${quotedCost?:cost(w,c)} 万两。可休养、调整税率或削减研究。"
   if(c.type in listOf("FACTORY","WORKSHOP","FARM","ROAD") && w.projects.any { it.kind==c.type && it.region==c.region }) return "该地区已有同类在建项目。"
   if(c.type=="STRATEGY" && c.target !in listOf("工业强国","商工兴国","富民治国","综合发展")) return "发展方向无效。"
   if(c.type in listOf("TRIAL","DISMISS")&&w.people.none {it.id==w.caseFile.accused&&it.alive})return "涉案人物已故，保留案卷，不能再任免或提审本人。"
@@ -63,13 +68,15 @@ object Rules {
   }
   return null
  }
- fun apply(w: World, c: Command, expectedRevision: Long, advanceDays:Boolean=true): Outcome {
+ fun apply(w: World, c: Command, expectedRevision: Long, advanceDays:Boolean=true,quotedCost:Long?=null): Outcome {
   require(expectedRevision==w.revision) { "回合已改变，未重复执行。" }
-  require(validate(w,c)==null) { validate(w,c) ?: "无效行动" }
+  require(validate(w,c,quotedCost)==null) { validate(w,c,quotedCost) ?: "无效行动" }
   val elapsed=if(advanceDays) duration(c) else 0
   val ledger=mutableListOf<String>(); val events=mutableListOf<String>()
-  var x=w.copy(nation=w.nation.copy(treasury=w.nation.treasury-cost(c)))
-  ledger += "${label(c)}支出：-${cost(c)} 万两"
+  val actualCost=quotedCost?:cost(w,c)
+  var x=w.copy(nation=w.nation.copy(treasury=w.nation.treasury-actualCost))
+  ledger += "${label(c)}支出：-${actualCost} 万两"
+  x=ResourceEngine.consume(x,c,ledger)
   fun nation(f:(Nation)->Nation) { x=x.copy(nation=f(x.nation)) }
   fun evidence(e: Evidence) {
    if(x.caseFile.evidence.none { it.id==e.id }) x=x.copy(caseFile=x.caseFile.copy(evidence=x.caseFile.evidence+e, status="存在嫌疑"))
@@ -120,6 +127,9 @@ object Rules {
   if(c.type in CrownEngine.types)x=CrownEngine.execute(x,c,events)
   if(c.type in IntelligenceEngine.types)x=IntelligenceEngine.execute(x,c,events)
   if(c.type in WarfareEngine.types)x=WarfareEngine.execute(x,c,events)
+  if(c.type in LocalDefenseEngine.types)x=LocalDefenseEngine.execute(x,c,events)
+  if(c.type=="PAY_ARREARS")x=PayrollEngine.settleArrears(x,events)
+  if(c.type=="TRADE_RESOURCE")x=ResourceEngine.trade(x,c,events)
   if(c.type=="CANAL")x=CanalEngine.execute(x,c,events)
   if(x.journey!=null) {
    var j=x.journey!!.copy(spentDays=x.journey!!.spentDays+elapsed)
@@ -134,9 +144,10 @@ object Rules {
   repeat(elapsed){x=EducationEngine.advance(x.copy(day=x.day+1),events);x=MunicipalEngine.advance(x,events);x=CrownEngine.advance(x,events);x=WarfareEngine.advance(x,ledger)}
   x=FamilyEngine.advance(x.copy(day=newDay),elapsed,events)
   repeat(newDay/90-oldQuarter) {
+   x=ResourceEngine.quarter(x,ledger,events)
    x=EconomyEngine.quarter(x,ledger,events);x=MunicipalEngine.quarter(x,ledger)
    x=CharacterEngine.quarter(x,events)
-   x=TalentEngine.quarter(x,ledger);x=CrownEngine.quarter(x,ledger);x=IntelligenceEngine.quarter(x,ledger)
+   x=TalentEngine.quarter(x,ledger);x=CrownEngine.quarter(x,ledger);x=IntelligenceEngine.quarter(x,ledger);x=LocalDefenseEngine.quarter(x,ledger);x=PayrollEngine.quarter(x,ledger)
    x=EventEngine.quarter(x,ledger,events)
   }
   val clamped=bounded(FamilyEngine.syncPeople(x))
@@ -154,6 +165,7 @@ object Rules {
  }
  fun verify(w:World) {
   require(w.familyPeople.size<=100&&w.familyPeople.values.distinct().size==w.familyPeople.size&&w.familyPeople.all {(family,person)->w.household.members.any {it.id==family}&&w.people.any {it.id==person}})
+  LocalDefenseEngine.verify(w);PayrollEngine.verify(w);ResourceEngine.verify(w)
   CanalEngine.verify(w)
   WarfareEngine.verify(w);IntelligenceEngine.verify(w)
   CrownEngine.verify(w)
@@ -188,8 +200,8 @@ object Rules {
 object EconomyEngine {
  fun quarter(w:World,ledger:MutableList<String>,events:MutableList<String>,advanceProjects:Boolean=true):World {
   var n=w.nation
-  val base=100L+n.agriculture*2+n.commerce*2+n.industry*3
-  val income=base*n.tax/100*(100-n.corruption/2)/100
+  val base=(100L+n.agriculture*2+n.commerce*2+n.industry*3-w.resources.industrialTaxBaseLoss).coerceAtLeast(100)
+  val income=(base*n.tax/100*(100-n.corruption/2)/100-w.resources.grainTaxValueWan).coerceAtLeast(0)
   val familyCost=w.household.members.count {it.alive && it.role=="子女"}*3L + if(w.household.pregnancy!=null) 6L else 0L
   val borderCost=if(w.atmosphere=="烽火边疆" && w.neighbors.any {it.relation<40}) 15L else 0L
   val mapCost=(w.cartography?.territories?.count {it.id.startsWith("frontier-")&&it.polityId=="nation"}?:0)*5L
@@ -200,19 +212,20 @@ object EconomyEngine {
   ledger+="国家学院维护 -$tuitionMaintenance 万两（计入季度开支）"
   val crownCost=CrownEngine.maintenance(w)+IntelligenceEngine.upkeep(w)+w.canals.size*3L
   if(crownCost>0)ledger+="宫廷新增维护与扩编军费 -$crownCost 万两（计入季度开支）"
-  val expense=crownCost+tuitionMaintenance+mapCost+35L+n.military/2+n.infrastructure/4+n.research+n.debt*2/100 + familyCost + borderCost + if(w.difficulty=="艰难") 12 else 0
+  val expense=crownCost+tuitionMaintenance+mapCost+20L+n.military/3+n.infrastructure/4+n.research+n.debt*2/100 + familyCost + borderCost + if(w.difficulty=="艰难") 12 else 0
   var cash=n.treasury+income-expense; var debt=n.debt
   if(cash<0) { val need=-cash; val borrowed=min(need,max(0,2000-debt)); debt+=borrowed; cash+=borrowed; ledger+="赤字借款 $borrowed 万两"; if(cash<0) { events+="信用枯竭，削减预算并发生财政危机。"; n=n.copy(stability=n.stability-7,morale=n.morale-5,military=max(0,n.military-4),research=0); cash=0 } }
   if(borderCost>0) ledger+="边境战备 -$borderCost 万两（计入季度经常支出）"
   ledger+="宗室照护与教育 -$familyCost 万两（计入季度经常支出）"
   ledger+="季度税收 +$income 万两；经常支出 -$expense 万两（含利息 ${n.debt*2/100}）"
-  val food=n.agriculture*100000L
-  val growth=(n.population*(if(food>n.population) 3 else -2)/1000)
+  val food=if(w.resources.initialized&&w.resources.lastTurn==w.turn)w.resources.foodAvailable else n.agriculture*100000L
+  val foodDemand=n.population+if(w.resources.initialized)LocalDefenseEngine.troops(w)/3 else 0
+  val growth=(n.population*(if(food>foodDemand) 3 else -2)/1000)
   n=n.copy(treasury=cash,debt=debt,income=income*4,expense=expense*4,population=n.population+growth,
    technology=n.technology+if(n.research>=5 && n.technology<90) 1 else 0,
    industry=n.industry-if(w.turn%12==0) 1 else 0,
    infrastructure=n.infrastructure-if(w.turn%8==0) 1 else 0,
-   morale=n.morale+(if(food<n.population) -2 else 0)+(if(n.tax>=32) -2 else 0),stability=n.stability+if(n.morale<25) -2 else if(n.morale>65 && n.stability<75) 1 else 0)
+   morale=n.morale+(if(food<foodDemand) -2 else 0)+(if(n.tax>=32) -2 else 0),stability=n.stability+if(n.morale<25) -2 else if(n.morale>65 && n.stability<75) 1 else 0)
   ledger+="人口因粮食供需 ${if(growth>=0) "+" else ""}$growth 人；研发预算 ${n.research} 万两/季"
   val completed=if(advanceProjects) w.projects.filter { it.quarters<=1 } else emptyList()
   var mapWorld=w
@@ -221,7 +234,7 @@ object EconomyEngine {
    if(p.kind=="CANAL"){mapWorld=CanalEngine.complete(mapWorld.copy(nation=n,regions=regions),p,events);n=mapWorld.nation;regions=mapWorld.regions;return@forEach}
    if(p.kind=="ACADEMY_UPGRADE")mapWorld=EducationEngine.completeAcademy(mapWorld,events)
    if(p.kind in listOf("CITY_FOUND","CITY_RESTORE"))mapWorld=MapActions.complete(mapWorld,p,events)
-   when(p.kind) { "FACTORY","WORKSHOP" -> n=n.copy(industry=n.industry+6,commerce=n.commerce+2); "FARM" -> n=n.copy(agriculture=n.agriculture+7); "ROAD" -> n=n.copy(infrastructure=n.infrastructure+7,commerce=n.commerce+2) }
+   when(p.kind) { "FACTORY","WORKSHOP" -> {mapWorld=mapWorld.copy(resources=mapWorld.resources.copy(plants=mapWorld.resources.plants.mapIndexed {i,c->if(i==p.region)c+1 else c}));n=n.copy(industry=n.industry+6,commerce=n.commerce+2)}; "FARM" -> n=n.copy(agriculture=n.agriculture+7); "ROAD" -> n=n.copy(infrastructure=n.infrastructure+7,commerce=n.commerce+2) }
    regions=regions.map { if(it.id==p.region) it.copy(industry=min(100,it.industry+if(p.kind in listOf("FACTORY","WORKSHOP")) 8 else 0),agriculture=min(100,it.agriculture+if(p.kind=="FARM") 8 else 0)) else it }
    events+="${w.regions[p.region].name}${Rules.label(Command(p.kind))}完工，开始产生效果。"
   }

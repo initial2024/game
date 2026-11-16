@@ -39,7 +39,7 @@ val SaveJson = Json { encodeDefaults = true; ignoreUnknownKeys = false; isLenien
  val cooldowns: Map<String, Int> = emptyMap(), val journey: Journey? = null, val caseFile: CaseFile,
  val recent: List<Entry> = emptyList(), val summary: String = "", val ended: Boolean = false,
  val era:String="启元",val eraDay:Int=0,val household:Household=Household(),
- val scale:String="中等国家",val atmosphere:String="均势博弈",val pending:List<PendingOrder> = emptyList(),val setting:String="工业初兴",val cartography:MapScenario?=null,val academy:Academy=Academy(),val studies:List<StudyCourse> = emptyList(),val socialDays:Map<Int,Int> = emptyMap(),val socialTopics:Map<Int,List<String>> = emptyMap(),val towns:List<Town> = emptyList(),val talentRound:Int=0,val lastExam:Int=-360,val lastRecruit:Int=-30,val estate:RoyalEstate=RoyalEstate(),val armies:List<ArmyUnit> = emptyList(),val familyPeople:Map<Int,Int> = emptyMap(),val intelligence:Intelligence=Intelligence(),val war:WarFront?=null,val canals:List<Canal> = emptyList()) {
+ val scale:String="中等国家",val atmosphere:String="均势博弈",val pending:List<PendingOrder> = emptyList(),val setting:String="工业初兴",val cartography:MapScenario?=null,val academy:Academy=Academy(),val studies:List<StudyCourse> = emptyList(),val socialDays:Map<Int,Int> = emptyMap(),val socialTopics:Map<Int,List<String>> = emptyMap(),val towns:List<Town> = emptyList(),val talentRound:Int=0,val lastExam:Int=-360,val lastRecruit:Int=-30,val estate:RoyalEstate=RoyalEstate(),val armies:List<ArmyUnit> = emptyList(),val familyPeople:Map<Int,Int> = emptyMap(),val intelligence:Intelligence=Intelligence(),val war:WarFront?=null,val canals:List<Canal> = emptyList(),val localDefense:LocalDefense=LocalDefense(),val payroll:PayrollState=PayrollState(),val resources:ResourceState=ResourceState()) {
  val turn: Int get() = day / 90
  val date: String get() = "${era}${1 + day / 360 - eraDay / 360}年 · ${listOf("春", "夏", "秋", "冬")[(day / 90) % 4]} · 第${day % 90 + 1}日"
 }
@@ -73,7 +73,7 @@ object NewGame {
    neighbors=listOf(Neighbor("岚海联邦",45,50,4,4),Neighbor("赤岭汗国",35,58,2,3),Neighbor("白榆公国",60,36,3,5)),
    caseFile=CaseFile(guilty=Math.floorMod(seed,5L)!=0L)).let {world->world.copy(
     regions=world.regions.mapIndexed {i,r->r.copy(population=r.population*n.population/2800000+if(i==3)n.population-world.regions.sumOf {it.population*n.population/2800000}else 0)},
-    neighbors=world.neighbors.map {it.copy(name=EraRules.render(it.name,setting),relation=(it.relation+when(atmosphere){"和平建设"->25;"烽火边疆"->-20;else->0}).coerceIn(0,100))})}.let(MunicipalEngine::initialize)
+    neighbors=world.neighbors.map {it.copy(name=EraRules.render(it.name,setting),relation=(it.relation+when(atmosphere){"和平建设"->25;"烽火边疆"->-20;else->0}).coerceIn(0,100))})}.let(WorldSetup::initialize)
  }
 }
 

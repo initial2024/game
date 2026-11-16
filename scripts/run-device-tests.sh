@@ -30,6 +30,7 @@ fi
 if [[ "$classes" == *RealModelTest* ]]; then
   grep -q 'REAL_MODEL ' "$report_dir/model-output.log"
   grep -q 'REAL_APP_CHARACTER_CHAT' "$report_dir/model-output.log"
+  grep -q 'REAL_APP_LOCAL_OFFICER_CHAT' "$report_dir/model-output.log"
   grep -q 'REAL_CHARACTER_CHAT' "$report_dir/model-output.log"
   grep -q 'REAL_INTENT_STRUCTURED_VALID=true' "$report_dir/model-output.log"
 fi

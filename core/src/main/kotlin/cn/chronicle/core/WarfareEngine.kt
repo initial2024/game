@@ -9,7 +9,7 @@ object WarfareEngine {
   val war=w.war
   if(c.type=="DECLARE_WAR"){
    val army=CrownEngine.units(w).find {it.id==c.target}?:return "请选择出征军队。"
-   return when {war!=null->"已有战争，须先完成停战。";c.region !in w.neighbors.indices->"请选择目标国家。";army.soldiers<1000||army.supply<30||w.people.none {it.id==army.commander&&it.alive&&!EducationEngine.busy(w,it.id)}->"须有在岗主将、至少千人及30补给。";MapSnapshotMapper.state(w).territories.none {it.id=="frontier-${c.region}"&&it.polityId=="neighbor-${c.region}"}->"当前剧情没有该国可争夺的边地。";else->null}
+   return when {war!=null->"已有战争，须先完成停战。";c.region !in w.neighbors.indices->"请选择目标国家。";!TerrainEngine.profile(w,"neighbor-city-${c.region}").land&&w.towns.sumOf {it.buildings["PORT"]?:0}*20000<army.soldiers->"渡海动员需要足够码头运力，每级码头支持两万人海运。";army.soldiers<1000||army.supply<30||w.people.none {it.id==army.commander&&it.alive&&!EducationEngine.busy(w,it.id)}->"须有在岗主将、至少千人及30补给。";MapSnapshotMapper.state(w).territories.none {it.id=="frontier-${c.region}"&&it.polityId=="neighbor-${c.region}"}->"当前剧情没有该国可争夺的边地。";else->null}
   }
   if(war==null)return "当前没有战争。"
   if(c.type=="WAR_BATTLE"){
@@ -32,12 +32,12 @@ object WarfareEngine {
    events+="与${w.neighbors[war.neighbor].name}达成停战：${if(won)"优势达到边地移交门槛，地图归属已登记变化"else"未达到领土移交门槛，维持原有疆界"}。民心+3、对方关系恢复至20，停止战争经费。"
    return w.copy(war=null,cartography=scene,nation=w.nation.copy(morale=(w.nation.morale+3).coerceAtMost(100)),neighbors=w.neighbors.mapIndexed {i,n->if(i==war.neighbor)n.copy(relation=20)else n})
   }
-  val network=w.intelligence.networks[war.neighbor];val power=CrownEngine.power(w,army);val roll=Math.floorMod(w.seed+war.battles*97L+w.day*11L,41L)-20
+  val network=w.intelligence.networks[war.neighbor];val terrain=TerrainEngine.defense(w,war.neighbor);val winter=if(w.day/90%4==3&&(TerrainEngine.reference("neighbor-city-${war.neighbor}")?.lat?:30.0)>=38)10 else 0;val power=CrownEngine.power(w,army)*(100-terrain-winter)/100;val roll=Math.floorMod(w.seed+war.battles*97L+w.day*11L,41L)-20
   val enemy=(war.enemy*(100-network/3)/100).coerceAtLeast(100);val won=power*(100+roll)/100>=enemy
   val losses=minOf(army.soldiers,(army.soldiers*(if(won)7 else 14)/100).coerceAtLeast(100));val enemyLoss=if(won)war.enemy/4 else war.enemy/10
   val progress=(war.progress+if(won)25 else -25).coerceIn(-100,100)
   val updated=army.copy(soldiers=army.soldiers-losses,supply=(army.supply-6).coerceAtLeast(0),morale=(army.morale+if(won)3 else -6).coerceIn(0,100))
-  events+="与${w.neighbors[war.neighbor].name}第${war.battles+1}次交战${if(won)"获胜"else"失利"}：兵员-$losses、补给-6、战线优势${if(won)"+25"else"-25"}；情报网络${network}参与信息优势计算。敌方战力损耗$enemyLoss。"
+  events+="与${w.neighbors[war.neighbor].name}第${war.battles+1}次交战${if(won)"获胜"else"失利"}：兵员-$losses、补给-6、战线优势${if(won)"+25"else"-25"}；情报网络${network}参与信息优势计算，守方地形加成${terrain}%、严寒影响${winter}%。敌方战力损耗$enemyLoss。"
   val population=(w.nation.population-losses).coerceAtLeast(100000);val total=w.regions.sumOf {it.population}.coerceAtLeast(1);val shares=w.regions.map {it.population*population/total};val regions=w.regions.mapIndexed {i,r->r.copy(population=shares[i]+if(i==3)population-shares.sum()else 0)}
   var next=w.copy(regions=regions,war=war.copy(battles=war.battles+1,progress=progress,enemy=(war.enemy-enemyLoss).coerceAtLeast(0)),armies=CrownEngine.units(w).map {if(it.id==army.id)updated else it},nation=w.nation.copy(population=population,morale=(w.nation.morale+if(won)1 else -3).coerceIn(0,100)),neighbors=w.neighbors.mapIndexed {i,n->if(i==war.neighbor)n.copy(strength=(n.strength-if(won)3 else 1).coerceAtLeast(0))else n})
   if(progress<=-75||updated.soldiers<500){events+="军队无法继续战役，被迫撤回并停战；稳定-6、民心-5，原疆界不变。";next=next.copy(war=null,nation=next.nation.copy(stability=(next.nation.stability-6).coerceAtLeast(0),morale=(next.nation.morale-5).coerceAtLeast(0)))}

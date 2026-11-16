@@ -38,7 +38,7 @@ private fun townSeedsForUi(w:World,t:Town)=AdministrativeEngine.seeds.firstOrNul
  Dialog(onDismissRequest=close,properties=DialogProperties(usePlatformDefaultWidth=false,decorFitsSystemWindows=true)){
   Surface(Modifier.fillMaxSize()){Column(Modifier.fillMaxSize().padding(14.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
    Row{Column(Modifier.weight(1f)){Text(MunicipalEngine.name(w,t),style=MaterialTheme.typography.headlineSmall);Text("${w.regions[t.region].name}大区 / ${MunicipalEngine.prefectureName(t)} / ${t.rank}",style=MaterialTheme.typography.labelSmall)};TextButton(onClick=close){Text("关闭城邑")}}
-   SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()){listOf("概况","建筑","官员").forEachIndexed {i,s->SegmentedButton(selected=tab==s,onClick={tab=s},shape=SegmentedButtonDefaults.itemShape(i,3)){Text(s)}}}
+   SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()){listOf("概况","建筑","官员","兵籍","资源").forEachIndexed {i,s->SegmentedButton(selected=tab==s,onClick={tab=s},shape=SegmentedButtonDefaults.itemShape(i,5)){Text(s)}}}
    Column(Modifier.weight(1f).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(12.dp)){
     when(tab){
      "概况"->{Text("人口 ${MunicipalEngine.population(w,t)} 人",style=MaterialTheme.typography.titleMedium)
@@ -48,21 +48,23 @@ private fun townSeedsForUi(w:World,t:Town)=AdministrativeEngine.seeds.firstOrNul
       stats.forEach {(name,value)->Column{Row{Text(name,Modifier.weight(1f));Text(value.toString())};LinearProgressIndicator(progress={value/100f},modifier=Modifier.fillMaxWidth())}}
       Text("交通：${if(t.buildings.getValue("ROAD")>=2)"驿路已扩建"else"基础驿路"} · 常平仓容量 ${t.buildings.getValue("GRANARY")*20000} 石",style=MaterialTheme.typography.bodySmall)
      }
-     "建筑"->{FlowRow(horizontalArrangement=Arrangement.spacedBy(6.dp)){listOf("民生","经济","治理").forEach {s->FilterChip(selected=s==category,onClick={category=s},label={Text(s)})}}
+     "建筑"->{FlowRow(horizontalArrangement=Arrangement.spacedBy(6.dp)){listOf("民生","经济","治理","资源","交通","农水").forEach {s->FilterChip(selected=s==category,onClick={category=s},label={Text(s)})}}
       t.work?.let {work->Card(Modifier.fillMaxWidth()){Column(Modifier.padding(12.dp)){Text("在建：${MunicipalEngine.buildings.first {it.id==work.kind}.name}${work.level}级");Text("剩余${work.remainingDays}日 · 已拨款${work.paid}万两");Text("继续游戏时间后自动施工，未竣工前不提前生效。",style=MaterialTheme.typography.labelSmall)}}}
       MunicipalEngine.buildings.filter {it.category==category}.forEach {b->val level=t.buildings.getValue(b.id)
        OutlinedCard(Modifier.fillMaxWidth()){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
         Text("${b.name} · ${level}级",style=MaterialTheme.typography.titleMedium);Text(b.effect,style=MaterialTheme.typography.bodySmall)
         if(level<5){val c=Command("URBAN_BUILD",region=t.region,target=t.id,objective=b.id,level=level+1)
-         Text("工期${MunicipalEngine.duration(c)}日 · ${Rules.cost(c)}万两",style=MaterialTheme.typography.labelSmall)
+         Text("工期${MunicipalEngine.duration(w,c)}日 · ${Rules.cost(w,c)}万两",style=MaterialTheme.typography.labelSmall)
          Button(onClick={ask(c)},enabled=t.work==null){Text("升级${b.name}至${level+1}级")}
         }else Text("已达最高等级")
        }}
       }
      }
+     "兵籍"->LocalDefensePanel(w,ask,chat,t.id)
+     "资源"->TerrainResourcesPanel(w,t)
      else->{OutlinedTextField(rename,{rename=it.take(16)},label={Text("城邑新名称")},singleLine=true);TextButton(onClick={ask(Command("CITY_RENAME",region=t.region,target=t.id,objective=rename))}){Text("预览更名 · 5万两")}
       val p=MunicipalEngine.officer(w,t)
-      if(p==null)Text("地方职位暂缺。旧任者的经历仍保存在人物档案。")else{Text("${p.name} · ${p.role}",style=MaterialTheme.typography.titleMedium);Text("${p.ageQuarters/4}岁 · 能力${p.ability} · 忠诚${p.loyalty}");Text("立场：${p.stance}；目标：${p.goal}");TextButton(onClick={close();chat(p.id)}){Text("与地方官交谈")}}
+      if(p==null)Text("地方职位暂缺。旧任者的经历仍保存在人物档案。")else{Text("${p.name} · ${p.role}",style=MaterialTheme.typography.titleMedium);Text("${p.ageQuarters/4}岁 · 能力${p.ability} · 忠诚${p.loyalty}");Text("立场：${p.stance}；目标：${p.goal}");Text("俸禄${PayrollEngine.salary(w,p.id)}两/季 · 欠俸${PayrollEngine.owed(w,"person:${p.id}")}两",style=MaterialTheme.typography.bodySmall);TextButton(onClick={close();chat(p.id)}){Text("与地方官交谈")}}
       listOf("副官" to t.deputy,"主簿" to t.clerk).forEach {(post,id)->val aide=w.people.find {it.id==id&&it.alive}
        if(aide==null)Text("${TalentEngine.role(t,post)}：暂缺")else OutlinedCard(Modifier.fillMaxWidth()){Column(Modifier.padding(12.dp)){Text("${aide.name} · ${TalentEngine.role(t,post)}");Text("能力${aide.ability} · 忠诚${aide.loyalty} · ${aide.goal}",style=MaterialTheme.typography.bodySmall);TextButton(onClick={close();chat(aide.id)}){Text("与${aide.name}交谈")}}}
       }

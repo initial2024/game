@@ -12,7 +12,7 @@ object DialogueEngine {
   return null // Every living registered person can converse, in person or by correspondence.
  }
  fun hidden(w:World,p:Person)=p.id !in w.familyPeople.values&&p.id>=3&&w.journey?.revealed==false
- fun identity(w:World,p:Person)=if(hidden(w,p))w.journey!!.disguise else if(p.id<6||p.id in w.familyPeople.values||TalentEngine.town(w,p.id)!=null)"经朝廷文书确认的统治者" else "已验明身份的来访者"
+ fun identity(w:World,p:Person)=if(hidden(w,p))w.journey!!.disguise else if(p.id<6||p.id in w.familyPeople.values||TalentEngine.town(w,p.id)!=null||LocalDefenseEngine.office(w,p.id)!=null)"经朝廷文书确认的统治者" else "已验明身份的来访者"
  fun approach(requested:String,text:String):String {
   require(requested in approaches)
   return if(listOf("废物","蠢货","处死你","杀你全家","滚蛋").any(text::contains))"威胁" else requested
@@ -47,15 +47,18 @@ object DialogueEngine {
   val private=hidden(w,p)
   return buildString {
    append("只扮演${p.name}，${p.role}。时代${w.setting}。来客身份：${identity(w,p)}。")
-   append("只依给定信息回应，不猜测未给身份，不创设证据、判决或政策结果；不执行资源操作。回答简短中文。")
+   append(if(compact)"依已知信息以角色口吻简短中文回应；不猜真名、不造证据、不判案、不执行政策。"else"只依给定信息回应，不猜测未给身份，不创设证据、判决或政策结果；不执行资源操作。回答简短中文。")
    if(p.ageQuarters<72)append("角色未成年，只谈日常、家人、学业与成长，语气符合年龄。")
    if(w.setting==EraRules.ANCIENT)append("仅农耕、手工作坊、驿道、冷兵器。")
    append("立场${p.stance}，目标${p.goal}。态度${if(p.hostility>60)"戒备敌视" else if(p.trust>=60)"愿意信任" else "谨慎"}。")
    TalentEngine.town(w,p.id)?.let {town->append("任所${MunicipalEngine.name(w,town)}，常平仓${town.buildings.getValue("GRANARY")}级，学堂${town.buildings.getValue("SCHOOL")}级。${town.work?.let {"有${MunicipalEngine.buildings.first {b->b.id==it.kind}.name}在建，尚未竣工。"}?:""}")}
 
+   LocalDefenseEngine.office(w,p.id)?.let {u->append("军政任所${u.name}，兵额${u.soldiers}人，士气${u.morale}。")}
+   val salary=PayrollEngine.salary(w,p.id);if(salary>0)append("应领俸禄每季${salary}两，欠俸${PayrollEngine.owed(w,"person:${p.id}")}两。")
+   (TalentEngine.town(w,p.id)?:LocalDefenseEngine.office(w,p.id)?.let {u->w.towns.find {it.id==u.home}})?.let {t->if(w.resources.initialized){val env=TerrainEngine.profile(w,t.id);append(if(compact)"本地${env.kind}。"else"本地${env.kind}，水源${env.water}，地力${env.fertility}。")}}
    run {
     val memories=p.memories.takeLast(if(compact)1 else 2).filterNot {private&&listOf(w.ruler,"陛下","君主","皇帝","印信").any(it::contains)}
-    if(memories.isNotEmpty())append("经历：${memories.joinToString("；").take(if(compact)60 else 180)}。")
+    if(memories.isNotEmpty())append("经历：${memories.joinToString("；").take(if(compact)36 else 180)}。")
     if(!private&&p.id<6)append("已公开案卷：${w.caseFile.status}。只有已登记材料，不得创造新证据。")
    }
   }

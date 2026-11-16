@@ -22,7 +22,16 @@ class Store(context:Context,databaseName:String="chronicle.db"):SQLiteOpenHelper
  override fun onUpgrade(db:SQLiteDatabase,old:Int,new:Int) {require(old==1&&new==2){"缺少数据库迁移 $old → $new"};createDialogues(db)}
  private fun createDialogues(db:SQLiteDatabase){db.execSQL("CREATE TABLE IF NOT EXISTS dialogues(id INTEGER PRIMARY KEY AUTOINCREMENT,slot INTEGER NOT NULL,person INTEGER NOT NULL,role TEXT NOT NULL,content TEXT NOT NULL,day INTEGER NOT NULL,source TEXT NOT NULL)");db.execSQL("CREATE INDEX IF NOT EXISTS dialogues_by_person ON dialogues(slot,person,id)")}
  fun slots():List<Slot> = readableDatabase.rawQuery("SELECT slot,name,turn,revision FROM saves ORDER BY slot",null).use { c -> buildList { while(c.moveToNext()) add(Slot(c.getInt(0),c.getString(1),c.getInt(2),c.getLong(3))) } }
- fun load(slot:Int):World? = readableDatabase.rawQuery("SELECT json FROM saves WHERE slot=?",arrayOf(slot.toString())).use { c -> if(c.moveToFirst()) MunicipalEngine.initialize(SaveJson.decodeFromString<World>(c.getString(0))).also { Rules.verify(it) } else null }
+ fun load(slot:Int):World? {
+  val db=readableDatabase;val nested=db.inTransaction();if(!nested)db.beginTransactionNonExclusive()
+  try {
+   val length=db.rawQuery("SELECT length(json) FROM saves WHERE slot=?",arrayOf(slot.toString())).use {c->if(c.moveToFirst())c.getInt(0)else null}?:return null
+   val json=StringBuilder(length);var offset=1
+   while(offset<=length){val chunk=db.rawQuery("SELECT substr(json,?,131072) FROM saves WHERE slot=?",arrayOf(offset.toString(),slot.toString())).use {c->check(c.moveToFirst());c.getString(0)};json.append(chunk);offset+=131072}
+   val world=WorldSetup.initialize(SaveJson.decodeFromString<World>(json.toString()));Rules.verify(world);if(!nested)db.setTransactionSuccessful();return world
+  }finally{if(!nested)db.endTransaction()}
+ }
+
  fun create(slot:Int,w:World) { require(slot in 1..8); Rules.verify(w); transaction { db ->
   require(db.rawQuery("SELECT 1 FROM saves WHERE slot=?",arrayOf(slot.toString())).use { !it.moveToFirst() }) { "该存档槽已占用。" }
   put(db,slot,w)
@@ -59,7 +68,7 @@ class Store(context:Context,databaseName:String="chronicle.db"):SQLiteOpenHelper
   require(slot in 1..8)
   require(text.toByteArray().size<=8*1024*1024) { "导入超过 8 MB。" }
   val e=SaveJson.decodeFromString<SaveEnvelope>(text);require(e.format in 1..2);require(e.format==2||e.dialogues.isEmpty());val raw=SaveJson.parseToJsonElement(text).jsonObject;val rawHistory=raw.getValue("history").toString();val rawChats=raw["dialogues"]?.toString()?:"[]";require(sha(e.world+rawHistory+(if(e.format==2)rawChats else ""))==e.sha256) { "存档校验失败。" }
-  val w=SaveJson.decodeFromString<World>(e.world);Rules.verify(w)
+  val w=WorldSetup.initialize(SaveJson.decodeFromString<World>(e.world));Rules.verify(w)
   require(e.dialogues.size<=2000);e.dialogues.forEach {checkDialogue(it,w)}
   require(e.history.size<=10000 && e.history.all { it.seed==w.seed && it.revision in 1..w.revision } && e.history.map { it.revision }.distinct().size==e.history.size)
   transaction { db -> require(load(slot)==null) { "请选择空槽导入。" }; put(db,slot,w);e.history.forEach { entry -> db.insertOrThrow("history",null,ContentValues().apply { put("slot",slot);put("revision",entry.revision);put("json",SaveJson.encodeToString(entry)) }) };e.dialogues.forEach {putDialogue(db,slot,it)} } }

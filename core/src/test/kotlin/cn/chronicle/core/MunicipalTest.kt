@@ -11,7 +11,7 @@ class MunicipalTest {
  private fun days(w:World,n:Int):World {var x=w;var left=n;while(left>0){val d=minOf(90,left);x=RealtimeEngine.advance(x,d).world;left-=d};return x}
  @Test fun originalFourteenPrefecturesAndFiftyNineCountiesAreRegistered(){
   val w=game();assertEquals(189,w.towns.size);assertEquals(14,w.towns.count {it.rank=="府城"});assertEquals(171,w.towns.count {it.rank=="县城"});assertEquals(620,w.nation.treasury)
-  assertEquals(w.nation.population,w.towns.sumOf {MunicipalEngine.population(w,it)});assertEquals(573,w.people.size);Rules.verify(w)
+  assertEquals(w.nation.population,w.towns.sumOf {MunicipalEngine.population(w,it)});assertEquals(778,w.people.size);Rules.verify(w)
   val scene=MapSnapshotMapper.scene(w,1);assertEquals(171,scene.groups.count {it.rank=="县"});assertEquals(14,scene.groups.count {it.rank=="府"});assertEquals("pref-jingji",scene.groups.first {it.id=="admin-county-jingji-01"}.parentId)
   assertEquals(1,MapSnapshotMapper.regionId(w,"county-jingji-01"));assertTrue(scene.places.containsKey("county-jingji-01"));MapValidation.verify(scene)
  }
@@ -39,8 +39,8 @@ class MunicipalTest {
   assertEquals((t.corruption-3).coerceAtLeast(0),x.towns.first {it.id==t.id}.corruption);assertEquals(w.caseFile,x.caseFile);assertEquals(w.people.first {it.id==t.official}.role,x.people.first {it.id==t.official}.role)
  }
  @Test fun legacyExpansionIsDeterministicIdempotentAndDoesNotInventMoney(){
-  val fresh=game();val old=fresh.copy(towns=emptyList(),people=fresh.people.take(10));val upgraded=MunicipalEngine.initialize(old)
-  assertEquals(fresh,upgraded);assertEquals(upgraded,MunicipalEngine.initialize(upgraded));assertEquals(old.nation,upgraded.nation)
+  val fresh=game();val old=fresh.copy(towns=emptyList(),people=fresh.people.take(10),localDefense=LocalDefense(),resources=ResourceState(),payroll=PayrollState());val upgraded=WorldSetup.initialize(old)
+  assertEquals(fresh,upgraded);assertEquals(upgraded,WorldSetup.initialize(upgraded));assertEquals(old.nation,upgraded.nation)
  }
  @Test fun oldQueuedConversationIsRefundedOnceWithoutWaiting(){
   val w=game().let {it.copy(nation=it.nation.copy(treasury=it.nation.treasury-2),pending=listOf(PendingOrder(1,Command("CONVERSE",target="1",mode="倾听"),1,2)))}

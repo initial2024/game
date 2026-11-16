@@ -19,7 +19,7 @@ object IntelligenceEngine {
   if(c.type=="ORG_RELEASE")return if(c.objective.toIntOrNull() in org.members)null else "此人不在组织中。"
   if(c.type=="ORG_ASSIGN"){
    val p=w.people.find {it.id==c.objective.toIntOrNull()&&it.alive}?:return "请选择在世人物。"
-   return when {p.ageQuarters<72||p.ability<40||p.id==0||p.id==w.academy.tutor||TalentEngine.town(w,p.id)!=null||CrownEngine.units(w).any {it.commander==p.id}||EducationEngine.busy(w,p.id)||w.journey?.let {it.companion==p.id||it.regent==p.id}==true->"须为成年、能力40以上且无地方官、统军、讲席、求学或行在冲突的人才。";p.id in org.members->"此人已在该组织。";org.members.size>=3->"每个组织最多三名核心成员。";else->null}
+   return when {p.ageQuarters<72||p.ability<40||p.id==0||p.id==w.academy.tutor||TalentEngine.town(w,p.id)!=null||LocalDefenseEngine.office(w,p.id)!=null||CrownEngine.units(w).any {it.commander==p.id}||EducationEngine.busy(w,p.id)||w.journey?.let {it.companion==p.id||it.regent==p.id}==true->"须为成年、能力40以上且无地方官、统军、讲席、求学或行在冲突的人才。";p.id in org.members->"此人已在该组织。";org.members.size>=3->"每个组织最多三名核心成员。";else->null}
   }
   if(active(w,org).isEmpty())return "组织缺少在岗成员，请先任用人才。"
   if(w.pending.any {it.command.type in missions&&it.command.target==org.id})return "此组织已有行动在办，须先等待归报。"
@@ -49,7 +49,7 @@ object IntelligenceEngine {
   events+="${w.people.first {it.id==id}.name}遭遇死亡事件；历史身份保留，不能再次任职。"
   if(id==2&&w.caseFile.remoteDays>0)events+="监察使离世，未完成的远程委派中止，不再以死者名义归报。"
   val family=w.familyPeople.entries.firstOrNull {it.value==id}?.key
-  return w.copy(caseFile=if(id==2)w.caseFile.copy(remoteDays=0)else w.caseFile,people=w.people.map {if(it.id==id)it.copy(alive=false,role="已故",memories=(it.memories+"${w.day}日遇害").takeLast(8))else it},regions=w.regions.map {if(it.official==id)it.copy(official=-1)else it},armies=CrownEngine.units(w).map {if(it.commander==id)it.copy(commander=-1)else it},studies=w.studies.filter {it.person!=id},journey=w.journey?.takeUnless {it.companion==id||it.regent==id},household=w.household.copy(members=w.household.members.map {if(it.id==family)it.copy(alive=false,diedDay=w.day)else it},pregnancy=w.household.pregnancy?.takeUnless {it.parent==family}))
+  return w.copy(localDefense=w.localDefense.copy(units=w.localDefense.units.map {u->u.copy(commander=if(u.commander==id)-1 else u.commander,governor=if(u.governor==id)-1 else u.governor)}),caseFile=if(id==2)w.caseFile.copy(remoteDays=0)else w.caseFile,people=w.people.map {if(it.id==id)it.copy(alive=false,role="已故",memories=(it.memories+"${w.day}日遇害").takeLast(8))else it},regions=w.regions.map {if(it.official==id)it.copy(official=-1)else it},armies=CrownEngine.units(w).map {if(it.commander==id)it.copy(commander=-1)else it},studies=w.studies.filter {it.person!=id},journey=w.journey?.takeUnless {it.companion==id||it.regent==id},household=w.household.copy(members=w.household.members.map {if(it.id==family)it.copy(alive=false,diedDay=w.day)else it},pregnancy=w.household.pregnancy?.takeUnless {it.parent==family}))
  }
  fun quarter(w:World,ledger:MutableList<String>):World {
   val pressure=(3+w.nation.corruption/20+if(w.war!=null)3 else 0);var threat=(w.intelligence.threat+pressure).coerceAtMost(100);var n=w.nation
