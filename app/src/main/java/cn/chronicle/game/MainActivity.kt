@@ -88,11 +88,12 @@ class MainActivity:ComponentActivity() {
      else pageState.SaveableStateProvider(tab) { when(tab) {
       0 -> Story(w,ui,vm,::ask) { preview -> expected=w.revision;plan=preview }
       1 -> Court(w,::ask)
-      2 -> WorldPage(w,ui.slot,::ask)
+      2 -> WorldPage(w,ui.slot,vm,::ask)
       else -> Archive(ui,vm,{new=true},theme,{ theme=it;prefs.edit().putInt("theme",it).apply() },scale,{scale=it;prefs.edit().putFloat("scale",it).apply()})
      } }
     }
    }
+   ui.world?.let {CharacterChat(vm,it)}
    if(showMessage) AlertDialog(onDismissRequest={showMessage=false},title={Text("执行反馈")},text={Text(ui.message,Modifier.verticalScroll(rememberScrollState()))},confirmButton={TextButton(onClick={showMessage=false}){Text("关闭")}})
    if(new) NewDialog({new=false}) { a,b,c,e,f,g,h,i,j -> vm.newGame(a,b,c,e,f,g,h,i,j);new=false;tab=0 }
    plan?.let { p -> AlertDialog(onDismissRequest={plan=null},title={Text("确认行动")},text={ Column(Modifier.verticalScroll(rememberScrollState())) { Text(p.description);p.commands.forEach { c -> Spacer(Modifier.height(8.dp));Text(EraRules.render(RealtimeEngine.describe(c),ui.world?.setting?:"工业初兴"),color=MaterialTheme.colorScheme.primary) }; if(p.commands.size>1) Text("政策按各自耗时办理，先预留资金，完成时检查条件。",style=MaterialTheme.typography.bodySmall) } },confirmButton={TextButton(onClick={vm.submit(p.commands,expected);plan=null},enabled=p.commands.isNotEmpty()&&!ui.busy){Text("确认执行")}},dismissButton={TextButton(onClick={plan=null}){Text("返回")}}) }
@@ -173,14 +174,14 @@ class MainActivity:ComponentActivity() {
   }
  }
 }
-@Composable private fun WorldPage(w:World,slot:Int,ask:(Command)->Unit) {
+@Composable private fun WorldPage(w:World,slot:Int,vm:GameViewModel,ask:(Command)->Unit) {
  var showMap by rememberSaveable {mutableStateOf(false)}
  var area by rememberSaveable {mutableIntStateOf(0)};var section by rememberSaveable {mutableIntStateOf(0)}
  var regionGroup by rememberSaveable {mutableStateOf("概览")};var personPage by rememberSaveable {mutableIntStateOf(0)};var selectedPerson by remember {mutableStateOf<Person?>(null)}
  if(showMap){androidx.compose.ui.window.Dialog(onDismissRequest={showMap=false},properties=androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth=false,decorFitsSystemWindows=true)){Surface(Modifier.fillMaxSize()){WorldMapScreen(w,slot,{showMap=false},ask,{area=it;section=0;regionGroup="概览";showMap=false})}}}
  Page {
-  OutlinedButton(onClick={showMap=true},modifier=Modifier.fillMaxWidth()){Text("打开世界舆图 v4")}
-  SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {listOf("地区","人物","列国","宗室").forEachIndexed {i,t->SegmentedButton(selected=section==i,onClick={section=i},shape=SegmentedButtonDefaults.itemShape(i,4)){Text(t)}}}
+  OutlinedButton(onClick={showMap=true},modifier=Modifier.fillMaxWidth()){Text("打开世界舆图")}
+  SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {listOf("地区","人物","列国","宗室","学院").forEachIndexed {i,t->SegmentedButton(selected=section==i,onClick={section=i},shape=SegmentedButtonDefaults.itemShape(i,5)){Text(t)}}}
   when(section) {
    0 -> {
     Choices(w.regions.map {it.name},w.regions[area].name,{name->area=w.regions.first {it.name==name}.id})
@@ -198,7 +199,7 @@ class MainActivity:ComponentActivity() {
    }
    1 -> {
     Fold("主要利益集团") {w.factions.forEach {Stat(it.name,it.support)}}
-    w.people.drop(personPage*3).take(3).forEach {person->Panel("${person.name} · ${person.role}") {Text("${person.ageQuarters/4}岁 · ${w.factions[person.faction].name}",style=MaterialTheme.typography.bodySmall);TextButton(onClick={selectedPerson=person}){Text("查看人物档案")}}}
+    w.people.drop(personPage*3).take(3).forEach {person->Panel("${person.name} · ${person.role}") {Text("${person.ageQuarters/4}岁 · ${w.factions[person.faction].name}",style=MaterialTheme.typography.bodySmall);TextButton(onClick={selectedPerson=person}){Text("查看人物档案")};TextButton(onClick={vm.openChat(person.id)}){Text("与${person.name}交谈")}}}
     Row {TextButton(onClick={personPage--},enabled=personPage>0){Text("上一页")};Text("${personPage+1} / ${maxOf(1,(w.people.size+2)/3)}");TextButton(onClick={personPage++},enabled=(personPage+1)*3<w.people.size){Text("下一页")}}
    }
    2 -> {
@@ -206,7 +207,8 @@ class MainActivity:ComponentActivity() {
     ActionButton(Command("DIPLOMACY"),ask)
     Fold("天下大事") {Column(Modifier.heightIn(max=220.dp).verticalScroll(rememberScrollState())) {w.recent.flatMap {it.events}.takeLast(8).forEach {Text(it)}}}
    }
-   else -> FamilyPanel(w,ask)
+   3 -> FamilyPanel(w,ask)
+   else -> AcademyPanel(w,ask)
   }
  }
  selectedPerson?.let {p->AlertDialog(onDismissRequest={selectedPerson=null},title={Text("${p.name} · ${p.role}")},text={Column(Modifier.heightIn(max=420.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(10.dp)){Text("${p.ageQuarters/4}岁 · ${p.stance}");Stat("能力",p.ability);Stat("忠诚",p.loyalty);Stat("信任",p.trust);Stat("怀疑",p.suspicion);Stat("敌意",p.hostility);Text("目标：${p.goal}");p.memories.forEach {Text(it,style=MaterialTheme.typography.bodySmall)}}},confirmButton={TextButton(onClick={selectedPerson=null}){Text("关闭")}})}

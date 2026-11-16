@@ -142,6 +142,12 @@ class RealModelTest {
   val parsed=runCatching {AiValidation.parse(structured,NewGame.create("测试","君主","综合发展","标准",1847))}.getOrNull()
   println("REAL_INTENT_STRUCTURED_VALID=${parsed!=null} text=$structured")
   val playable=parsed?:IntentParser.parse("兴修水渠");assertEquals("FARM",playable.commands.single().type)
+  val world=NewGame.create("承熙","景衡","综合发展","标准",1847);val person=world.people[1]
+  val formatted=NativeBridge.formatChat(arrayOf("system","user"),arrayOf(DialogueEngine.context(world,person,true).toByteArray(),"请用一句话谈谈你的目标。".toByteArray()),"auto")
+  assertTrue(NativeBridge.countTokens(formatted)+104<512)
+  var chunks=0
+  val dialogue=NativeBridge.generateStreaming(formatted,96,300000,NativeTokenSink {chunks++}).toString(Charsets.UTF_8)
+  assertTrue(dialogue.isNotBlank());assertTrue(chunks>0);assertNotNull(DialogueEngine.sanitize(world,person,dialogue));println("REAL_CHARACTER_CHAT chunks=$chunks text=$dialogue")
   val memory=android.os.Debug.MemoryInfo();android.os.Debug.getMemoryInfo(memory);println("ANDROID_OBSERVED_PSS_KIB=${memory.totalPss}")
   repeat(3) {assertTrue(NativeBridge.generate(prompt,6,120000).isNotEmpty())}
   val executor=java.util.concurrent.Executors.newSingleThreadExecutor()

@@ -12,6 +12,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 data class UiState(val world:World?=null,val slot:Int=1,val slots:List<Slot> = emptyList(),val busy:Boolean=false,val message:String="",val archive:List<Entry> = emptyList(),val offset:Int=0,val aiText:String="",val generating:Boolean=false,val paused:Boolean=true,val speed:Int=1,val ready:Boolean=false)
+data class ChatState(val person:Int?=null,val records:List<DialogueRecord> = emptyList(),val working:Boolean=false,val partial:String="",val note:String="")
 class GameViewModel(app:Application):AndroidViewModel(app) {
  private val store=Store(app)
  private val resumePrefs=app.getSharedPreferences("resume-world",0)
@@ -20,6 +21,10 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
  val state=mutable.asStateFlow()
  val models=ModelManager(app)
  private var generation:Job?=null
+ private val chatMutable=MutableStateFlow(ChatState())
+ val chat=chatMutable.asStateFlow()
+ private var chatJob:Job?=null
+ private var chatEpoch=0L
  @Volatile private var foreground=true
  fun foreground(active:Boolean) {foreground=active}
  fun toggleClock() {mutable.update { currentUi -> currentUi.copy(paused=!currentUi.paused) }}
@@ -47,7 +52,7 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
  fun newGame(name:String,ruler:String,strategy:String,difficulty:String,seed:String,era:String="启元",scale:String="中等国家",atmosphere:String="均势博弈",setting:String="工业初兴") = task {
   val id=(1..8).firstOrNull { n -> store.slots().none { it.id==n } } ?: error("8 个存档槽已满，请导出后保留现有游戏。")
   val number=seed.toLongOrNull() ?: error("世界种子须为 64 位整数。")
-  val w=NewGame.create(name,ruler,strategy,difficulty,number,era,scale,atmosphere,setting);store.create(id,w);resumePrefs.edit().putInt("slot",id).commit();mutable.update { currentUi -> currentUi.copy(world=w,slot=id,slots=store.slots(),paused=false,aiText="",archive=emptyList(),message="新纪年已建立。每次行动自动保存。") }
+  cancelAi();chatMutable.value=ChatState();val w=NewGame.create(name,ruler,strategy,difficulty,number,era,scale,atmosphere,setting);store.create(id,w);resumePrefs.edit().putInt("slot",id).commit();mutable.update { currentUi -> currentUi.copy(world=w,slot=id,slots=store.slots(),paused=false,aiText="",archive=emptyList(),message="新纪年已建立。每次行动自动保存。") }
  }
  fun submit(commands:List<Command>,expected:Long) {
   if(mutable.value.busy || commands.isEmpty()) return
@@ -66,7 +71,7 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
    if(models.isLoaded) generate()
   }
  }
- fun load(id:Int)=task { cancelAi(); val w=store.load(id)?:error("存档不存在");resumePrefs.edit().putInt("slot",id).commit();mutable.update { currentUi -> currentUi.copy(world=w,slot=id,paused=true,aiText="",archive=emptyList(),offset=0,message="存档已读取。") } }
+ fun load(id:Int)=task { cancelAi();chatMutable.value=ChatState(); val w=store.load(id)?:error("存档不存在");resumePrefs.edit().putInt("slot",id).commit();mutable.update { currentUi -> currentUi.copy(world=w,slot=id,paused=true,aiText="",archive=emptyList(),offset=0,message="存档已读取。") } }
  fun manualSave()=task { val id=(1..8).firstOrNull { n->store.slots().none { it.id==n } } ?: error("没有空存档槽");store.copyTo(mutable.value.slot,id);mutable.update { currentUi -> currentUi.copy(slots=store.slots(),message="已建立独立快照：槽 $id") } }
  fun page(offset:Int)=task { val p=offset.coerceAtLeast(0);mutable.update { currentUi -> currentUi.copy(archive=store.history(mutable.value.slot,p,5),offset=p) } }
  suspend fun export():String=withContext(Dispatchers.IO) { lock.withLock { store.export(mutable.value.slot) } }
@@ -94,7 +99,47 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
    finally { if(mutable.value.slot==slot) mutable.update { currentUi -> currentUi.copy(generating=false) } }
   }
  }
- fun cancelAi() { models.cancel();generation?.cancel();mutable.update { currentUi -> currentUi.copy(generating=false) } }
+ fun openChat(id:Int)=task {
+  cancelAi();val w=mutable.value.world?:error("请先新建游戏");require(w.people.any {it.id==id})
+  chatMutable.value=ChatState(id,store.dialogues(mutable.value.slot,id,100),note=DialogueEngine.access(w,id)?:"对话仅供交流；实际政策须通过行动确认。")
+ }
+ fun closeChat(){cancelAi();chatMutable.value=ChatState()}
+ fun sendChat(text:String,approach:String,formal:Boolean){
+  if(chatMutable.value.working||mutable.value.busy||text.isBlank())return
+  cancelAi();val token=++chatEpoch
+  chatMutable.value=chatMutable.value.copy(working=true,partial="",note="正在准备对话…")
+  chatJob=viewModelScope.launch(Dispatchers.IO){
+   var world:World?=null;var person:Person?=null;var slot=0;var previous=emptyList<DialogueRecord>()
+   try {
+    lock.withLock {
+     val w=mutable.value.world?:error("请先新建游戏");val id=chatMutable.value.person?:error("人物已关闭");val p=w.people.first {it.id==id};require(DialogueEngine.access(w,id)==null){DialogueEngine.access(w,id)?:"无法交谈"}
+     val clean=text.trim().take(400);val cmd=Command("CONVERSE",target=id.toString(),mode=DialogueEngine.approach(approach,clean))
+     val out=if(formal)RealtimeEngine.submit(w,cmd,w.revision)else null
+     slot=mutable.value.slot;previous=store.dialogues(slot,id,6)
+     val record=DialogueRecord(id,"user",clean,w.day,"player");store.startDialogue(slot,w.revision,out,record)
+     val x=out?.world?:w;world=x;person=p
+     mutable.update {it.copy(world=x,message=if(formal)"正式交流已登记：2万两，1日后结算关系；继续时间后生效。" else it.message)}
+     chatMutable.value=chatMutable.value.copy(records=(chatMutable.value.records+record).takeLast(100),note=if(models.isLoaded)"本地模型生成中…"else"未加载模型，使用规则模板。")
+    }
+    val w=world!!;val p=person!!
+    val reply=if(models.isLoaded)try {
+     models.chat(w,p,previous,text){part->if(token==chatEpoch)chatMutable.value=chatMutable.value.copy(partial=part)}
+    }catch(e:Exception){currentCoroutineContext().ensureActive();chatMutable.value=chatMutable.value.copy(note="模型未完成：${e.message?.take(120)}，已切换模板。");SpokenReply(DialogueEngine.fallback(w,p,text),"template")}
+    else SpokenReply(DialogueEngine.fallback(w,p,text),"template")
+    currentCoroutineContext().ensureActive()
+    lock.withLock {
+     if(token!=chatEpoch||mutable.value.slot!=slot)return@withLock
+     val current=mutable.value.world?:return@withLock
+     val currentPerson=current.people.find {it.id==p.id}?:return@withLock
+     val safe=DialogueEngine.sanitize(current,currentPerson,reply.text)?:DialogueEngine.fallback(current,currentPerson,text)
+     val record=DialogueRecord(p.id,"assistant",safe,current.day,if(safe==reply.text)reply.source else "template")
+     store.appendDialogue(slot,record);chatMutable.value=chatMutable.value.copy(records=(chatMutable.value.records+record).takeLast(100),partial="",note=if(record.source=="model")"本地模型回复 · 不直接改变世界状态"else"规则模板回复 · 可继续游戏")
+    }
+   }catch(e:CancellationException){}catch(e:Exception){if(token==chatEpoch)chatMutable.value=chatMutable.value.copy(note=e.message?:"对话未完成",partial="")}
+   finally {if(token==chatEpoch)chatMutable.value=chatMutable.value.copy(working=false)}
+  }
+ }
+ fun cancelAi() {chatEpoch++;models.cancel();generation?.cancel();chatJob?.cancel();chatMutable.value=chatMutable.value.copy(working=false,partial="");mutable.update {currentUi->currentUi.copy(generating=false)}}
  private fun task(block:suspend ()->Unit) {
   if(mutable.value.busy) return
   mutable.update { currentUi -> currentUi.copy(busy=true) }

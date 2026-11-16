@@ -66,9 +66,26 @@ object MapValidation {
 }
 
 object MapSnapshotMapper {
+ // Hand-authored fictional region contours. Shared edges use the same vertices in reverse order.
+ private val contours=listOf(
+  listOf(105 to 27,111 to 26,116 to 29,116 to 33,112 to 34,109 to 34,106 to 33,104 to 31),
+  listOf(96 to 32,100 to 30,104 to 31,106 to 33,109 to 34,107 to 36,108 to 39,103 to 40,99 to 38,96 to 35),
+  listOf(105 to 27,111 to 26,116 to 29,119 to 28,121 to 25,118 to 22,112 to 20,107 to 22),
+  listOf(109 to 34,112 to 34,116 to 33,118 to 36,117 to 39,115 to 42,111 to 44,107 to 43,103 to 40,108 to 39,107 to 36),
+  listOf(116 to 33,116 to 29,119 to 28,122 to 30,125 to 32,124 to 35,121 to 36,118 to 36),
+  listOf(103 to 40,107 to 43,111 to 44,111 to 48,107 to 51,101 to 50,97 to 46,99 to 42),
+  listOf(118 to 36,121 to 36,124 to 39,124 to 43,120 to 46,115 to 45,111 to 44,115 to 42,117 to 39)
+ ).map {ring->ring.map {listOf(it.first.toDouble(),it.second.toDouble())}}
+ private val oldCenters=listOf(109.0 to 30.0,102.0 to 35.0,114.0 to 25.0,110.0 to 41.0,123.0 to 33.0,104.0 to 46.0,119.0 to 40.0)
+ private fun oldRect(index:Int)=oldCenters[index].let {(x,y)->listOf(listOf(x-2,y-2),listOf(x+2,y-2),listOf(x+2,y+2),listOf(x-2,y+2))}
+ // Display-only migration: never overwrite imported or hand-authored boundaries, ownership, or history.
+ private fun detailed(s:MapScenario)=s.copy(territories=s.territories.map {t->
+  val index=when {t.id.startsWith("territory-r")->t.id.removePrefix("territory-r").toIntOrNull()?.takeIf {it in 0..3};t.id.startsWith("frontier-")->t.id.removePrefix("frontier-").toIntOrNull()?.takeIf {it in 0..2}?.plus(4);else->null}
+  if(index!=null&&t.polygon==oldRect(index))t.copy(polygon=contours[index])else t
+ })
  fun scene(w:World,slot:Int):MapScenario {
   require(slot in 1..8)
-  val s=w.cartography?:base(w)
+  val s=detailed(w.cartography?:base(w))
   return s.copy(id="game-slot-$slot",revision=w.revision,meta=MapMeta(w.name,w.date,if(w.setting=="古代王朝")"古" else "纪"),polities=s.polities.map {if(it.id=="nation")it.copy(name=w.name)else it},groups=s.groups.map {g->w.regions.find {"region-${it.id}"==g.id}?.let {g.copy(name=it.name)}?:g}).also(MapValidation::verify)
  }
  fun regionId(w:World,placeId:String):Int? = (w.cartography?:base(w)).places[placeId]?.let {regionForGroup(w,it.groupId)}
@@ -85,8 +102,7 @@ object MapSnapshotMapper {
   val points=w.regions.map {r->MapPoint("city-r${r.id}",positions[r.id].first,positions[r.id].second,if(r.id==0)"d" else "c")}+listOf(MapPoint("ruin-r0",111.0,31.0,"x"),MapPoint("neighbor-city-0",123.0,33.0,"h"),MapPoint("neighbor-city-1",104.0,46.0,"f"),MapPoint("neighbor-city-2",119.0,40.0,"c"))
   val polities=listOf(MapPolity("nation",w.name,"#b75d45"))+w.neighbors.mapIndexed {i,n->MapPolity("neighbor-$i",n.name,listOf("#5a90a0","#9b8657","#748457")[i])}
   val places=w.regions.associate {r->"city-r${r.id}" to MapPlace(r.name+"城",if(w.setting=="古代王朝")"府城" else "地区中心","地区治理、官员档案与巡游入口。","region-${r.id}","nation")}+mapOf("ruin-r0" to MapPlace("旧津", "旧城","往年水患留下的废城，可以依法拨款恢复。","region-0","nation"))+w.neighbors.mapIndexed {i,n->"neighbor-city-$i" to MapPlace(n.name+"都","邻国都城",polityId="neighbor-$i")}
-  fun rect(x:Double,y:Double)=listOf(listOf(x-2,y-2),listOf(x+2,y-2),listOf(x+2,y+2),listOf(x-2,y+2))
-  val territories=w.regions.map {r->MapTerritory("territory-r${r.id}",r.name,"地区","nation","region-${r.id}",polygon=rect(positions[r.id].first,positions[r.id].second))}+w.neighbors.mapIndexed {i,n->val p=points.first {it.id=="neighbor-city-$i"};MapTerritory("frontier-$i",n.name+"边地",polityId="neighbor-$i",polygon=rect(p.lon,p.lat))}
+  val territories=w.regions.map {r->MapTerritory("territory-r${r.id}",r.name,if(w.setting==EraRules.ANCIENT)"府"else"地区","nation","region-${r.id}",polygon=contours[r.id])}+w.neighbors.mapIndexed {i,n->MapTerritory("frontier-$i",n.name+"边地",polityId="neighbor-$i",polygon=contours[i+4])}
   return MapScenario(polities=polities,places=places,extraPlaces=points,placeStates=points.associate {it.id to MapPlaceState(if(it.id=="ruin-r0")"ruined" else "active")},groups=w.regions.map {r->MapGroup("region-${r.id}",r.name,if(w.setting=="古代王朝")"府" else "地区",polityId="nation",memberIds=places.filterValues {it.groupId=="region-${r.id}"}.keys.toList())},territories=territories,routes=(1..3).map {MapRoute("route-$it","驿道","city-r0","city-r$it")})
  }
 }

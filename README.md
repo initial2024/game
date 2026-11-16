@@ -1,3 +1,5 @@
+> 当前开发分支正在验证 0.3.0：疆域细化、人物对话、学院与 Hugging Face 搜索。范围与证据见 [升级测试报告](docs/UPGRADE_0.3_TESTING.md)。
+
 # 山河纪年 · Chronicle AI
 
 原创 Android 原生离线文字策略游戏。Kotlin + Compose，包名固定为 `cn.chronicle.shanhe`，minSdk 26 / targetSdk 36。游戏主体为原生 Compose，世界舆图使用本地受限 WebView。没有远程 AI API、分析 SDK 或存档自动上传功能。

@@ -7,7 +7,7 @@ adb shell getprop ro.build.version.release > "$report_dir/device.txt"
 adb shell wm size >> "$report_dir/device.txt"
 adb shell wm density >> "$report_dir/device.txt"
 adb shell cat /proc/meminfo >> "$report_dir/device.txt"
-if [[ "${CI:-}" == "true" ]]; then
+if [[ "${CI:-}" == "true" && "${CHRONICLE_ONLINE_TEST:-}" != "true" ]]; then
   adb shell svc wifi disable
   adb shell svc data disable
   echo "Guest network switches after disabling:" >> "$report_dir/device.txt"
@@ -29,5 +29,6 @@ fi
 
 if [[ "$classes" == *RealModelTest* ]]; then
   grep -q 'REAL_MODEL ' "$report_dir/model-output.log"
+  grep -q 'REAL_CHARACTER_CHAT' "$report_dir/model-output.log"
   grep -q 'REAL_INTENT_STRUCTURED_VALID=true' "$report_dir/model-output.log"
 fi

@@ -5,9 +5,9 @@ import kotlin.math.min
 
 object Rules {
  val policies = listOf("WORKSHOP","FACTORY","FARM","RESEARCH","ROAD","TAX_DOWN","TAX_UP","DIPLOMACY","DRILL","RELIEF","REPAY","REFORM","REST")
- private val labels = mapOf("WORKSHOP" to "营造官营作坊", "CITY_FOUND" to "营建新邑", "CITY_RESTORE" to "修复旧城", "CITY_RENAME" to "城邑更名", "BORDER_TREATY" to "议定边地移交", "ERA" to "更改纪元", "RULER_NAME" to "君主更名", "CHILD_NAME_PLAN" to "预设子女名字", "NAME_CHILD" to "子女更名", "FAMILY_PLAN" to "设置备孕", "TRY_HEIR" to "自愿备孕", "FAMILY_TIME" to "陪伴家人", "STRATEGY" to "调整战略", "FACTORY" to "筹建工厂", "FARM" to "兴修水利", "RESEARCH" to "资助研究", "ROAD" to "修筑道路", "TAX_DOWN" to "减税惠民", "TAX_UP" to "提高税率", "DIPLOMACY" to "派遣使节", "DRILL" to "整训军队", "RELIEF" to "赈济百姓", "REPAY" to "偿还债务", "REFORM" to "考核改革", "REST" to "休养生息", "DEPART" to "出发巡游", "TRAVEL" to "继续行程", "VISIT" to "探访场景", "TALK" to "询问人物", "INVESTIGATE" to "暗访取证", "AUDIT" to "核验账册", "REVEAL" to "公开身份", "TRIAL" to "依法审理", "DISMISS" to "行政撤换", "CLOSE" to "撤销指控", "REMOTE" to "委派监察官", "RETURN" to "返回朝廷")
+ private val labels = mapOf("CONVERSE" to "正式交流", "ACADEMY_UPGRADE" to "扩建国家学院", "APPOINT_TUTOR" to "聘任讲席", "STUDY_HOME" to "入国家学院", "STUDY_ABROAD" to "派往海外学习", "RECALL_STUDENT" to "召回学员", "WORKSHOP" to "营造官营作坊", "CITY_FOUND" to "营建新邑", "CITY_RESTORE" to "修复旧城", "CITY_RENAME" to "城邑更名", "BORDER_TREATY" to "议定边地移交", "ERA" to "更改纪元", "RULER_NAME" to "君主更名", "CHILD_NAME_PLAN" to "预设子女名字", "NAME_CHILD" to "子女更名", "FAMILY_PLAN" to "设置备孕", "TRY_HEIR" to "自愿备孕", "FAMILY_TIME" to "陪伴家人", "STRATEGY" to "调整战略", "FACTORY" to "筹建工厂", "FARM" to "兴修水利", "RESEARCH" to "资助研究", "ROAD" to "修筑道路", "TAX_DOWN" to "减税惠民", "TAX_UP" to "提高税率", "DIPLOMACY" to "派遣使节", "DRILL" to "整训军队", "RELIEF" to "赈济百姓", "REPAY" to "偿还债务", "REFORM" to "考核改革", "REST" to "休养生息", "DEPART" to "出发巡游", "TRAVEL" to "继续行程", "VISIT" to "探访场景", "TALK" to "询问人物", "INVESTIGATE" to "暗访取证", "AUDIT" to "核验账册", "REVEAL" to "公开身份", "TRIAL" to "依法审理", "DISMISS" to "行政撤换", "CLOSE" to "撤销指控", "REMOTE" to "委派监察官", "RETURN" to "返回朝廷")
  fun label(c: Command)=if(c.type=="CANCEL_TASK") "撤销事务" else labels[c.type] ?: c.type
- fun cost(c: Command): Long = when(c.type) { "WORKSHOP" -> 100; "CITY_FOUND" -> 120; "CITY_RESTORE" -> 80; "CITY_RENAME" -> 5; "BORDER_TREATY" -> 180; "TRY_HEIR" -> 20; "FAMILY_TIME" -> 10; "FACTORY" -> 140; "FARM" -> 75; "RESEARCH" -> 65; "ROAD" -> 100; "DIPLOMACY" -> 35; "DRILL" -> 60; "RELIEF" -> 50; "REPAY" -> 80; "REFORM" -> 95; "DEPART" -> if(c.mode=="公开巡幸") 95 else if(c.mode=="秘密调查") 55 else 35; "TRAVEL" -> 8; "VISIT","TALK" -> 3; "INVESTIGATE" -> 12; "AUDIT" -> 20; "REVEAL" -> 10; "TRIAL" -> 25; "DISMISS" -> 20; "REMOTE" -> 65; "RETURN" -> 20; else -> 0 }
+ fun cost(c: Command): Long = when(c.type) { "CONVERSE"->2; "APPOINT_TUTOR"->10; "STUDY_HOME"->50; "STUDY_ABROAD"->140; "ACADEMY_UPGRADE"->120; "WORKSHOP" -> 100; "CITY_FOUND" -> 120; "CITY_RESTORE" -> 80; "CITY_RENAME" -> 5; "BORDER_TREATY" -> 180; "TRY_HEIR" -> 20; "FAMILY_TIME" -> 10; "FACTORY" -> 140; "FARM" -> 75; "RESEARCH" -> 65; "ROAD" -> 100; "DIPLOMACY" -> 35; "DRILL" -> 60; "RELIEF" -> 50; "REPAY" -> 80; "REFORM" -> 95; "DEPART" -> if(c.mode=="公开巡幸") 95 else if(c.mode=="秘密调查") 55 else 35; "TRAVEL" -> 8; "VISIT","TALK" -> 3; "INVESTIGATE" -> 12; "AUDIT" -> 20; "REVEAL" -> 10; "TRIAL" -> 25; "DISMISS" -> 20; "REMOTE" -> 65; "RETURN" -> 20; else -> 0 }
  fun duration(c: Command)=when(c.type) { "ERA","RULER_NAME","CHILD_NAME_PLAN","NAME_CHILD","FAMILY_PLAN","STRATEGY" -> 0; "DEPART" -> 1; "TRAVEL" -> 7; "VISIT","TALK" -> 2; "INVESTIGATE","AUDIT" -> 5; "REVEAL","TRIAL","DISMISS","CLOSE" -> 1; "RETURN" -> 7; else -> 90 }
  fun suggestions(w: World): List<Command> {
   val j=w.journey
@@ -23,6 +23,7 @@ object Rules {
   if(c.region !in 0..3) return "目标地区不存在。"
   if(c.type in FamilyEngine.types) FamilyEngine.validate(w,c)?.let {return it}
   if(c.type in MapActions.types) MapActions.validate(w,c)?.let {return it}
+  if(c.type in EducationEngine.types)EducationEngine.validate(w,c)?.let {return it}
   if(w.nation.treasury<cost(c)) return "国库不足：需要 ${cost(c)} 万两。可休养、调整税率或削减研究。"
   if(c.type in listOf("FACTORY","WORKSHOP","FARM","ROAD") && w.projects.any { it.kind==c.type && it.region==c.region }) return "该地区已有同类在建项目。"
   if(c.type=="STRATEGY" && c.target !in listOf("工业强国","商工兴国","富民治国","综合发展")) return "发展方向无效。"
@@ -34,7 +35,7 @@ object Rules {
    if(w.journey!=null) return "已有进行中的行程。"
    if(c.mode !in listOf("微服私访","公开巡幸","秘密调查") || c.disguise !in listOf("商人","书生","百姓")) return "出行方式或身份无效。"
    if(c.days !in 10..90) return "计划停留须为 10–90 日。"
-   if(c.companion==c.regent || listOf(c.companion,c.regent).any { id -> w.people.none { it.id==id && it.alive && it.id<3 } }) return "随从与摄政须为不同的在世朝臣。"
+   if(c.companion==c.regent || listOf(c.companion,c.regent).any { id -> w.people.none { it.id==id && it.alive && it.id<3 && !EducationEngine.busy(w,it.id) } }) return "随从与摄政须为不同的在世朝臣。"
   }
   if(c.type in listOf("TRAVEL","VISIT","TALK","INVESTIGATE","AUDIT","REVEAL","RETURN")) {
    if(w.journey==null) return "请先从世界页面出发。"
@@ -46,7 +47,7 @@ object Rules {
   if(c.type in listOf("INVESTIGATE","AUDIT","TALK") && w.journey?.region!=0) return "本版案件与地方人物交互设于澄江。其他地区可巡视。"
   if(c.type=="REVEAL" && w.journey?.revealed==true) return "身份已经公开。"
   if(c.type=="AUDIT" && w.journey?.revealed!=true) return "正式核验官府账册需要出示印信，或委派监察官。"
-  if(c.type=="REMOTE" && (w.caseFile.resolved || w.caseFile.remoteDays>0 || w.people.none { it.id==2 && it.alive })) return "案件已处理、调查进行中或监察使已不在世。"
+  if(c.type=="REMOTE" && (EducationEngine.busy(w,2) || w.caseFile.resolved || w.caseFile.remoteDays>0 || w.people.none { it.id==2 && it.alive })) return "案件已处理、调查进行中或监察使已不在世。"
   if(c.type in listOf("TRIAL","DISMISS","CLOSE")) {
    if(w.caseFile.resolved) return "案件已结，不可重复处分。"
    if(c.type=="TRIAL" && (w.caseFile.evidence.filter { it.authentic }.sumOf { it.strength }<70 || w.caseFile.evidence.none { it.id=="ledger" })) return "证据未充分核验；须有账册与至少 70 点真实证据。"
@@ -105,6 +106,7 @@ object Rules {
   }
   if(c.type in FamilyEngine.types) x=FamilyEngine.execute(x,c,events)
   if(c.type in MapActions.types) x=MapActions.execute(x,c,events)
+  if(c.type in EducationEngine.types)x=EducationEngine.execute(x,c,events)
   if(x.journey!=null) {
    var j=x.journey!!.copy(spentDays=x.journey!!.spentDays+elapsed)
    if(j.exposure>=85 && !j.revealed) { j=j.copy(revealed=true); events+="调查动静与朝臣随行引起驿站核查，身份经印信验明确认。" }
@@ -115,6 +117,7 @@ object Rules {
    val left=max(0,x.caseFile.remoteDays-elapsed); x=x.copy(caseFile=x.caseFile.copy(remoteDays=left))
    if(left==0) { evidence(Evidence("ledger","监察使核验账册",50,true)); if(x.caseFile.guilty) evidence(Evidence("receipt","监察使复核收费凭据",30,true)); else evidence(Evidence("forgery","证人笔迹不符的伪证",0,false)); events+="监察使归报，材料已存入案卷；处分仍须另行决定。" }
   }
+  repeat(elapsed){x=EducationEngine.advance(x.copy(day=x.day+1),events)}
   x=FamilyEngine.advance(x.copy(day=newDay),elapsed,events)
   repeat(newDay/90-oldQuarter) {
    x=EconomyEngine.quarter(x,ledger,events)
@@ -132,10 +135,15 @@ object Rules {
  }
  private fun delta(a:Nation,b:Nation)=listOf("结余变化 ${b.treasury-a.treasury} 万两；债务变化 ${b.debt-a.debt} 万两", "工业 ${a.industry}→${b.industry}；农业 ${a.agriculture}→${b.agriculture}；科技 ${a.technology}→${b.technology}","民心 ${a.morale}→${b.morale}；稳定 ${a.stability}→${b.stability}；腐败 ${a.corruption}→${b.corruption}")
  fun bounded(w:World):World { val n=w.nation; fun p(v:Int)=v.coerceIn(0,100)
-  return w.copy(nation=n.copy(treasury=n.treasury.coerceIn(0,1000000),debt=n.debt.coerceIn(0,1000000),population=n.population.coerceIn(100000,100000000),tax=n.tax.coerceIn(5,40),morale=p(n.morale),stability=p(n.stability),administration=p(n.administration),corruption=p(n.corruption),agriculture=p(n.agriculture),commerce=p(n.commerce),industry=p(n.industry),technology=p(n.technology),infrastructure=p(n.infrastructure),military=p(n.military),research=n.research.coerceIn(0,30)),people=w.people.map { it.copy(loyalty=p(it.loyalty),hostility=p(it.hostility),trust=p(it.trust),fear=p(it.fear),suspicion=p(it.suspicion)) })
+  return w.copy(nation=n.copy(treasury=n.treasury.coerceIn(0,1000000),debt=n.debt.coerceIn(0,1000000),population=n.population.coerceIn(100000,100000000),tax=n.tax.coerceIn(5,40),morale=p(n.morale),stability=p(n.stability),administration=p(n.administration),corruption=p(n.corruption),agriculture=p(n.agriculture),commerce=p(n.commerce),industry=p(n.industry),technology=p(n.technology),infrastructure=p(n.infrastructure),military=p(n.military),research=n.research.coerceIn(0,30)),people=w.people.map { it.copy(ability=p(it.ability),loyalty=p(it.loyalty),hostility=p(it.hostility),trust=p(it.trust),fear=p(it.fear),suspicion=p(it.suspicion)) })
  }
  fun verify(w:World) {
   w.cartography?.let(MapValidation::verify)
+  require(w.academy.level in 1..5&&w.people.any {it.id==w.academy.tutor})
+  require(w.studies.size<=5&&w.studies.map {it.person}.distinct().size==w.studies.size)
+  require(w.studies.all {s->w.people.any {it.id==s.person&&it.alive}&&s.destination in -1..2&&s.remaining in 0..s.duration&&s.duration in listOf(90,180)&&s.travel in 0..28&&s.returnDays in 7..28&&s.score in 0..1800&&s.phase in listOf("赴学","研习","返程")})
+  require(w.socialDays.size<=100&&w.socialDays.all {(id,day)->w.people.any {it.id==id}&&day in 0..w.day})
+  require(w.neighbors.all {it.academyLevel in 1..5&&it.teacherLevel in 1..5})
   require(w.setting in listOf("古代王朝","工业初兴"))
   require(w.schema==1 && w.revision>=0 && w.day in 0..900090 && w.name.length in 1..24 && w.ruler.length in 1..24)
   require(w==bounded(w)); require(w.regions.size==4 && w.regions.map { it.id }==listOf(0,1,2,3))
@@ -164,7 +172,11 @@ object EconomyEngine {
   val borderCost=if(w.atmosphere=="烽火边疆" && w.neighbors.any {it.relation<40}) 15L else 0L
   val mapCost=if(w.cartography?.territories?.any {it.id=="frontier-0"&&it.polityId=="nation"}==true)5L else 0L
   if(mapCost>0)ledger+="边地条约驻防 -5 万两（计入季度经常支出）"
-  val expense=mapCost+35L+n.military/2+n.infrastructure/4+n.research+n.debt*2/100 + familyCost + borderCost + if(w.difficulty=="艰难") 12 else 0
+  val absent=w.studies.count {s->w.regions.any {it.official==s.person}||s.person in 0..2}
+  if(absent>0){n=n.copy(administration=n.administration-absent);ledger+="官员赴学离岗，行政效率 -$absent"}
+  val tuitionMaintenance=w.academy.level*2L
+  ledger+="国家学院维护 -$tuitionMaintenance 万两（计入季度开支）"
+  val expense=tuitionMaintenance+mapCost+35L+n.military/2+n.infrastructure/4+n.research+n.debt*2/100 + familyCost + borderCost + if(w.difficulty=="艰难") 12 else 0
   var cash=n.treasury+income-expense; var debt=n.debt
   if(cash<0) { val need=-cash; val borrowed=min(need,max(0,2000-debt)); debt+=borrowed; cash+=borrowed; ledger+="赤字借款 $borrowed 万两"; if(cash<0) { events+="信用枯竭，削减预算并发生财政危机。"; n=n.copy(stability=n.stability-7,morale=n.morale-5,military=max(0,n.military-4),research=0); cash=0 } }
   if(borderCost>0) ledger+="边境战备 -$borderCost 万两（计入季度经常支出）"
@@ -182,6 +194,7 @@ object EconomyEngine {
   var mapWorld=w
   var regions=w.regions
   completed.forEach { p ->
+   if(p.kind=="ACADEMY_UPGRADE")mapWorld=EducationEngine.completeAcademy(mapWorld,events)
    if(p.kind in listOf("CITY_FOUND","CITY_RESTORE"))mapWorld=MapActions.complete(mapWorld,p,events)
    when(p.kind) { "FACTORY","WORKSHOP" -> n=n.copy(industry=n.industry+6,commerce=n.commerce+2); "FARM" -> n=n.copy(agriculture=n.agriculture+7); "ROAD" -> n=n.copy(infrastructure=n.infrastructure+7,commerce=n.commerce+2) }
    regions=regions.map { if(it.id==p.region) it.copy(industry=min(100,it.industry+if(p.kind in listOf("FACTORY","WORKSHOP")) 8 else 0),agriculture=min(100,it.agriculture+if(p.kind=="FARM") 8 else 0)) else it }
@@ -198,7 +211,7 @@ object CharacterEngine {
     val age=p.ageQuarters+1
     val dies=age>=320 && Math.floorMod(w.seed+p.id*37L+w.turn*17L,19L)==0L || age>=400
     if(dies) { events+="${p.name}去世，原职不再保留。"; p.copy(ageQuarters=age,alive=false,role="已故",memories=(p.memories+"寿终").takeLast(8)) }
-    else p.copy(ageQuarters=age,ability=min(95,p.ability+if(w.turn%16==0 && age<220) 1 else 0))
+    else p.copy(ageQuarters=age,ability=min(100,p.ability+if(w.turn%16==0 && age<220) 1 else 0))
    }
   }
   val regions=w.regions.map { r ->
@@ -209,6 +222,6 @@ object CharacterEngine {
    } else r
   }
   val j=w.journey?.let { if(people.none { p->p.id==it.companion && p.alive } || people.none { p->p.id==it.regent && p.alive }) { events+="随行或摄政人事变化，行程提前结束。"; null } else it }
-  return w.copy(people=people,regions=regions,journey=j)
+  return w.copy(people=people,regions=regions,journey=j,studies=w.studies.filter {s->people.any {it.id==s.person&&it.alive}})
  }
 }
