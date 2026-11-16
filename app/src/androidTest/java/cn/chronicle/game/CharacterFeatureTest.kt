@@ -3,6 +3,7 @@ package cn.chronicle.game
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.compose.ui.test.*
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.lifecycle.ViewModelProvider
 import cn.chronicle.core.*
@@ -22,7 +23,7 @@ class CharacterFeatureTest {
   compose.onNodeWithTag("nav-$index").performClick();compose.waitForIdle()
  }
  private fun confirm(){
-  try{compose.waitUntil(10000){compose.onAllNodes(hasText("确认执行") and isEnabled()).fetchSemanticsNodes().size==1}}catch(e:Exception){val vm=ViewModelProvider(compose.activity)[GameViewModel::class.java];println("CONFIRM_MISSING message=${vm.state.value.message} busy=${vm.state.value.busy} slot=${vm.state.value.slot}");compose.onRoot().printToLog("ChronicleUiDiagnostic");throw e}
+  try{compose.waitUntil(10000){compose.onAllNodes(hasText("确认执行") and isEnabled()).fetchSemanticsNodes().size==1}}catch(e:Throwable){val vm=ViewModelProvider(compose.activity)[GameViewModel::class.java];println("CONFIRM_MISSING message=${vm.state.value.message} busy=${vm.state.value.busy} slot=${vm.state.value.slot}");compose.onRoot().printToLog("ChronicleUiDiagnostic");screenshot("confirmation-diagnostic");throw e}
   compose.onNodeWithText("确认执行").performClick()
  }
  private fun screenshot(name:String){
@@ -37,7 +38,7 @@ class CharacterFeatureTest {
   if(vm.state.value.world==null){vm.newGame("对话测试","景衡","综合发展","标准","1847");compose.waitUntil(10000){vm.state.value.world!=null&&!vm.state.value.busy}}
   if(!vm.state.value.paused)vm.toggleClock()
   navigate(2);compose.onNodeWithText("人物",useUnmergedTree=true).performScrollTo().performClick()
-  compose.onNodeWithText("与韩砺交谈").performScrollTo().performClick();try{compose.waitUntil(10000){vm.chat.value.person==1}}catch(e:Exception){println("OPEN_CHAT_MISSING person=${vm.chat.value.person} note=${vm.chat.value.note} message=${vm.state.value.message} busy=${vm.state.value.busy}");compose.onRoot().printToLog("ChronicleUiDiagnostic");screenshot("open-person-diagnostic");throw e}
+  compose.onNodeWithText("与韩砺交谈").performScrollTo().assertIsDisplayed().performSemanticsAction(SemanticsActions.OnClick){it()};try{compose.waitUntil(10000){vm.chat.value.person==1}}catch(e:Throwable){println("OPEN_CHAT_MISSING person=${vm.chat.value.person} note=${vm.chat.value.note} message=${vm.state.value.message} busy=${vm.state.value.busy}");compose.onRoot().printToLog("ChronicleUiDiagnostic");screenshot("open-person-diagnostic");throw e}
   val beforeChat=vm.state.value.world!!
   compose.onAllNodesWithText("2万两",substring=true).assertCountEquals(0)
   compose.onNodeWithText("说些什么…").performTextInput("你希望到国家学院学习吗？");compose.onNodeWithText("发送对话").performClick()
@@ -45,7 +46,7 @@ class CharacterFeatureTest {
   screenshot("character-chat");val store=Store(compose.activity);assertTrue(store.dialogues(vm.state.value.slot,1).size>=2);store.close()
   compose.onNodeWithText("关闭对话").performClick();compose.onNodeWithText("学院",useUnmergedTree=true).performScrollTo().performClick()
   compose.onNodeWithText("更换讲席").performScrollTo().performClick();compose.onNodeWithText("选择讲席").assertIsDisplayed();compose.onNodeWithText("关闭选择").performClick()
-  compose.onNodeWithText("派学",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("点选派学人物").performScrollTo().performClick();compose.onNodeWithText("选择派学人物").assertIsDisplayed();compose.onNodeWithText("韩砺 ·",substring=true).performScrollTo().performClick()
+  compose.onNodeWithText("派学",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("点选派学人物").performScrollTo().performClick();compose.onNodeWithText("选择派学人物").assertIsDisplayed();compose.onNode(hasClickAction() and hasText("韩砺 ·",substring=true)).performScrollTo().performClick()
   compose.onNodeWithText("派学",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("预览派学").performScrollTo().performClick();confirm()
   compose.waitUntil(10000){vm.state.value.world!!.studies.any {it.person==1}}
   compose.onNodeWithText("在读",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("韩砺 · 国家学院").assertIsDisplayed();screenshot("academy-student")
@@ -85,7 +86,7 @@ class CharacterFeatureTest {
   if(vm.state.value.world==null){vm.newGame("招贤测试","景衡","综合发展","标准","1847");compose.waitUntil(10000){vm.state.value.world!=null&&!vm.state.value.busy}}
   if(!vm.state.value.paused)vm.toggleClock()
   val count=vm.state.value.world!!.people.size
-  navigate(2);compose.onNodeWithText("人物",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("招贤",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("公开招贤 · 20万两").performScrollTo().performClick();confirm()
+  navigate(2);compose.onNodeWithText("人物",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("招贤",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("公开招贤 · 20万两").performScrollTo().assertIsDisplayed().performSemanticsAction(SemanticsActions.OnClick){it()};confirm()
   compose.waitUntil(10000){vm.state.value.world!!.pending.any {it.command.type=="RECRUIT"}&&!vm.state.value.busy};while(vm.state.value.speed!=64)vm.changeSpeed();vm.toggleClock();compose.waitUntil(15000){vm.state.value.world!!.people.size>=count+2};vm.toggleClock()
   compose.onNodeWithText("查看待选人才").performScrollTo().performClick();compose.onAllNodesWithText("安排官位").onFirst().performScrollTo().performClick()
   compose.onNodeWithText("点选任职州府县").performScrollTo().performClick();compose.onNodeWithText("砺山",useUnmergedTree=true).performClick();compose.onAllNodesWithText("选定此地").onLast().performScrollTo().performClick();compose.onNodeWithText("县丞",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("预览任命").performScrollTo().performClick();confirm()
