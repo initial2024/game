@@ -246,7 +246,7 @@ class MainActivity:ComponentActivity() {
 }
 @Composable private fun CasePanel(w:World,ask:(Command)->Unit) { Fold("澄江案卷 · ${w.caseFile.status}",true) {Text("知府陆敬川涉嫌额外摊派。传闻、证言和核验账册必须区分，未核查材料不能直接定罪。");if(w.caseFile.evidence.isEmpty()) Text("尚无材料。可亲访或委派监察使。");w.caseFile.evidence.forEach {Text("• ${it.label}")};if(w.caseFile.remoteDays>0) Text("监察使预计 ${w.caseFile.remoteDays} 日后归报");if(!w.caseFile.resolved) {ActionButton(Command("REMOTE"),ask);ActionButton(Command("TRIAL"),ask);ActionButton(Command("DISMISS"),ask);ActionButton(Command("CLOSE"),ask)} else Text("结案：${w.caseFile.resolution}。地方改革与人事将在后续季度持续生效。") } }
 @Composable private fun Archive(ui:UiState,vm:GameViewModel,new:()->Unit,theme:Int,onTheme:(Int)->Unit,scale:Float,onScale:(Float)->Unit) {
- val ctx=LocalContext.current;val scope=rememberCoroutineScope()
+ val ctx=LocalContext.current;val scope=rememberCoroutineScope();val version=remember {ctx.packageManager.getPackageInfo(ctx.packageName,0).versionName}
  val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) {uri->if(uri!=null) scope.launch {runCatching {val text=vm.export();withContext(Dispatchers.IO){ctx.contentResolver.openOutputStream(uri)?.use {it.write(text.toByteArray())}?:error("文件无法打开")}}.onSuccess {vm.message("存档已导出到你选择的位置。")}.onFailure {vm.message(it.message?:"导出失败")} }}
  val import=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {uri->if(uri!=null) scope.launch {runCatching {withContext(Dispatchers.IO){ctx.contentResolver.openInputStream(uri)?.use { readBoundedSave(it)}?:error("文件无法打开")}}.onSuccess {vm.import(it)}.onFailure {vm.message(it.message?:"导入失败")} }}
  var group by rememberSaveable {mutableStateOf("存档")};var savePage by rememberSaveable {mutableIntStateOf(0)};var selectedEntry by remember {mutableStateOf<Entry?>(null)}
@@ -269,7 +269,7 @@ class MainActivity:ComponentActivity() {
    "模型" -> ModelPanel(vm)
    else -> {
     Panel("阅读与主题") {Choices(listOf("深色","正常","护眼"),listOf("深色","正常","护眼")[theme],{onTheme(listOf("深色","正常","护眼").indexOf(it))});Text("字号 ${"%.0f".format(scale*100)}%");Slider(value=scale,onValueChange=onScale,valueRange=.85f..1.3f)}
-    Fold("关于山河纪年") {Text("山河纪年0.2.0 · 原创离线文字策略\n连续时间，可暂停与调速。政策异步办理，季度交界自动结算国政。\n\n包含四地区、项目经济、33个规则事件和澄江案件三条处理路线。AI不参与数值结算。\n\n完整战争、继承和多地区案件尚在后续阶段。本应用不上传存档，不发送不必要的提醒。")}
+    Fold("关于山河纪年") {Text("山河纪年 $version · 原创离线文字策略\n连续时间，可暂停与调速。政策异步办理，季度交界自动结算国政。\n\n包含四地区、项目经济、33个规则事件和澄江案件三条处理路线。AI不参与数值结算。\n\n完整战争、继承和多地区案件尚在后续阶段。本应用不上传存档，不发送不必要的提醒。")}
    }
   }
  }

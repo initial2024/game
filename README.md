@@ -8,7 +8,7 @@
 
 [下载0.2.1 ARM64 APK（约12.2 MiB）](https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.2.1-arm64.apk) · [地图与古代开局交付报告](docs/MAP_V4_TESTING.md) · [实测截图](docs/MAP_V4_SCREENSHOTS.md) · [开发 Draft PR](https://github.com/initial2024/game/pull/1)
 
-上一版：[0.1.1 ARM64 APK](https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.1.1-arm64.apk) · [0.1.1交付报告](docs/TESTING.md)。本版地图使用用户完成的v4原绘制器，接入说明见 docs/MAP_V4_INTEGRATION.md。
+上一版：[0.1.1 ARM64 APK](https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.1.1-arm64.apk) · [0.1.1交付报告](docs/TESTING.md)。0.3.1已实际替换为最新上传的v3_2 HTML升级版；输入原文件、升级补丁与输出资源可复现校验，详见 integration/map-upgrade/PROVENANCE.md。
 
 固定开发签名，可覆盖此前同签名0.1.0直链包。模型独立下载，无模型可玩。不是完整P2，vivo真机验收尚未进行。
 

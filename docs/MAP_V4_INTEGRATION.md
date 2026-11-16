@@ -1,3 +1,5 @@
+> 历史接入记录：0.3.1已替换为用户最新HTML的升级版。当前唯一本地资源为 `app/src/main/assets/maps/chronicle_world_map.html`，来源与逐字升级校验见 [升级来源](../integration/map-upgrade/PROVENANCE.md)。下文原v4路径为历史记录。
+
 # 世界舆图 v4 原生接入
 
 ## 工程与回退
