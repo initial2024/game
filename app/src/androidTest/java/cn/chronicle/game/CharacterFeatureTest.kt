@@ -15,6 +15,12 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class CharacterFeatureTest {
  @get:Rule val compose=createAndroidComposeRule<MainActivity>()
+ private fun screenshot(name:String){
+  compose.waitForIdle();Thread.sleep(500)
+  val ctx=InstrumentationRegistry.getInstrumentation().targetContext;val bitmap=InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()?:error("Screenshot unavailable")
+  val values=android.content.ContentValues().apply {put(android.provider.MediaStore.Images.Media.DISPLAY_NAME,"$name.png");put(android.provider.MediaStore.Images.Media.MIME_TYPE,"image/png");put(android.provider.MediaStore.Images.Media.RELATIVE_PATH,"Pictures/ChronicleCI")}
+  val uri=ctx.contentResolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI,values)!!;ctx.contentResolver.openOutputStream(uri)!!.use {bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it)}
+ }
  @Test fun offlineChatPersistsAndAcademyIsPlayable(){
   val vm=ViewModelProvider(compose.activity)[GameViewModel::class.java];compose.waitUntil(30000){vm.state.value.ready}
   if(vm.state.value.world==null){vm.newGame("对话测试","景衡","综合发展","标准","1847");compose.waitUntil(10000){vm.state.value.world!=null&&!vm.state.value.busy}}
@@ -23,11 +29,11 @@ class CharacterFeatureTest {
   compose.onNodeWithText("与韩砺交谈").performScrollTo().performClick();compose.waitUntil(10000){vm.chat.value.person==1}
   compose.onNodeWithText("说些什么…").performTextInput("你希望到国家学院学习吗？");compose.onNodeWithText("发送对话").performClick()
   compose.waitUntil(15000){!vm.chat.value.working&&vm.chat.value.records.size>=2};assertEquals("template",vm.chat.value.records.last().source)
-  val store=Store(compose.activity);assertTrue(store.dialogues(vm.state.value.slot,1).size>=2);store.close()
-  compose.onNodeWithText("关闭对话").performClick();compose.onNodeWithText("学院",useUnmergedTree=true).performClick()
+  screenshot("character-chat");val store=Store(compose.activity);assertTrue(store.dialogues(vm.state.value.slot,1).size>=2);store.close()
+  compose.onNodeWithText("关闭对话").performClick();compose.onNodeWithText("学院",useUnmergedTree=true).performScrollTo().performClick()
   compose.onNodeWithText("派学",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("预览派学").performScrollTo().performClick();compose.onNodeWithText("确认执行").performClick()
   compose.waitUntil(10000){vm.state.value.world!!.studies.any {it.person==1}}
-  compose.onNodeWithText("在读",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("韩砺 · 国家学院").assertIsDisplayed()
+  compose.onNodeWithText("在读",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("韩砺 · 国家学院").assertIsDisplayed();screenshot("academy-student")
  }
  @Test fun oldDatabaseMigratesWithoutChangingWorldAndChatsStayIsolated(){
   val ctx=InstrumentationRegistry.getInstrumentation().targetContext;val name="character-migration-test.db";ctx.deleteDatabase(name)

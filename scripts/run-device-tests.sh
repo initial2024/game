@@ -18,7 +18,7 @@ set +e
 adb shell am instrument -w -e ci_emulator true -e class "$classes" cn.chronicle.shanhe.test/androidx.test.runner.AndroidJUnitRunner | tee "$report_dir/instrumentation.txt"
 runner_status=${PIPESTATUS[0]}
 set -e
-if [[ "$classes" == *ScreenTest* || "$classes" == *MapIntegrationTest* || "$classes" == *MapRestartTest* ]]; then
+if [[ "$classes" == *CharacterFeatureTest* || "$classes" == *ScreenTest* || "$classes" == *MapIntegrationTest* || "$classes" == *MapRestartTest* ]]; then
   adb pull /sdcard/Pictures/ChronicleCI "$report_dir/screenshots" || true
 fi
 adb logcat -d -s System.out:I ChronicleMap:V chromium:E > "$report_dir/model-output.log" || true
