@@ -10,7 +10,7 @@ import org.junit.runner.RunWith
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import androidx.compose.ui.test.*
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.semantics.SemanticsActions
@@ -157,5 +157,19 @@ class RealModelTest {
   val resident=File("/proc/self/status").readLines().filter {it.startsWith("VmHWM:")||it.startsWith("VmRSS:")}.joinToString("; ")
   println("ANDROID_PROCESS_RESIDENT $resident")
   NativeBridge.unload()
+  // Verify the exact application adapter, not only the raw JNI entry point.
+  val context=InstrumentationRegistry.getInstrumentation().targetContext
+  val manager=ModelManager(context);manager.threads=2;manager.contextLimit=512
+  try {
+   manager.import(android.net.Uri.fromFile(model))
+   runBlocking {withTimeout(120000){while(manager.state.value.working)delay(100)}}
+   assertTrue(manager.state.value.status,manager.state.value.exists)
+   manager.load();runBlocking {withTimeout(120000){while(manager.state.value.working)delay(100)}}
+   assertTrue(manager.state.value.status,manager.isLoaded)
+   var appChunks=0;val appStart=System.nanoTime()
+   val reply=runBlocking {withTimeout(150000){manager.chat(world,person,emptyList(),"请用一句话谈谈你的目标。",{appChunks++})}}
+   assertEquals("model",reply.source);assertTrue(reply.text.any {it in '\u4e00'..'\u9fff'});assertTrue(appChunks>0)
+   println("REAL_APP_CHARACTER_CHAT elapsed_ms=${(System.nanoTime()-appStart)/1000000} chunks=$appChunks text=${reply.text}")
+  } finally {manager.unloadAsync();runBlocking {withTimeout(60000){while(manager.isLoaded)delay(100)}};manager.close()}
  }
 }
