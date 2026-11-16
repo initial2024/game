@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-data class UiState(val world:World?=null,val slot:Int=1,val slots:List<Slot> = emptyList(),val busy:Boolean=false,val message:String="",val archive:List<Entry> = emptyList(),val offset:Int=0,val aiText:String="",val generating:Boolean=false,val paused:Boolean=true,val speed:Int=1,val ready:Boolean=false)
+data class UiState(val world:World?=null,val slot:Int=1,val slots:List<Slot> = emptyList(),val busy:Boolean=false,val message:String="",val archive:List<Entry> = emptyList(),val offset:Int=0,val aiText:String="",val generating:Boolean=false,val paused:Boolean=true,val speed:Int=1,val ready:Boolean=false,val cityId:String?=null)
 data class ChatState(val person:Int?=null,val records:List<DialogueRecord> = emptyList(),val working:Boolean=false,val partial:String="",val note:String="")
 class GameViewModel(app:Application):AndroidViewModel(app) {
  private val store=Store(app)
@@ -52,11 +52,13 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
   val world=store.load(id)?:return null;val upgraded=RealtimeEngine.refundLegacyChat(world)?:return world
   store.commit(id,world.revision,upgraded);return upgraded.world
  }
+ fun openCity(id:String){val w=mutable.value.world?:return;if(MunicipalEngine.all(w).any {it.id==id})mutable.update {it.copy(cityId=id)}}
+ fun closeCity(){mutable.update {it.copy(cityId=null)}}
  fun message(text:String) { mutable.update { currentUi -> currentUi.copy(message=text) } }
  fun newGame(name:String,ruler:String,strategy:String,difficulty:String,seed:String,era:String="启元",scale:String="中等国家",atmosphere:String="均势博弈",setting:String="工业初兴") = task {
   val id=(1..8).firstOrNull { n -> store.slots().none { it.id==n } } ?: error("8 个存档槽已满，请导出后保留现有游戏。")
   val number=seed.toLongOrNull() ?: error("世界种子须为 64 位整数。")
-  cancelAi();chatMutable.value=ChatState();val w=NewGame.create(name,ruler,strategy,difficulty,number,era,scale,atmosphere,setting);store.create(id,w);resumePrefs.edit().putInt("slot",id).commit();mutable.update { currentUi -> currentUi.copy(world=w,slot=id,slots=store.slots(),paused=false,aiText="",archive=emptyList(),message="新纪年已建立。每次行动自动保存。") }
+  cancelAi();chatMutable.value=ChatState();val w=NewGame.create(name,ruler,strategy,difficulty,number,era,scale,atmosphere,setting);store.create(id,w);resumePrefs.edit().putInt("slot",id).commit();mutable.update { currentUi -> currentUi.copy(world=w,slot=id,cityId=null,slots=store.slots(),paused=false,aiText="",archive=emptyList(),message="新纪年已建立。每次行动自动保存。") }
  }
  fun submit(commands:List<Command>,expected:Long) {
   if(mutable.value.busy || commands.isEmpty()) return
@@ -75,7 +77,7 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
    if(models.isLoaded) generate()
   }
  }
- fun load(id:Int)=task { cancelAi();chatMutable.value=ChatState(); val w=loadWorld(id)?:error("存档不存在");resumePrefs.edit().putInt("slot",id).commit();mutable.update { currentUi -> currentUi.copy(world=w,slot=id,paused=true,aiText="",archive=emptyList(),offset=0,message="存档已读取。") } }
+ fun load(id:Int)=task { cancelAi();chatMutable.value=ChatState(); val w=loadWorld(id)?:error("存档不存在");resumePrefs.edit().putInt("slot",id).commit();mutable.update { currentUi -> currentUi.copy(world=w,slot=id,cityId=null,paused=true,aiText="",archive=emptyList(),offset=0,message="存档已读取。") } }
  fun manualSave()=task { val id=(1..8).firstOrNull { n->store.slots().none { it.id==n } } ?: error("没有空存档槽");store.copyTo(mutable.value.slot,id);mutable.update { currentUi -> currentUi.copy(slots=store.slots(),message="已建立独立快照：槽 $id") } }
  fun page(offset:Int)=task { val p=offset.coerceAtLeast(0);mutable.update { currentUi -> currentUi.copy(archive=store.history(mutable.value.slot,p,5),offset=p) } }
  suspend fun exportDialogues(uri:android.net.Uri)=withContext(Dispatchers.IO){lock.withLock {getApplication<Application>().contentResolver.openOutputStream(uri)?.bufferedWriter()?.use {store.exportDialogues(mutable.value.slot,it)}?:error("文件无法打开")}}

@@ -152,7 +152,6 @@ private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapO
  val gameVm:GameViewModel=viewModel();val clock by gameVm.state.collectAsStateWithLifecycle()
  val context=LocalContext.current;val activity=generateSequence(context){(it as? android.content.ContextWrapper)?.baseContext}.filterIsInstance<MainActivity>().firstOrNull();val scope=rememberCoroutineScope();val lifecycle=LocalLifecycleOwner.current.lifecycle
  var editor by remember {mutableStateOf(false)};var error by remember {mutableStateOf("")};var selection by remember {mutableStateOf<MapHostMessage?>(null)}
- var city by remember {mutableStateOf<String?>(null)}
  var controller by remember {mutableStateOf<MapWebController?>(null)};var exportData by remember {mutableStateOf("")};var pendingImport by remember {mutableStateOf<MapScenario?>(null)}
  val currentWorld by rememberUpdatedState(world);val currentSlot by rememberUpdatedState(slot)
  val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")){uri->if(uri!=null)scope.launch {runCatching {withContext(Dispatchers.IO){require(exportData.isNotBlank()){"导出状态已重置，请重新导出。"};context.contentResolver.openOutputStream(uri)!!.use {it.write(exportData.toByteArray())}}}.onFailure {error="导出失败：${it.message}"}}}
@@ -167,14 +166,13 @@ private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapO
   key(editor) {
    var owned by remember {mutableStateOf<MapWebController?>(null)}
    AndroidView(factory={ctx->
-    val (web,c)=createMapWebView(ctx,editor,{error=it},{raw->runCatching {MapBridgePolicy.selection(raw,currentWorld,currentSlot)}.onSuccess {android.util.Log.i("ChronicleMap","Selected type=${it.type} place=${it.placeId}");if(it.type=="place-select"&&MunicipalEngine.all(currentWorld).any {t->t.id==it.placeId&&t.rank in listOf("府城","县城")}){city=it.placeId;selection=null}else selection=it}.onFailure {android.util.Log.w("ChronicleMap","Selection validation failed",it);error="已拒绝无效地图选择。"}},{isImport->if(isImport)import.launch(arrayOf("application/json","text/plain"))else controller?.export {text->exportData=text;export.launch("chronicle-map.json")}})
+    val (web,c)=createMapWebView(ctx,editor,{error=it},{raw->runCatching {MapBridgePolicy.selection(raw,currentWorld,currentSlot)}.onSuccess {android.util.Log.i("ChronicleMap","Selected type=${it.type} place=${it.placeId}");if(it.type=="place-select"&&MunicipalEngine.all(currentWorld).any {t->t.id==it.placeId&&t.rank in listOf("府城","县城")}){gameVm.openCity(it.placeId);selection=null}else selection=it}.onFailure {android.util.Log.w("ChronicleMap","Selection validation failed",it);error="已拒绝无效地图选择。"}},{isImport->if(isImport)import.launch(arrayOf("application/json","text/plain"))else controller?.export {text->exportData=text;export.launch("chronicle-map.json")}})
     owned=c;controller=c;activity?.mapController=c;MapWebController.created();web
    },modifier=Modifier.weight(1f).fillMaxWidth().testTag("world-map-web"),update={owned?.update(world,slot)})
    DisposableEffect(owned,lifecycle){val c=owned;val observer=LifecycleEventObserver {_,event->if(event==Lifecycle.Event.ON_STOP)c?.pause()else if(event==Lifecycle.Event.ON_START)c?.resume()};lifecycle.addObserver(observer);onDispose {lifecycle.removeObserver(observer)}}
    DisposableEffect(Unit){onDispose {owned?.destroy();if(owned!=null)MapWebController.released();if(activity?.mapController===owned)activity?.mapController=null;if(controller===owned)controller=null}}
   }
  }
- city?.let {id->CityDialog(world,id,{city=null},onAction,{gameVm.openChat(it)})}
  pendingImport?.let {data->AlertDialog(onDismissRequest={pendingImport=null},title={Text("导入地图沙盘？")},text={Text("场景 ${data.id} 将导入沙盘；若同ID已存在，会替换该沙盘槽位。游戏存档不受影响。")},confirmButton={TextButton(onClick={controller?.importPreview(data);pendingImport=null}){Text("导入沙盘")}},dismissButton={TextButton(onClick={pendingImport=null}){Text("取消")}})}
  val picked=selection
  if(picked!=null){
@@ -188,7 +186,7 @@ private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapO
    Text("ID：${picked.placeId.ifEmpty {picked.territoryId.ifEmpty {picked.polityId}}}",style=MaterialTheme.typography.labelSmall)
    if(polity?.id=="nation"){Text("国库${world.nation.treasury}万两 · 债务${world.nation.debt}万两");Text("人口${world.nation.population} · 民心${world.nation.morale} · 稳定${world.nation.stability}")}
    if(territory!=null)Text("归属：${scene.polities.find {it.id==territory.polityId}?.name?:"无主"} · 状态：${territory.status}")
-   if(place!=null&&MunicipalEngine.all(world).any {it.id==picked.placeId})TextButton(onClick={city=picked.placeId;selection=null}){Text("城市详情与建筑")}
+   if(place!=null&&MunicipalEngine.all(world).any {it.id==picked.placeId})TextButton(onClick={gameVm.openCity(picked.placeId);selection=null}){Text("城市详情与建筑")}
    if(place!=null)Text("状态：${scene.placeStates[picked.placeId]?.status?:"active"} · 归属：${scene.polities.find {it.id==place.polityId}?.name?:"未定"}")
    if(region!=null&&region in 0..3){val r=world.regions[region];Text("${r.name} · 人口${r.population} · 治安${r.security} · 腐败${r.corruption}");Text("地方官：${world.people.find {it.id==r.official}?.name?:"暂缺"}")
     TextButton(onClick={selection=null;onRegion(region)}){Text("地区治理、巡游与案卷")}

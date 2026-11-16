@@ -93,7 +93,7 @@ class MainActivity:ComponentActivity() {
      } }
     }
    }
-   ui.world?.let {CharacterChat(vm,it)}
+   ui.world?.let {world->ui.cityId?.let {id->CityDialog(world,id,{vm.closeCity()},::ask,{vm.closeCity();vm.openChat(it)})};CharacterChat(vm,world)}
    if(showMessage) AlertDialog(onDismissRequest={showMessage=false},title={Text("执行反馈")},text={Text(ui.message,Modifier.verticalScroll(rememberScrollState()))},confirmButton={TextButton(onClick={showMessage=false}){Text("关闭")}})
    if(new) NewDialog({new=false}) { a,b,c,e,f,g,h,i,j -> vm.newGame(a,b,c,e,f,g,h,i,j);new=false;tab=0 }
    plan?.let { p -> AlertDialog(onDismissRequest={plan=null},title={Text("确认行动")},text={ Column(Modifier.verticalScroll(rememberScrollState())) { Text(p.description);p.commands.forEach { c -> Spacer(Modifier.height(8.dp));Text(EraRules.render(RealtimeEngine.describe(c),ui.world?.setting?:"工业初兴"),color=MaterialTheme.colorScheme.primary) }; if(p.commands.size>1) Text("政策按各自耗时办理，先预留资金，完成时检查条件。",style=MaterialTheme.typography.bodySmall) } },confirmButton={TextButton(onClick={vm.submit(p.commands,expected);plan=null},enabled=p.commands.isNotEmpty()&&!ui.busy){Text("确认执行")}},dismissButton={TextButton(onClick={plan=null}){Text("返回")}}) }
@@ -176,7 +176,7 @@ class MainActivity:ComponentActivity() {
  }
 }
 @Composable private fun WorldPage(w:World,slot:Int,vm:GameViewModel,ask:(Command)->Unit) {
- var showMap by rememberSaveable {mutableStateOf(false)};var city by rememberSaveable {mutableStateOf<String?>(null)}
+ var showMap by rememberSaveable {mutableStateOf(false)}
  var area by rememberSaveable {mutableIntStateOf(0)};var section by rememberSaveable {mutableIntStateOf(0)}
  var regionGroup by rememberSaveable {mutableStateOf("府县")};var personPage by rememberSaveable {mutableIntStateOf(0)};var selectedPerson by remember {mutableStateOf<Person?>(null)}
  if(showMap){androidx.compose.ui.window.Dialog(onDismissRequest={showMap=false},properties=androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth=false,decorFitsSystemWindows=true)){Surface(Modifier.fillMaxSize()){WorldMapScreen(w,slot,{showMap=false},ask,{area=it;section=0;regionGroup="府县";showMap=false})}}}
@@ -190,7 +190,7 @@ class MainActivity:ComponentActivity() {
     Choices(listOf("概览","府县","行旅","案卷","建设"),regionGroup,{regionGroup=it})
     val r=w.regions[area]
     when(regionGroup) {
-     "府县" -> CountyBrowser(w,area,{city=it})
+     "府县" -> CountyBrowser(w,area,{vm.openCity(it)})
      "概览" -> Panel(r.name,"地方官：${w.people.find {it.id==r.official}?.name?:"暂缺"} · 人口 ${r.population}") {
       Text("地方财政 ${r.funds} 万两");Stat("农业",r.agriculture);Stat(EraRules.industry(w),r.industry);Stat("治安",r.security);Stat("地方腐败",r.corruption);Stat("民心",r.morale)
       Row {TextButton(onClick={regionGroup="行旅"}){Text("安排行程")};TextButton(onClick={regionGroup="案卷"}){Text("查看案件")}}
@@ -214,7 +214,6 @@ class MainActivity:ComponentActivity() {
    else -> AcademyPanel(w,ask)
   }
  }
- city?.let {id->CityDialog(w,id,{city=null},ask,{vm.openChat(it)})}
  selectedPerson?.let {p->AlertDialog(onDismissRequest={selectedPerson=null},title={Text("${p.name} · ${p.role}")},text={Column(Modifier.heightIn(max=420.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(10.dp)){Text("${p.ageQuarters/4}岁 · ${p.stance}");Stat("能力",p.ability);Stat("忠诚",p.loyalty);Stat("信任",p.trust);Stat("怀疑",p.suspicion);Stat("敌意",p.hostility);Text("目标：${p.goal}");p.memories.forEach {Text(it,style=MaterialTheme.typography.bodySmall)}}},confirmButton={TextButton(onClick={selectedPerson=null}){Text("关闭")}})}
 }
 @Composable private fun Departure(area:Int,w:World,ask:(Command)->Unit) {
