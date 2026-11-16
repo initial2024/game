@@ -26,6 +26,14 @@ class CharacterFeatureTest {
   try{compose.waitUntil(10000){compose.onAllNodes(hasText("确认执行") and isEnabled()).fetchSemanticsNodes().size==1}}catch(e:Throwable){val vm=ViewModelProvider(compose.activity)[GameViewModel::class.java];println("CONFIRM_MISSING message=${vm.state.value.message} busy=${vm.state.value.busy} slot=${vm.state.value.slot}");compose.onRoot().printToLog("ChronicleUiDiagnostic");screenshot("confirmation-diagnostic");throw e}
   compose.onNodeWithText("确认执行").performClick()
  }
+ private fun recruitEntry(){
+  val node=compose.onNodeWithText("公开招贤 · 20万两");node.performScrollTo();compose.waitForIdle()
+  val bounds=node.fetchSemanticsNode().boundsInRoot
+  val decor=compose.activity.window.decorView;val ime=if(android.os.Build.VERSION.SDK_INT>=30)decor.rootWindowInsets?.isVisible(android.view.WindowInsets.Type.ime())else null
+  println("RECRUIT_ENTRY bounds=$bounds ime=$ime window=${decor.width}x${decor.height}")
+  compose.onAllNodes(isRoot()).onFirst().printToLog("ChronicleUiDiagnostic")
+  node.assertIsDisplayed().performSemanticsAction(SemanticsActions.OnClick){it()}
+ }
  private fun screenshot(name:String){
   prepareEmulator()
   compose.waitForIdle();Thread.sleep(500)
@@ -86,7 +94,7 @@ class CharacterFeatureTest {
   if(vm.state.value.world==null){vm.newGame("招贤测试","景衡","综合发展","标准","1847");compose.waitUntil(10000){vm.state.value.world!=null&&!vm.state.value.busy}}
   if(!vm.state.value.paused)vm.toggleClock()
   val count=vm.state.value.world!!.people.size
-  navigate(2);compose.onNodeWithText("人物",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("招贤",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("公开招贤 · 20万两").performScrollTo().assertIsDisplayed().performSemanticsAction(SemanticsActions.OnClick){it()};confirm()
+  navigate(2);compose.onNodeWithText("人物",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("招贤",useUnmergedTree=true).performScrollTo().performClick();recruitEntry();confirm()
   compose.waitUntil(10000){vm.state.value.world!!.pending.any {it.command.type=="RECRUIT"}&&!vm.state.value.busy};while(vm.state.value.speed!=64)vm.changeSpeed();vm.toggleClock();compose.waitUntil(15000){vm.state.value.world!!.people.size>=count+2};vm.toggleClock()
   compose.onNodeWithText("查看待选人才").performScrollTo().performClick();compose.onAllNodesWithText("安排官位").onFirst().performScrollTo().performClick()
   compose.onNodeWithText("点选任职州府县").performScrollTo().performClick();compose.onNodeWithText("砺山",useUnmergedTree=true).performClick();compose.onAllNodesWithText("选定此地").onLast().performScrollTo().performClick();compose.onNodeWithText("县丞",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("预览任命").performScrollTo().performClick();confirm()
