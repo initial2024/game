@@ -17,6 +17,10 @@ import org.junit.runner.RunWith
 class CharacterFeatureTest {
  @get:Rule val compose=createAndroidComposeRule<MainActivity>()
  @Before fun prepareEmulator(){if(InstrumentationRegistry.getArguments().getString("ci_emulator")=="true")android.os.ParcelFileDescriptor.AutoCloseInputStream(InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand("am force-stop com.android.launcher3")).use {it.readBytes()}}
+ private fun navigate(index:Int){
+  compose.waitUntil(15000){compose.onAllNodes(hasTestTag("nav-$index") and isEnabled()).fetchSemanticsNodes().size==1}
+  compose.onNodeWithTag("nav-$index").performClick();compose.waitForIdle()
+ }
  private fun screenshot(name:String){
   prepareEmulator()
   compose.waitForIdle();Thread.sleep(500)
@@ -28,7 +32,7 @@ class CharacterFeatureTest {
   val vm=ViewModelProvider(compose.activity)[GameViewModel::class.java];compose.waitUntil(30000){vm.state.value.ready}
   if(vm.state.value.world==null){vm.newGame("对话测试","景衡","综合发展","标准","1847");compose.waitUntil(10000){vm.state.value.world!=null&&!vm.state.value.busy}}
   if(!vm.state.value.paused)vm.toggleClock()
-  compose.onNodeWithText("世界",useUnmergedTree=true).performClick();compose.onNodeWithText("人物",useUnmergedTree=true).performScrollTo().performClick()
+  navigate(2);compose.onNodeWithText("人物",useUnmergedTree=true).performScrollTo().performClick()
   compose.onNodeWithText("与韩砺交谈").performScrollTo().performClick();compose.waitUntil(10000){vm.chat.value.person==1}
   val beforeChat=vm.state.value.world!!
   compose.onAllNodesWithText("2万两",substring=true).assertCountEquals(0)
@@ -61,9 +65,9 @@ class CharacterFeatureTest {
   val vm=ViewModelProvider(compose.activity)[GameViewModel::class.java];compose.waitUntil(30000){vm.state.value.ready}
   if(vm.state.value.world==null){vm.newGame("朝政测试","景衡","综合发展","标准","1847");compose.waitUntil(10000){vm.state.value.world!=null&&!vm.state.value.busy}}
   if(!vm.state.value.paused)vm.toggleClock()
-  compose.onNodeWithText("朝政",useUnmergedTree=true).performClick();compose.onNodeWithText("军政",useUnmergedTree=true).performClick();compose.onNodeWithText("军队与将领").assertIsDisplayed();screenshot("army-management")
+  navigate(1);compose.onNodeWithText("军政",useUnmergedTree=true).performClick();compose.onNodeWithText("军队与将领").assertIsDisplayed();screenshot("army-management")
   compose.onNodeWithText("建设",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("预览营建宫殿").performScrollTo().assertIsDisplayed();screenshot("palace-construction")
-  compose.onNodeWithText("世界",useUnmergedTree=true).performClick();compose.onNodeWithText("人物",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("招贤",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("筹办科举 · 60万两").performScrollTo().assertIsDisplayed();screenshot("talent-examination")
+  navigate(2);compose.onNodeWithText("人物",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("招贤",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("筹办科举 · 60万两").performScrollTo().assertIsDisplayed();screenshot("talent-examination")
   compose.onNodeWithText("宗室",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("选妃",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("安排面见 · 25万两 / 30日").performScrollTo().assertIsDisplayed();screenshot("consort-audience")
   compose.onNodeWithText("名册",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("与林映书交谈").performScrollTo().performClick();compose.waitUntil(10000){vm.chat.value.person!=null&&!vm.state.value.busy}
   val relationship=vm.state.value.world!!.household.members.first().relationship
@@ -75,7 +79,7 @@ class CharacterFeatureTest {
   if(vm.state.value.world==null){vm.newGame("招贤测试","景衡","综合发展","标准","1847");compose.waitUntil(10000){vm.state.value.world!=null&&!vm.state.value.busy}}
   if(!vm.state.value.paused)vm.toggleClock()
   val count=vm.state.value.world!!.people.size
-  compose.onNodeWithText("世界",useUnmergedTree=true).performClick();compose.onNodeWithText("人物",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("招贤",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("公开招贤 · 20万两").performScrollTo().performClick();compose.onNodeWithText("确认执行").performClick()
+  navigate(2);compose.onNodeWithText("人物",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("招贤",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("公开招贤 · 20万两").performScrollTo().performClick();compose.onNodeWithText("确认执行").performClick()
   compose.waitUntil(10000){vm.state.value.world!!.pending.any {it.command.type=="RECRUIT"}&&!vm.state.value.busy};while(vm.state.value.speed!=64)vm.changeSpeed();vm.toggleClock();compose.waitUntil(15000){vm.state.value.world!!.people.size>=count+2};vm.toggleClock()
   compose.onNodeWithText("查看待选人才").performScrollTo().performClick();compose.onAllNodesWithText("安排官位").onFirst().performScrollTo().performClick()
   compose.onNodeWithText("点选任职州府县").performScrollTo().performClick();compose.onNodeWithText("砺山",useUnmergedTree=true).performClick();compose.onAllNodesWithText("选定此地").onLast().performScrollTo().performClick();compose.onNodeWithText("县丞",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("预览任命").performScrollTo().performClick();compose.onNodeWithText("确认执行").performClick()
@@ -84,12 +88,12 @@ class CharacterFeatureTest {
   screenshot("county-deputy-appointed")
  }
  private fun fresh(vm:GameViewModel,name:String,scale:String="中等国家"){
-  compose.waitUntil(30000){vm.state.value.ready&&!vm.state.value.busy};vm.newGame(name,"景衡","综合发展","宽裕","1847",scale=scale,setting=EraRules.ANCIENT);compose.waitUntil(15000){vm.state.value.world?.name==name&&!vm.state.value.busy};if(!vm.state.value.paused)vm.toggleClock();while(vm.state.value.speed!=64)vm.changeSpeed()
+  compose.waitUntil(30000){vm.state.value.ready&&!vm.state.value.busy};vm.newGame(name,"景衡","综合发展","宽裕","1847",scale=scale,setting=EraRules.ANCIENT);compose.waitUntil(15000){vm.state.value.world?.name==name&&!vm.state.value.busy};if(!vm.state.value.paused)vm.toggleClock();while(vm.state.value.speed!=64)vm.changeSpeed();compose.waitForIdle()
  }
  private fun flowTime(vm:GameViewModel,done:()->Boolean){if(vm.state.value.paused)vm.toggleClock();compose.waitUntil(20000){done()};if(!vm.state.value.paused)vm.toggleClock()}
  @Test fun canalIsSelectedConstructedAndMappedWithoutTyping(){
   val vm=ViewModelProvider(compose.activity)[GameViewModel::class.java];fresh(vm,"运河验收")
-  compose.onNodeWithText("朝政",useUnmergedTree=true).performClick();compose.onNodeWithText("建设",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("运河",useUnmergedTree=true).performScrollTo().performClick()
+  navigate(1);compose.onNodeWithText("建设",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("运河",useUnmergedTree=true).performScrollTo().performClick()
   compose.onNodeWithText("点选运河起点").performScrollTo().performClick();compose.onNodeWithText("砺山",useUnmergedTree=true).performClick();compose.onAllNodesWithText("选定此地").onLast().performScrollTo().performClick()
   compose.onNodeWithText("预览运河立项").performScrollTo().performClick();compose.onNodeWithText("确认执行").performClick();compose.waitUntil(10000){vm.state.value.world!!.projects.any {it.kind=="CANAL"}&&!vm.state.value.busy};assertTrue(vm.state.value.world!!.canals.isEmpty())
   flowTime(vm){vm.state.value.world!!.canals.isNotEmpty()};val w=vm.state.value.world!!;assertTrue(MapSnapshotMapper.scene(w,vm.state.value.slot).routes.any {it.kind=="canal"});Store(compose.activity).use {assertEquals(w.canals,it.load(vm.state.value.slot)!!.canals)}
@@ -97,7 +101,7 @@ class CharacterFeatureTest {
  }
  @Test fun warAndIntelligenceHaveRealNativeActionsAndPersistentOutcomes(){
   val vm=ViewModelProvider(compose.activity)[GameViewModel::class.java];fresh(vm,"战事谍报验收","超级大国")
-  compose.onNodeWithText("朝政",useUnmergedTree=true).performClick();compose.onNodeWithText("军政",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("战事",useUnmergedTree=true).performScrollTo().performClick()
+  navigate(1);compose.onNodeWithText("军政",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("战事",useUnmergedTree=true).performScrollTo().performClick()
   compose.onNodeWithText("预览宣战与动员").performScrollTo().performClick();compose.onNodeWithText("确认执行").performClick();compose.waitUntil(10000){vm.state.value.world!!.pending.any {it.command.type=="DECLARE_WAR"}&&!vm.state.value.busy};flowTime(vm){(vm.state.value.world!!.war?.days?:0)>=14}
   repeat(3){val old=vm.state.value.world!!.war!!.battles;compose.onNodeWithText("预览前线交战").performScrollTo().performClick();compose.onNodeWithText("确认执行").performClick();compose.waitUntil(10000){vm.state.value.world!!.pending.any {it.command.type=="WAR_BATTLE"}&&!vm.state.value.busy};flowTime(vm){(vm.state.value.world!!.war?.battles?:0)>old}}
   assertEquals(75,vm.state.value.world!!.war!!.progress);screenshot("war-front-victory");compose.onNodeWithText("预览停战 · 40万两 / 7日").performScrollTo().performClick();compose.onNodeWithText("确认执行").performClick();compose.waitUntil(10000){vm.state.value.world!!.pending.any {it.command.type=="WAR_PEACE"}&&!vm.state.value.busy};flowTime(vm){vm.state.value.world!!.war==null};assertEquals("nation",MapSnapshotMapper.scene(vm.state.value.world!!,vm.state.value.slot).territories.first {it.id=="frontier-0"}.polityId)

@@ -61,6 +61,8 @@ import cn.chronicle.core.*
   Text("交战14日/35万两，依兵员、主将能力与忠诚、训练、士气、补给、情报及保存的随机种子结算。优势≥60后停战可登记边地移交；失利可能被迫撤回。",style=MaterialTheme.typography.bodySmall)
   OutlinedButton(onClick={ask(Command("WAR_BATTLE"))},enabled=war.days>=14){Text(if(war.days<14)"动员尚需${14-war.days}日"else"预览前线交战")}
   OutlinedButton(onClick={ask(Command("WAR_PEACE"))}){Text("预览停战 · 40万两 / 7日")}
+  TextButton(onClick={ask(Command("WAR_WITHDRAW"))}){Text("无条件撤军 · 无拨款 / 7日")}
+  Text("撤军不获领土，民心-3、稳定-3，邦交保持敌对。",style=MaterialTheme.typography.bodySmall)
  }
  Text("这是持续时间驱动的战略战役，结果会改变军队、财政、民心和地图归属。",style=MaterialTheme.typography.bodySmall)
 }

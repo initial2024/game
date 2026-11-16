@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable data class WarFront(val neighbor:Int,val army:String,val days:Int=0,val battles:Int=0,val progress:Int=0,val enemy:Int,val weariness:Int=0)
 object WarfareEngine {
- val types=setOf("DECLARE_WAR","WAR_BATTLE","WAR_PEACE")
+ val types=setOf("DECLARE_WAR","WAR_BATTLE","WAR_PEACE","WAR_WITHDRAW")
  fun validate(w:World,c:Command):String? {
   val war=w.war
   if(c.type=="DECLARE_WAR"){
@@ -25,6 +25,7 @@ object WarfareEngine {
    return w.copy(war=WarFront(c.region,c.target,enemy=enemy.strength*70),nation=w.nation.copy(morale=(w.nation.morale-8).coerceAtLeast(0),stability=(w.nation.stability-4).coerceAtLeast(0)),neighbors=w.neighbors.mapIndexed {i,n->n.copy(relation=if(i==c.region)0 else (n.relation-5).coerceAtLeast(0))})
   }
   val war=w.war!!;val army=CrownEngine.units(w).first {it.id==war.army}
+  if(c.type=="WAR_WITHDRAW"){events+="无条件撤军完成：停止战争经费、不获得领土，双方仍保持敌对；民心-3、稳定-3，不退还已发生支出。";return w.copy(war=null,nation=w.nation.copy(morale=(w.nation.morale-3).coerceAtLeast(0),stability=(w.nation.stability-3).coerceAtLeast(0)))}
   if(c.type=="WAR_PEACE"){
    var scene=MapSnapshotMapper.state(w);val won=war.progress>=60||war.enemy<=0
    if(won)scene=scene.copy(territories=scene.territories.map {if(it.id=="frontier-${war.neighbor}")it.copy(polityId="nation",status="controlled",description="${w.day}日战争停战协议登记移交。")else it},places=scene.places.mapValues {(id,p)->if(id=="neighbor-city-${war.neighbor}")p.copy(polityId="nation")else p})

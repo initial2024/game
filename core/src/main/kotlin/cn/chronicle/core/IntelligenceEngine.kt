@@ -47,8 +47,9 @@ object IntelligenceEngine {
  }
  fun removePerson(w:World,id:Int,events:MutableList<String>):World {
   events+="${w.people.first {it.id==id}.name}遭遇死亡事件；历史身份保留，不能再次任职。"
+  if(id==2&&w.caseFile.remoteDays>0)events+="监察使离世，未完成的远程委派中止，不再以死者名义归报。"
   val family=w.familyPeople.entries.firstOrNull {it.value==id}?.key
-  return w.copy(people=w.people.map {if(it.id==id)it.copy(alive=false,role="已故",memories=(it.memories+"${w.day}日遇害").takeLast(8))else it},regions=w.regions.map {if(it.official==id)it.copy(official=-1)else it},armies=CrownEngine.units(w).map {if(it.commander==id)it.copy(commander=-1)else it},studies=w.studies.filter {it.person!=id},journey=w.journey?.takeUnless {it.companion==id||it.regent==id},household=w.household.copy(members=w.household.members.map {if(it.id==family)it.copy(alive=false,diedDay=w.day)else it},pregnancy=w.household.pregnancy?.takeUnless {it.parent==family}))
+  return w.copy(caseFile=if(id==2)w.caseFile.copy(remoteDays=0)else w.caseFile,people=w.people.map {if(it.id==id)it.copy(alive=false,role="已故",memories=(it.memories+"${w.day}日遇害").takeLast(8))else it},regions=w.regions.map {if(it.official==id)it.copy(official=-1)else it},armies=CrownEngine.units(w).map {if(it.commander==id)it.copy(commander=-1)else it},studies=w.studies.filter {it.person!=id},journey=w.journey?.takeUnless {it.companion==id||it.regent==id},household=w.household.copy(members=w.household.members.map {if(it.id==family)it.copy(alive=false,diedDay=w.day)else it},pregnancy=w.household.pregnancy?.takeUnless {it.parent==family}))
  }
  fun quarter(w:World,ledger:MutableList<String>):World {
   val pressure=(3+w.nation.corruption/20+if(w.war!=null)3 else 0);var threat=(w.intelligence.threat+pressure).coerceAtMost(100);var n=w.nation

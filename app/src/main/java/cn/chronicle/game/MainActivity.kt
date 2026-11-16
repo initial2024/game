@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -68,7 +69,7 @@ class MainActivity:ComponentActivity() {
    LaunchedEffect(ui.slot){plan=null;decreePerson=null}
    val pageState=rememberSaveableStateHolder()
    Scaffold(bottomBar={
-    NavigationBar(containerColor=MaterialTheme.colorScheme.surface) { listOf("剧情" to Icons.Outlined.AutoStories,"朝政" to Icons.Outlined.AccountBalance,"世界" to Icons.Outlined.Public,"档案" to Icons.Outlined.Inventory2).forEachIndexed { i,(s,icon) -> NavigationBarItem(selected=tab==i,onClick={tab=i},icon={Icon(icon,s)},label={Text(s)},enabled=!ui.busy) } }
+    NavigationBar(containerColor=MaterialTheme.colorScheme.surface) { listOf("剧情" to Icons.Outlined.AutoStories,"朝政" to Icons.Outlined.AccountBalance,"世界" to Icons.Outlined.Public,"档案" to Icons.Outlined.Inventory2).forEachIndexed { i,(s,icon) -> NavigationBarItem(modifier=Modifier.testTag("nav-$i"),selected=tab==i,onClick={tab=i},icon={Icon(icon,s)},label={Text(s)},enabled=!ui.busy) } }
    }) { padding ->
     Column(Modifier.fillMaxSize().padding(padding).imePadding()) {
      Row(Modifier.fillMaxWidth().padding(horizontal=20.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically) {

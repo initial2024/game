@@ -43,6 +43,11 @@ class WorldExpansionTest {
   val w=strong().let {w->w.copy(armies=CrownEngine.units(w).map {if(it.id=="north")it.copy(soldiers=1000,training=0,morale=10,supply=30)else it},neighbors=w.neighbors.map {it.copy(strength=100)})};var x=days(apply(w,Command("DECLARE_WAR",target="north",region=1)),21)
   repeat(3){if(x.war!=null)x=days(apply(x,Command("WAR_BATTLE")),14)};assertNull(x.war);assertEquals("neighbor-1",MapSnapshotMapper.scene(x,1).territories.first {it.id=="frontier-1"}.polityId);assertTrue(x.nation.stability<w.nation.stability)
  }
+ @Test fun bankruptWarCanAlwaysWithdrawAndDeadInspectorCannotReport(){
+  val w=game();val army=CrownEngine.units(w).first {it.id=="north"};val stranded=w.copy(nation=w.nation.copy(treasury=0,debt=2000),armies=CrownEngine.units(w).map {if(it.id==army.id)it.copy(supply=0)else it},war=WarFront(0,army.id,days=30,enemy=3500))
+  assertNotNull(Rules.validate(stranded,Command("WAR_PEACE")));assertNotNull(Rules.validate(stranded,Command("WAR_BATTLE")));val returned=days(apply(stranded,Command("WAR_WITHDRAW")),7);assertNull(returned.war);assertEquals(0,returned.nation.treasury);assertEquals(2000,returned.nation.debt);assertEquals("neighbor-0",MapSnapshotMapper.scene(returned,1).territories.first {it.id=="frontier-0"}.polityId)
+  val events=mutableListOf<String>();val stopped=IntelligenceEngine.removePerson(w.copy(caseFile=w.caseFile.copy(remoteDays=10)),2,events);assertEquals(0,stopped.caseFile.remoteDays);assertTrue(days(stopped,11).caseFile.evidence.isEmpty());assertFalse(stopped.people[2].alive)
+ }
  @Test fun canalsAreRealDelayedProjectsWithMapRoutesAndMaintenance(){
   val w=game();val c=CanalEngine.plan(w,"county-jingji-01","place-0");val x=apply(w,c);assertEquals(w.nation.treasury-Rules.cost(c),x.nation.treasury);assertTrue(x.canals.isEmpty());assertFails {apply(x,c)}
   val before=days(x,c.days-1);assertTrue(before.canals.isEmpty());val done=days(before,1);assertEquals(1,done.canals.size);assertTrue(done.projects.none {it.kind=="CANAL"});assertTrue(MapSnapshotMapper.scene(done,1).routes.any {it.kind=="canal"&&it.fromId==c.target&&it.toId==c.objective});Rules.verify(done)
