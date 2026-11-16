@@ -58,4 +58,10 @@ class MunicipalTest {
   var w=game();repeat(8){w=days(w,90);assertEquals(w.nation.population,w.regions.sumOf {it.population});assertEquals(w.nation.population,w.towns.sumOf {t->MunicipalEngine.population(w,t)})}
  }
 
+ @Test fun replacementGovernorCanStillReceiveFreeCourtCorrespondence(){
+  val w=game();val id=w.people.maxOf {it.id}+1;val p=Person(id,"新任知府","澄江地方官",0,120,60,65,"依法施政","延续改革")
+  val next=w.copy(people=w.people+p,regions=w.regions.map {if(it.id==0)it.copy(official=id)else it})
+  assertEquals(p,MunicipalEngine.officer(next,next.towns.first {it.id=="city-r0"}));assertNull(DialogueEngine.access(next,id));assertTrue(DialogueEngine.context(next,p,true).contains("常平仓"));assertNull(Rules.validate(next,Command("CONVERSE",target=id.toString(),mode="倾听",objective="近况")))
+ }
+
 }
