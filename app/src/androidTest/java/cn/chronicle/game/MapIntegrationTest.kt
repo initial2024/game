@@ -86,7 +86,7 @@ class MapIntegrationTest {
   val w=store.load(1)!!;assertEquals("工业初兴",w.setting);assertNull(w.cartography);assertEquals(raw,store.readableDatabase.rawQuery("SELECT json FROM saves WHERE slot=1",null).use {it.moveToFirst();it.getString(0)})
   val good="""{"type":"place-select","sceneId":"game-slot-1","placeId":"city-r0"}""";assertEquals("city-r0",MapBridgePolicy.selection(good,w,1).placeId)
   for(bad in listOf(good.replace("game-slot-1","game-slot-2"),good.replace("city-r0","missing"),good.dropLast(1)+",\"treasury\":999}")){try{MapBridgePolicy.selection(bad,w,1);fail("unsafe message accepted")}catch(_:IllegalArgumentException){}}
-  assertFalse(MapBridgePolicy.trusted("https://evil.test/assets/maps/chronicle_world_map_v4.html"));assertFalse(MapBridgePolicy.trusted("file:///android_asset/map.html"));assertFalse(MapBridgePolicy.trusted(MapBridgePolicy.PAGE+"/../evil"))
+  assertFalse(MapBridgePolicy.trusted("https://evil.test/assets/maps/chronicle_world_map.html"));assertFalse(MapBridgePolicy.trusted("file:///android_asset/map.html"));assertFalse(MapBridgePolicy.trusted(MapBridgePolicy.ORIGIN+"/assets/maps/chronicle_world_map_v4.html"));assertFalse(MapBridgePolicy.trusted(MapBridgePolicy.PAGE+"/../evil"))
   val out=RealtimeEngine.submit(w,Command("CITY_FOUND"),0);store.commit(1,0,out);store.copyTo(1,2);val next=RealtimeEngine.advance(out.world,90);store.commit(1,1,next);store.close();store=Store(context,dbName)
   assertEquals(2L,store.load(1)!!.revision);assertEquals(1L,store.load(2)!!.revision);assertEquals("planned",MapSnapshotMapper.scene(store.load(1)!!,1).placeStates["settlement-r0"]!!.status);store.close()
   val hostile="引号\"\\\n\u2028\u2029');window.evil=true;//";assertEquals(hostile,JSONTokener(MapBridgePolicy.quoted(hostile)).nextValue())

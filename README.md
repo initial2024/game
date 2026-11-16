@@ -1,4 +1,4 @@
-> 当前开发分支正在验证 0.3.0：疆域细化、人物对话、学院与 Hugging Face 搜索。范围与证据见 [升级测试报告](docs/UPGRADE_0.3_TESTING.md)。
+> 当前开发分支正在验证 0.3.1：疆域细化、人物对话、学院与 Hugging Face 搜索。范围与证据见 [升级测试报告](docs/UPGRADE_0.3_TESTING.md)。
 
 # 山河纪年 · Chronicle AI
 

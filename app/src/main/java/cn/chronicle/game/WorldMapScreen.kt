@@ -36,7 +36,7 @@ import java.io.ByteArrayInputStream
 @Serializable data class MapHostMessage(val type:String,val sceneId:String="",val placeId:String="",val territoryId:String="",val polityId:String="")
 object MapBridgePolicy {
  const val ORIGIN="https://appassets.androidplatform.net"
- const val PAGE="$ORIGIN/assets/maps/chronicle_world_map_v4.html"
+ const val PAGE="$ORIGIN/assets/maps/chronicle_world_map.html"
  fun trusted(url:String?)=url?.substringBefore('?')==PAGE
  fun selection(text:String,world:World,slot:Int):MapHostMessage {
   require(text.length<=1024)

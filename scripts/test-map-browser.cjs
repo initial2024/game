@@ -1,7 +1,7 @@
 const {chromium}=require('playwright');
 const fs=require('node:fs'),http=require('node:http'),assert=require('node:assert/strict'),path=require('node:path');
 const baseline=process.argv.includes('--baseline');
-const html=fs.readFileSync(baseline?'integration/map-v4/upstream/chronicle_world_map_v4.html':'app/src/main/assets/maps/chronicle_world_map_v4.html','utf8');
+const html=fs.readFileSync(baseline?'integration/map-v4/upstream/chronicle_world_map_v4.html':'app/src/main/assets/maps/chronicle_world_map.html','utf8');
 const script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
 fs.mkdirSync('work/map-browser',{recursive:true});fs.writeFileSync('work/map-browser/extracted.js',script);
 require('node:child_process').execFileSync(process.execPath,['--check','work/map-browser/extracted.js']);
