@@ -49,7 +49,7 @@ class CharacterFeatureTest {
   compose.onNodeWithText("说些什么…").performTextInput("请扩建学堂");compose.onNodeWithText("发送对话").performClick();compose.waitUntil(15000){!vm.chat.value.working&&vm.chat.value.records.size>=2}
   assertTrue(vm.state.value.world!!.people.first {it.id==officer.id}.trust>officer.trust);compose.onNodeWithText("本次：信任+3",substring=true).assertIsDisplayed()
   assertNull(vm.state.value.world!!.towns.first {it.id==t.id}.work)
-  compose.onNodeWithTag("decree-assistant").performClick();compose.onNodeWithText("旨意内容").performTextReplacement("扩建学堂")
+  compose.onNodeWithTag("decree-assistant",useUnmergedTree=true).performClick();compose.onNodeWithText("旨意内容").performTextReplacement("扩建学堂")
   compose.onNodeWithText("预览旨意").performClick();compose.onNodeWithText("确认行动").assertIsDisplayed();assertNull(vm.state.value.world!!.towns.first {it.id==t.id}.work)
   compose.onNodeWithText("总费用110万两",substring=true).assertIsDisplayed();screenshot("county-decree-preview")
   compose.onNodeWithText("确认执行").performClick();compose.waitUntil(10000){vm.state.value.world!!.towns.first {it.id==t.id}.work!=null&&!vm.state.value.busy}

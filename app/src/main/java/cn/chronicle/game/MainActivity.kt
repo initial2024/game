@@ -157,7 +157,7 @@ class MainActivity:ComponentActivity() {
    "产业" -> Panel(if(w.setting==EraRules.ANCIENT)"百工与格物" else "产业与科技","发展属性均为0–100") {
     Stat("农业",n.agriculture);Stat("商业",n.commerce);Stat(EraRules.industry(w),n.industry);Stat(if(w.setting==EraRules.ANCIENT)"格物" else "科技",n.technology);Stat("基础设施",n.infrastructure)
     Text("持续研究 ${n.research} 万两/季",style=MaterialTheme.typography.bodySmall)
-    Row {TextButton(onClick={ask(Command("FACTORY"))}){Text("工厂")};TextButton(onClick={ask(Command("FARM"))}){Text("水利")};TextButton(onClick={ask(Command("RESEARCH"))}){Text("研发")};TextButton(onClick={ask(Command("ROAD"))}){Text("道路")}}
+    Row {TextButton(onClick={ask(Command(EraRules.factory(w)))}){Text(if(w.setting==EraRules.ANCIENT)"作坊"else"工厂")};TextButton(onClick={ask(Command("FARM"))}){Text("水利")};TextButton(onClick={ask(Command("RESEARCH"))}){Text(if(w.setting==EraRules.ANCIENT)"格物"else"研发")};TextButton(onClick={ask(Command("ROAD"))}){Text("道路")}}
    }
    "民生" -> Panel("人口与朝政") {
     Text("全国人口 ${n.population} 人");Stat("民心",n.morale);Stat("稳定",n.stability);Stat("行政",n.administration);Stat("中央腐败",n.corruption);Stat("军队实力",n.military)
