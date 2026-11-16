@@ -19,8 +19,18 @@ class CharacterFeatureTest {
  @get:Rule val compose=createAndroidComposeRule<MainActivity>()
  @Before fun prepareEmulator(){if(InstrumentationRegistry.getArguments().getString("ci_emulator")=="true")android.os.ParcelFileDescriptor.AutoCloseInputStream(InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand("am force-stop com.android.launcher3")).use {it.readBytes()}}
  private fun navigate(index:Int){
+  val vm=ViewModelProvider(compose.activity)[GameViewModel::class.java];val name=vm.state.value.world?.name?:error("World not ready")
+  compose.waitUntil(15000){compose.onAllNodes(hasTestTag("world-header") and hasText(name,substring=true)).fetchSemanticsNodes().size==1}
   compose.waitUntil(15000){compose.onAllNodes(hasTestTag("nav-$index") and isEnabled()).fetchSemanticsNodes().size==1}
   compose.onNodeWithTag("nav-$index").performClick();compose.waitForIdle()
+ }
+ private fun awaitChatInput(vm:GameViewModel,id:Int?=vm.chat.value.person){
+  compose.waitUntil(15000){vm.chat.value.person==id&&compose.onAllNodes(hasText("说些什么…") and hasSetTextAction()).fetchSemanticsNodes().size==1}
+ }
+ private fun scrollActivate(node:SemanticsNodeInteraction){
+  node.performScrollTo();compose.waitForIdle()
+  compose.waitUntil(10000){runCatching {node.assertIsDisplayed()}.isSuccess}
+  node.performSemanticsAction(SemanticsActions.OnClick){it()}
  }
  private fun confirm(){
   try{compose.waitUntil(10000){compose.onAllNodes(hasText("确认执行") and isEnabled()).fetchSemanticsNodes().size==1}}catch(e:Throwable){val vm=ViewModelProvider(compose.activity)[GameViewModel::class.java];println("CONFIRM_MISSING message=${vm.state.value.message} busy=${vm.state.value.busy} slot=${vm.state.value.slot}");compose.onRoot().printToLog("ChronicleUiDiagnostic");screenshot("confirmation-diagnostic");throw e}
@@ -32,7 +42,7 @@ class CharacterFeatureTest {
   val decor=compose.activity.window.decorView;val ime=if(android.os.Build.VERSION.SDK_INT>=30)decor.rootWindowInsets?.isVisible(android.view.WindowInsets.Type.ime())else null
   println("RECRUIT_ENTRY bounds=$bounds ime=$ime window=${decor.width}x${decor.height}")
   compose.onAllNodes(isRoot()).onFirst().printToLog("ChronicleUiDiagnostic")
-  node.assertIsDisplayed().performSemanticsAction(SemanticsActions.OnClick){it()}
+  compose.waitUntil(10000){runCatching {node.assertIsDisplayed()}.isSuccess};node.performSemanticsAction(SemanticsActions.OnClick){it()}
  }
  private fun screenshot(name:String){
   prepareEmulator()
@@ -46,7 +56,7 @@ class CharacterFeatureTest {
   if(vm.state.value.world==null){vm.newGame("对话测试","景衡","综合发展","标准","1847");compose.waitUntil(10000){vm.state.value.world!=null&&!vm.state.value.busy}}
   if(!vm.state.value.paused)vm.toggleClock()
   navigate(2);compose.onNodeWithText("人物",useUnmergedTree=true).performScrollTo().performClick()
-  compose.onNodeWithText("与韩砺交谈").performScrollTo().assertIsDisplayed().performSemanticsAction(SemanticsActions.OnClick){it()};try{compose.waitUntil(10000){vm.chat.value.person==1}}catch(e:Throwable){println("OPEN_CHAT_MISSING person=${vm.chat.value.person} note=${vm.chat.value.note} message=${vm.state.value.message} busy=${vm.state.value.busy}");compose.onRoot().printToLog("ChronicleUiDiagnostic");screenshot("open-person-diagnostic");throw e}
+  scrollActivate(compose.onNodeWithText("与韩砺交谈"));try{awaitChatInput(vm,1)}catch(e:Throwable){println("OPEN_CHAT_MISSING person=${vm.chat.value.person} note=${vm.chat.value.note} message=${vm.state.value.message} busy=${vm.state.value.busy}");compose.onAllNodes(isRoot()).onFirst().printToLog("ChronicleUiDiagnostic");screenshot("open-person-diagnostic");throw e}
   val beforeChat=vm.state.value.world!!
   compose.onAllNodesWithText("2万两",substring=true).assertCountEquals(0)
   compose.onNodeWithText("说些什么…").performTextInput("你希望到国家学院学习吗？");compose.onNodeWithText("发送对话").performClick()
@@ -64,7 +74,7 @@ class CharacterFeatureTest {
   if(vm.state.value.world==null){vm.newGame("旨意测试","景衡","综合发展","标准","1847");compose.waitUntil(10000){vm.state.value.world!=null&&!vm.state.value.busy}}
   if(!vm.state.value.paused)vm.toggleClock()
   val before=vm.state.value.world!!;val t=before.towns.first {it.rank=="县城"&&it.work==null};val officer=MunicipalEngine.officer(before,t)!!
-  vm.openCity(t.id);compose.onNodeWithText("官员",useUnmergedTree=true).performClick();compose.onNodeWithText("与地方官交谈").performScrollTo().performClick();compose.waitUntil(10000){vm.chat.value.person==officer.id}
+  vm.openCity(t.id);compose.onNodeWithText("官员",useUnmergedTree=true).performClick();compose.onNodeWithText("与地方官交谈").performScrollTo().performClick();awaitChatInput(vm,officer.id)
   compose.onNodeWithText("说些什么…").performTextInput("请扩建学堂");compose.onNodeWithText("发送对话").performClick();compose.waitUntil(15000){!vm.chat.value.working&&vm.chat.value.records.size>=2}
   assertTrue(vm.state.value.world!!.people.first {it.id==officer.id}.trust>officer.trust);compose.onNodeWithText("本次：信任+3",substring=true).assertIsDisplayed()
   assertNull(vm.state.value.world!!.towns.first {it.id==t.id}.work)
@@ -84,7 +94,7 @@ class CharacterFeatureTest {
   compose.onNodeWithText("建设",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("预览营建宫殿").performScrollTo().assertIsDisplayed();screenshot("palace-construction")
   navigate(2);compose.onNodeWithText("人物",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("招贤",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("筹办科举 · 60万两").performScrollTo().assertIsDisplayed();screenshot("talent-examination")
   compose.onNodeWithText("宗室",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("选妃",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("安排面见 · 25万两 / 30日").performScrollTo().assertIsDisplayed();screenshot("consort-audience")
-  compose.onNodeWithText("名册",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("与林映书交谈").performScrollTo().performClick();compose.waitUntil(10000){vm.chat.value.person!=null&&!vm.state.value.busy}
+  compose.onNodeWithText("名册",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("与林映书交谈").performScrollTo().performClick();compose.waitUntil(10000){vm.chat.value.person!=null&&!vm.state.value.busy};awaitChatInput(vm)
   val relationship=vm.state.value.world!!.household.members.first().relationship
   compose.onNodeWithText("说些什么…").performTextInput("家人近况如何");compose.onNodeWithText("发送对话").performClick();try{compose.waitUntil(15000){!vm.chat.value.working&&vm.chat.value.records.size>=2}}catch(e:Exception){println("FAMILY_CHAT_DEBUG chat=${vm.chat.value} message=${vm.state.value.message} busy=${vm.state.value.busy}");screenshot("household-chat-diagnostic");throw e};assertTrue(vm.state.value.world!!.household.members.first().relationship>relationship);screenshot("household-conversation");compose.onNodeWithText("关闭对话").performClick()
 
@@ -111,13 +121,13 @@ class CharacterFeatureTest {
   if(vm.state.value.world==null){vm.newGame("内存压力验证","景衡","综合发展","标准","1847");compose.waitUntil(15000){vm.state.value.world!=null&&!vm.state.value.busy}}
   if(!vm.state.value.paused)vm.toggleClock()
   compose.runOnUiThread {vm.openChat(2);vm.closeChat();vm.openChat(1);compose.activity.onTrimMemory(android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW)}
-  compose.waitUntil(15000){vm.chat.value.person==1};compose.onNodeWithText("关闭对话").assertIsDisplayed().performClick();compose.waitUntil(10000){vm.chat.value.person==null}
+  awaitChatInput(vm,1);compose.onNodeWithText("关闭对话").assertIsDisplayed().performClick();compose.waitUntil(10000){vm.chat.value.person==null}
  }
  @Test fun countyTroopsOfficersResourcesAndPayrollArePlayable(){
   val vm=ViewModelProvider(compose.activity)[GameViewModel::class.java];fresh(vm,"地方军物资验收")
   val start=vm.state.value.world!!;val town=start.towns.first {it.id=="county-jingji-01"};val garrison=start.localDefense.units.first {it.home==town.id&&it.kind=="县兵"};val officer=start.people.first {it.id==garrison.commander}
   vm.openCity(town.id);compose.onNodeWithText("兵籍",useUnmergedTree=true).performClick();compose.onNodeWithText("军官",useUnmergedTree=true).performScrollTo().performClick()
-  compose.onNodeWithText("俸禄100两/季",substring=true).assertIsDisplayed();compose.onNodeWithText("与${officer.name}交谈").performScrollTo().performClick();compose.waitUntil(10000){vm.chat.value.person==officer.id}
+  compose.onNodeWithText("俸禄100两/季",substring=true).assertIsDisplayed();compose.onNodeWithText("与${officer.name}交谈").performScrollTo().performClick();awaitChatInput(vm,officer.id)
   compose.onNodeWithText("说些什么…").performTextInput("军饷是否按时发放？");compose.onNodeWithText("发送对话").performClick();compose.waitUntil(15000){!vm.chat.value.working&&vm.chat.value.records.size>=2}
   assertTrue(vm.state.value.world!!.people.first {it.id==officer.id}.trust>officer.trust);assertEquals(start.day,vm.state.value.world!!.day);screenshot("county-military-officer-chat");compose.onNodeWithText("关闭对话").performClick()
   vm.openCity(town.id);compose.onNodeWithText("兵籍",useUnmergedTree=true).performClick();compose.onNodeWithText("招募50人").performScrollTo().performClick();confirm();compose.waitUntil(10000){vm.state.value.world!!.pending.any {it.command.type=="LOCAL_RECRUIT"}&&!vm.state.value.busy}
