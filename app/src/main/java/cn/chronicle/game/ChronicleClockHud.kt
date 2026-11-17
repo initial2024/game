@@ -56,6 +56,11 @@ internal fun ChronicleClockHud(world: World, ui: UiState, vm: GameViewModel, com
      onClick = { vm.changeSpeed() },
      modifier = Modifier.testTag(if (compact) "map-speed" else "clock-speed")
     ) { Text("×${ui.speed}") }
+    TextButton(
+     onClick = { vm.advanceOneDay() },
+     modifier = Modifier.testTag(if (compact) "map-clock-step" else "clock-step"),
+     enabled = ui.paused && !ui.busy && !hasBulletin && !world.ended
+    ) { Text("走1日") }
     Text(
      status,
      modifier = Modifier.weight(1f).testTag(if (compact) "map-clock-status" else "clock-status"),
