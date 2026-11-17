@@ -14,8 +14,8 @@ if [ "$OPTIMIZED_RELEASE" = "true" ]; then
 else
 adb install app.apk
 adb install test.apk
-bash scripts/run-device-tests.sh cn.chronicle.game.AutoLoadChatTest "$RUNNER_TEMP/map-device-report/auto-load"
 CHRONICLE_ONLINE_TEST=true bash scripts/run-device-tests.sh cn.chronicle.game.HubLiveTest "$RUNNER_TEMP/map-device-report/huggingface"
+bash scripts/run-device-tests.sh cn.chronicle.game.AutoLoadChatTest "$RUNNER_TEMP/map-device-report/auto-load"
 bash scripts/run-device-tests.sh cn.chronicle.game.CharacterFeatureTest "$RUNNER_TEMP/map-device-report/characters"
 bash scripts/run-device-tests.sh cn.chronicle.game.ScreenTest,cn.chronicle.game.StorageTest "$RUNNER_TEMP/map-device-report/existing"
 adb shell am force-stop cn.chronicle.shanhe
