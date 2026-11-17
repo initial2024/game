@@ -163,7 +163,7 @@ private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapO
  Column(Modifier.fillMaxSize()) {
   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){TextButton(onClick={if(editor)editor=false else onClose()}){Text(if(editor)"返回游戏地图" else "返回地区列表")};if(!editor)TextButton(onClick={chooseArmy=true}){Text("地图调兵")};TextButton(onClick={editor=!editor;selection=null;mapArmy=""}){Text(if(editor)"查看游戏" else "地图沙盘")}}
   if(!editor&&mapArmy.isNotEmpty())Row(Modifier.padding(horizontal=12.dp)){val unit=CrownEngine.units(world).find {it.id==mapArmy};Text("${unit?.name?:"部队"} · 驻${unit?.let {world.regions[it.region].name}?:"未定"} · 点地图预览调防/战令",Modifier.weight(1f),style=MaterialTheme.typography.labelSmall);TextButton(onClick={mapArmy=""}){Text("取消选军")}}
-  if(!editor)Row(Modifier.fillMaxWidth()){TextButton(onClick={gameVm.toggleClock()},modifier=Modifier.testTag("map-clock")){Text(if(clock.paused)"继续时间" else "暂停时间")};TextButton(onClick={gameVm.changeSpeed()},modifier=Modifier.testTag("map-speed")){Text("×${clock.speed}")};Text(world.date,Modifier.padding(top=12.dp),style=MaterialTheme.typography.labelSmall)}
+  if(!editor)ChronicleClockHud(clock.world?:world,clock,gameVm,compact=true)
   if(clock.message.isNotBlank())Row(Modifier.padding(horizontal=12.dp)){Text(clock.message,Modifier.weight(1f),maxLines=2,style=MaterialTheme.typography.labelSmall);TextButton(onClick={gameVm.message("")}){Text("收起反馈")}}
   if(editor)Text("地图沙盘 · 编辑与导入只保存在地图沙盘，不改变游戏",Modifier.padding(horizontal=12.dp),style=MaterialTheme.typography.labelSmall)
   if(error.isNotBlank())Text(error,Modifier.padding(12.dp),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.error)
