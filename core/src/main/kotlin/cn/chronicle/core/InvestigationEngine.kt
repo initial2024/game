@@ -21,10 +21,10 @@ object InvestigationEngine {
  fun qualified(w:World,b:CaseBlueprint,t:Town):Boolean=when(b.domain){"军务"->w.localDefense.units.any {it.home==t.id&&it.soldiers>0};"工造"->(t.buildings["WORKSHOP"]?:0)>0||t.work!=null;"宫务"->t.region==0;else->true}
  fun spawn(w:World,townId:String?=null,blueprintId:String?=null,venue:String?=null):World {
   if(!w.caseBook.enabled||w.caseBook.cases.count {!it.resolved}>=8)return w
-  val towns=w.towns.filter {t->MunicipalEngine.officer(w,t)!=null&&w.caseBook.cases.none {!it.resolved&&it.town==t.id}}
-  val t=towns.find {it.id==townId}?:towns.getOrNull(Seeded.pick(w,"town:${w.turn}:${w.caseBook.serial}",towns.size.coerceAtLeast(1)))?:return w
+  val towns=w.towns.filter {t->MunicipalEngine.officer(w,t)!=null&&w.caseBook.cases.none {!it.resolved&&it.town==t.id}&&(blueprintId==null||CaseLibrary.all.any {it.id==blueprintId&&qualified(w,it,t)&&w.caseBook.cases.none {c->c.town==t.id&&c.blueprint==it.id&&w.day-c.openedDay<720}})}
+  val t=(if(townId!=null)towns.find {it.id==townId}else towns.getOrNull(Seeded.pick(w,"town:${w.turn}:${w.caseBook.serial}",towns.size.coerceAtLeast(1))))?:return w
   val eligible=CaseLibrary.all.filter {qualified(w,it,t)&&w.caseBook.cases.none {c->c.town==t.id&&c.blueprint==it.id&&w.day-c.openedDay<720}}
-  val b=eligible.find {it.id==blueprintId}?:eligible.getOrNull(Seeded.pick(w,"blueprint:${w.turn}:${w.caseBook.serial}",eligible.size.coerceAtLeast(1)))?:return w
+  val b=(if(blueprintId!=null)eligible.find {it.id==blueprintId}else eligible.getOrNull(Seeded.pick(w,"blueprint:${w.turn}:${w.caseBook.serial}",eligible.size.coerceAtLeast(1))))?:return w
   val serial=w.caseBook.serial+1;val id="docket-$serial-${t.id}";val branch=Seeded.pick(w,id,6)
   val chief=MunicipalEngine.officer(w,t)!!.id;val deputy=w.people.firstOrNull {it.id==t.deputy&&it.alive}?.id?:chief
   val truth=listOf("经办侵吞","替罪指控","上下串通","合法应急","恶意构陷","误会与疏漏")[branch]
@@ -44,8 +44,8 @@ object InvestigationEngine {
   }
   val complainant=x.adventure.encounters.firstOrNull {it.forced&&!it.released&&w.day-it.day>=30&&x.caseBook.cases.none {c->c.grievancePerson==it.person}}
   if(complainant!=null&&x.caseBook.cases.count {!it.resolved}<8){
-   val before=x.caseBook.serial;x=spawn(x,blueprintId="case-63",venue=if(covert(x))"驿站投帖"else"叩阍鸣冤")
-   if(x.caseBook.serial>before){val id=x.caseBook.cases.last().id;x=x.copy(caseBook=x.caseBook.copy(cases=x.caseBook.cases.map {if(it.id==id)it.copy(truth="王命强制",culprit=-1,grievancePerson=complainant.person)else it}));events+="【陈情】有人对王命强制安排提出异议。须核实当事人、见证与登记，不可因触犯君威自动判作诬告。"}
+   val before=x.caseBook.serial;x=spawn(x,blueprintId="case-62",venue=if(covert(x))"驿站投帖"else"叩阍鸣冤")
+   if(x.caseBook.serial>before){val id=x.caseBook.cases.last().id;x=x.copy(caseBook=x.caseBook.copy(cases=x.caseBook.cases.map {if(it.id==id)it.copy(truth="王命强制",culprit=-1,witness=complainant.person,grievancePerson=complainant.person)else it}));events+="【陈情】有人对王命强制安排提出异议。须核实当事人、见证与登记，不可因触犯君威自动判作诬告。"}
   }
   val revised=x.caseBook.cases.map {c->if(c.resolved&&c.followup.isBlank()&&w.day-c.closedDay>=90){val text=when(c.verdict){"制度改革"->"经费、办理期限与回避记录已公开，等待后续回访；改革不保证立即消除积弊。";"强制处置"->if(c.culprit==c.accused)"后续材料证实存在问题，但强制程序仍留下怨怼。"else"后续材料与原指控不合，民间质疑强制处置；当事人并未因此自动恢复信任。";"保留待查"->"部分线索仍未闭合，案卷保留，新的可核材料出现后可以重新受理。";else->"地方保存原始案卷、岗位变动与补偿记录，证人可以回访。"};events+="${CaseLibrary.get(c.blueprint).title}后续：$text";c.copy(followup=text,revisitDay=w.day)}else c}
   return x.copy(caseBook=x.caseBook.copy(cases=revised))
@@ -90,10 +90,10 @@ object InvestigationEngine {
   val file=get(w,c.target)!!;val b=CaseLibrary.get(file.blueprint);val town=w.towns.first {it.id==file.town};var next=file;var x=w
   fun exhibit(kind:String,title:String,detail:String,authentic:Boolean){val id="${file.id}-${file.exhibits.size}";next=next.copy(exhibits=next.exhibits+Exhibit(id,kind,title,detail,file.witness,authentic))}
   when(c.type){
-   "CASE_OPEN"->{next=next.copy(accepted=true);events+="${file.venue}材料列入待核案簿：${b.rumor}。受理不等于认定犯罪。"}
-   "CASE_VISIT"->{exhibit("证言",b.witness+"的陈述",b.rumor,file.truth!="恶意构陷");events+="完成${if(c.mode=="委派")"委派走访"else"当地走访"}，实名陈述已登记，尚未核真。"}
+   "CASE_OPEN"->{next=next.copy(accepted=true);events+="${file.venue}材料列入待核案簿：${if(file.grievancePerson>=0)"当事人请求核对强制安排、去留意愿与补偿"else b.rumor}。受理不等于认定犯罪。"}
+   "CASE_VISIT"->{exhibit("证言",b.witness+"的陈述",if(file.grievancePerson>=0)"当事人请求复核已登记的非自愿安排，不把畏惧等同同意。"else b.rumor,file.truth!="恶意构陷");events+="完成${if(c.mode=="委派")"委派走访"else"当地走访"}，实名陈述已登记，尚未核真。"}
    "CASE_RECORD"->{exhibit("账册",b.record,"取得原始登记与对照副本；须核验编号、签押和形成时序。",file.truth!="恶意构陷");events+="原始账册登记入卷；账簿存在并不等于内容真实。"}
-   "CASE_PHYSICAL"->{exhibit("实物",b.physical,"封存采样并登记交接；尚未独立鉴定。",file.truth !in listOf("合法应急","误会与疏漏"));events+="样本按来源封存，未凭外观直接定罪。"}
+   "CASE_PHYSICAL"->{exhibit("实物",if(file.grievancePerson>=0)"去留与强制安排的在册记录"else b.physical,if(file.grievancePerson>=0)"核对实际登记的强制安排与本人意愿；没有凭空生成被拦截的文书。"else "封存采样并登记交接；尚未独立鉴定。",file.truth !in listOf("合法应急","误会与疏漏"));events+="样本按来源封存，未凭外观直接定罪。"}
    "CASE_VERIFY"->{next=next.copy(exhibits=next.exhibits.map {if(it.id==c.objective)it.copy(verified=true)else it});val e=next.exhibits.first {it.id==c.objective};events+="${e.title}复核：${if(e.authentic)"来源与时序得到相互印证，仍须联系责任对象"else"出现不符，不能作为定罪材料"}。"}
    "CASE_PROTECT"->{next=next.copy(protectedWitness=true);x=x.copy(people=x.people.map {if(it.id==file.witness)it.copy(fear=(it.fear-25).coerceAtLeast(0),trust=(it.trust+6).coerceAtMost(100),memories=(it.memories+"${w.day}日列入证人保护，费用由国库登记").takeLast(8))else it});events+="证人保护已登记，不能用保护换取指定口供。"}
    "CASE_CROSS"->{next=next.copy(contradictions=1,revealedCulprit=true);val reveal=when(file.truth){"替罪指控"->"经办时序指向另一名在册经办人，最初被指控者可能是替罪对象。";"上下串通"->"账册与交接物证形成上下游关联，责任不能只落在末端经办人。";"合法应急"->"查到合法应急调拨的登记，但通知与公示存在缺失。";"恶意构陷"->"原始副本与呈状材料不符，出现构陷线索；另案追究仍须完整证据。";"误会与疏漏"->"时限、计量或登记口径造成误解，仍有事项需补查，不宜凭猜测结罪。";else->"材料时序与责任对象吻合，尚须核足其他证据后裁处。"};if(file.truth=="恶意构陷")next=next.copy(exhibits=next.exhibits+Exhibit("${file.id}-original","账册","原始收发簿与伪件对照","独立原件与呈状伪件形成时序不符，责任来源已核实。",file.witness,true,true));events+="质证：${b.contradiction}。$reveal"}

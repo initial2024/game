@@ -61,7 +61,7 @@ class ChronicleExpansionTest {
   assertTrue(x.people.last().hostility>=20);assertFalse(x.household.members.last().willing);assertFalse(x.household.allowPregnancy)
   val isolated=x.copy(household=x.household.copy(allowPregnancy=true,members=x.household.members.takeLast(1)))
   assertNotNull(Rules.validate(isolated,Command("TRY_HEIR")))
-  x=InvestigationEngine.quarter(x.copy(day=90),mutableListOf());val petition=x.caseBook.cases.first {it.grievancePerson==id};assertEquals("王命强制",petition.truth)
+  x=InvestigationEngine.quarter(x.copy(day=90),mutableListOf());val petition=x.caseBook.cases.first {it.grievancePerson==id};assertEquals("王命强制",petition.truth);assertEquals("case-62",petition.blueprint);assertEquals(id,petition.witness)
   x=act(x,Command("CASE_OPEN",target=petition.id,mode="御前受理"));x=act(x,Command("CASE_RECORD",target=petition.id));x=act(x,Command("CASE_VERIFY",target=petition.id,objective=x.caseBook.cases.first {it.id==petition.id}.exhibits.single().id))
   x=act(x,Command("CASE_DECIDE",target=petition.id,mode="纠正王命"));assertTrue(x.adventure.encounters.single().released);assertTrue(x.people.first {it.id==id}.hostility>0);assertFalse(x.household.members.last().willing)
  }
