@@ -2,7 +2,7 @@
 
 [Project](../README.md) · [简体中文](REQUIREMENTS.zh-CN.md) · [Developer handoff](HANDOFF.md)
 
-Updated 2026-11-17 (Asia/Singapore). Consolidates all historical user requests, not a declaration of completion. Baseline: `feature/character-chat-hf-search`, `f10fb00c3c1a9cf06a36791b80c0a06d270bf438`, APK 0.7.0/code 11.
+Updated 2026-11-17 (Asia/Singapore). Consolidates all historical user requests, not a declaration of completion. Original baseline: `f10fb00c3c1a9cf06a36791b80c0a06d270bf438`,0.7.0/code11. Current verified APK is0.7.1/code12; developing0.8 map/war changes need separate acceptance on `feature/character-chat-hf-search`.
 
 Status: **Implemented** = baseline with evidence; **Partial** = usable first version with remaining scope; **Open** = undelivered; **Device** = physical validation outstanding. Priorities: **P0** immediate, **P1** next gameplay, **P2** expansion, **V** acceptance. Baseline completion does not imply all edge cases or physical hardware passed.
 
@@ -77,7 +77,7 @@ Status: **Implemented** = baseline with evidence; **Partial** = usable first ver
 |---|---|---|---|
 | S01 | County/prefecture/provincial/central forces, commanders, recruit/train/appoint/pay/mobilize/supply, morale and actual troop counts. | Implemented baseline | V |
 | S02 | Terrain/roads/canals/resources/supply affect march and battle; deeper encirclement, city damage/recovery and campaign movement. | Partial | P1 |
-| S03 | Rapid assault/siege/diplomacy choices, advance warnings, multiple fronts, casualties, peace terms and autonomous foreign governments. | Single-front strategic war and border transfer implemented; rest open | P1 |
+| S03 | Rapid assault/siege/diplomacy choices, advance warnings, multiple fronts, casualties, peace terms and autonomous foreign governments. | Steady/rapid/siege/envoy choices in0.8 verification; multi-front/autonomous nations open | P1 |
 | S04 | Age-of-History-inspired strategy: territory ownership changes actual administration, economy, supply and diplomacy, not merely map color. | Partial | P1 |
 | S05 | Create inspector/intelligence/assassin/guard organizations; spy/counterspy and fictional in-game funded missions/bounties, risk/time/outcome/political cost. | Implemented baseline; networks partial | P1 |
 | S06 | Attacks on player and foreign rulers, warnings/guards/mitigation/novice protection/succession; registered adult fictional targets, uncertain results and coherent refunds. | Implemented baseline; broad life-cycle tests needed | P1 |
@@ -99,8 +99,8 @@ Status: **Implemented** = baseline with evidence; **Partial** = usable first ver
 
 | ID | Requirement and remaining acceptance | Status | Priority |
 |---|---|---|---|
-| A01 | On send, automatically load installed selected/default GGUF if enabled, then generate; no repeated manual loading or silent download. Visible nonblocking verification/loading/generation. | Code implemented in 2544aed; final device verification pending | P0 |
-| A02 | Explicit model/template provenance, persistent failure reason, model-center access if missing, cancellation during loading/inference without save damage or double CONVERSE. | Error retention fixed in 2544aed; final device verification pending | P0 |
+| A01 | On send, automatically load installed selected/default GGUF if enabled, then generate; no repeated manual loading or silent download. Visible nonblocking verification/loading/generation. | Implemented and emulator-verified in 0.7.1; phone acceptance outstanding | V |
+| A02 | Explicit model/template provenance, persistent failure reason, model-center access if missing, cancellation during loading/inference without save damage or double CONVERSE. | 0.7.1 inference/first-send/hash-cancel checks passed; phone/JNI-load fault matrix partial | V |
 | A03 | Native llama.cpp, replaceable inference adapter, actual licensed Chinese model narration/intent understanding, no fixed fake AI. | Actual inference implemented; adapter partial | P1 |
 | A04 | Broad HF search/GGUF browsing/fixed revision/hash/license/installation, local import, threads/context, unload/delete and measured device recommendations. | Implemented; measured recommendations partial | P1 |
 | A05 | Real mirror URLs, progress/pause/retry/resume/foreground service, SHA+GGUF checks, ModelScope/HF Mirror/original source. | Implemented; HF Mirror full-file and vivo background tests outstanding | V |
@@ -119,6 +119,7 @@ Status: **Implemented** = baseline with evidence; **Partial** = usable first ver
 | M04 | Detailed selectable provinces/prefectures/counties and native city facts/buildings/officers/troops; keep current 8/14/171 hierarchy and expand useful details. | Implemented baseline; depth partial | P1 |
 | M05 | Tax/security/morale overlays, moving armies/trade, terrain/border detail preserving supplied map identity. | Open | P1 |
 | M06 | Static canvas/Path2D cache, DPR cap/on-demand draw/pause/destroy/recover, malformed data/migration/out-of-order/isolation checks, leak profiling. | Lifecycle/protocol implemented; cache/profiling open | P2/V |
+| M07 | Map as an interaction hub: select army then domestic/foreign destination, direct native policy/war previews, targeted diplomacy/intelligence, foreign ruler communication and local governance; maintain stable IDs, authority boundaries and compact panels. | Code under verification in 0.8; moving markers/local jurisdiction remain partial | P1 |
 | U01 | Four native tabs, bounded pages/folded categories/selectors, retained scroll, font scaling, light/dark/eye-care themes; no critical overlap at 390×844. | Implemented baseline; sweep new screens | V |
 | U02 | Original attractive icon/design, ambience/click sounds/haptics, readable subset font, ink transitions, accessible seal/reject interaction. | Icon/themes implemented; audio/font/seal open | P2 |
 | U03 | Responsive/cancellable AI, background saving, optional useful local notifications, no unwanted reminders. | Implemented baseline; physical lifecycle Device | V |
@@ -141,7 +142,7 @@ Status: **Implemented** = baseline with evidence; **Partial** = usable first ver
 
 ## Completion gates
 
-1. Finish A01/A02 first, including optimized actual-GGUF verification from an unloaded process session.
+1. A01/A02 first-send baseline passed in0.7.1. Next verify M07 map-native commands and S03 campaign choices in0.8; keep broader device/fault coverage open.
 2. Continue P1 vertical playable loops then P2 depth; keep producing executable builds rather than only documents.
 3. Mark completion only with source paths and reproducible evidence; record limitations. Seed combinations are not separately authored stories.
 4. Revalidate royal travel/investigation/decision/return/follow-up, new strategic loops and real model chat. Separate browser, emulator and hardware results.
