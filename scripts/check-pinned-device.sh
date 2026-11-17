@@ -21,4 +21,6 @@ adb shell am force-stop cn.chronicle.shanhe
 bash scripts/run-device-tests.sh cn.chronicle.game.MapIntegrationTest "$RUNNER_TEMP/map-device-report"
 adb shell am force-stop cn.chronicle.shanhe
 bash scripts/run-device-tests.sh cn.chronicle.game.MapRestartTest "$RUNNER_TEMP/map-device-report/restart"
+adb shell pm clear cn.chronicle.shanhe
+bash scripts/run-device-tests.sh cn.chronicle.game.ChronicleFeatureTest "$RUNNER_TEMP/map-device-report/chronicle"
 fi
