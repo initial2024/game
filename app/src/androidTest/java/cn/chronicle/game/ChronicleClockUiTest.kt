@@ -26,7 +26,19 @@ class ChronicleClockUiTest {
   compose.onNodeWithTag("clock-date").assertExists()
   compose.onNodeWithTag("clock-day").assertExists()
   if(!ChronicleEngine.needsPause(w) && !w.ended) {
-   if(vm.state.value.paused) vm.toggleClock()
+   // Manual step must commit exactly one authoritative day and preserve paused state.
+   if(!vm.state.value.paused) vm.toggleClock()
+   val stepBefore = requireNotNull(vm.state.value.world).day
+   vm.advanceOneDay()
+   compose.waitUntil(15000) { vm.state.value.world?.day == stepBefore+1 && !vm.state.value.busy }
+   compose.onNodeWithTag("clock-day").assertTextEquals("总第${stepBefore+2}日")
+   assertTrue(vm.state.value.paused)
+   // If the step triggers a mandatory new bulletin, the clock must remain paused.
+   if(ChronicleEngine.needsPause(requireNotNull(vm.state.value.world))) {
+    compose.onNodeWithTag("clock-status").assertExists()
+    return
+   }
+   vm.toggleClock()
    val before = requireNotNull(vm.state.value.world).day
    compose.waitUntil(15000) { (vm.state.value.world?.day ?: before) > before }
    if(!vm.state.value.paused) vm.toggleClock()
