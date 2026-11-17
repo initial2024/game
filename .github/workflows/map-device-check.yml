@@ -10,6 +10,7 @@ on:
         default: false
 permissions:
   contents: read
+  actions: read
 jobs:
   map-device:
     if: contains(github.event.head_commit.message, '[map-check]') || github.event_name == 'workflow_dispatch'
@@ -20,15 +21,47 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Download paired development APKs
+      - name: Read exact CI build provenance
+        id: pair
         if: ${{ !inputs.optimized_release }}
         run: |
-          apk_revision="$(cat .github/device-apk-revision)"
-          [[ "$apk_revision" =~ ^[a-f0-9]{40}$ ]]
-          curl -fL https://raw.githubusercontent.com/initial2024/game/$apk_revision/map-check-app.apk -o app.apk
-          curl -fL https://raw.githubusercontent.com/initial2024/game/$apk_revision/map-check-test.apk -o test.apk
-          curl -fL https://raw.githubusercontent.com/initial2024/game/$apk_revision/map-check.sha256 -o map-check.sha256
-          sha256sum -c map-check.sha256
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          p=json.loads(Path('.github/device-ci-run.json').read_text())
+          assert isinstance(p['run_id'],int) and p['run_id']>0
+          assert re.fullmatch('[a-f0-9]{40}',p['source_sha'])
+          assert re.fullmatch('[A-Za-z0-9_-]+',p['artifact_name'])
+          with open(os.environ['GITHUB_OUTPUT'],'a') as out:
+              for k,v in p.items(): out.write(f'{k}={v}\n')
+          PY
+      - name: Verify pinned build source
+        if: ${{ !inputs.optimized_release }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          actual_sha="$(gh api repos/${{ github.repository }}/actions/runs/${{ steps.pair.outputs.run_id }} --jq .head_sha)"
+          test "$actual_sha" = "${{ steps.pair.outputs.source_sha }}"
+      - name: Download exact compiled game and test APKs
+        if: ${{ !inputs.optimized_release }}
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.pair.outputs.run_id }}
+          name: ${{ steps.pair.outputs.artifact_name }}
+          path: ci-artifacts
+      - name: Stage regression pair and retain checksums
+        if: ${{ !inputs.optimized_release }}
+        run: |
+          mapfile -t app_candidates < <(find ci-artifacts -name app-x86_64-debug.apk)
+          mapfile -t test_candidates < <(find ci-artifacts -name app-debug-androidTest.apk)
+          test "${#app_candidates[@]}" = 1
+          test "${#test_candidates[@]}" = 1
+          cp "${app_candidates[0]}" app.apk
+          cp "${test_candidates[0]}" test.apk
+          mkdir -p "$RUNNER_TEMP/map-device-report"
+          sha256sum app.apk test.apk | tee "$RUNNER_TEMP/map-device-report/apk-pair.sha256"
+          cp .github/device-ci-run.json "$RUNNER_TEMP/map-device-report/build-provenance.json"
       - name: Download paired optimized development APKs
         if: inputs.optimized_release
         run: |
