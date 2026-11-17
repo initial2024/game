@@ -104,9 +104,9 @@ class ReleaseSmokeTest {
   click("官员")
   val field=device.wait(Until.findObject(By.clazz("android.widget.EditText")),10000)!!;field.click();device.waitForIdle(500);field.text="长安新县";device.pressBack()
   click("预览更名 · 5万两");click("确认执行");click("关闭城邑")
-  click("继续时间")
+  click("▶ 继续")
   until {val ts=world().getJSONArray("towns");(0 until ts.length()).any {ts.getJSONObject(it).optString("name")=="长安新县"}}
-  click("暂停时间")
+  click("Ⅱ 暂停")
   until {scene().getJSONObject("places").getJSONObject("county-jingji-01").getString("name")=="长安新县"}
   screenshot("release-map-saved-city")
   // Stay in the map; never visit the model center or manually load the model.
