@@ -1,96 +1,62 @@
-> 0.6.0 开发版：原图州府县、人物旨意、地形物产、县兵州军与俸禄。[下载APK](https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.6.0-arm64.apk) · [测试与限制](docs/UPGRADE_0.6_TESTING.md)。
+# Chronicle AI
 
-# 山河纪年 · Chronicle AI
+An original, offline, native Android historical strategy game: govern a country, develop provinces, investigate corruption, manage characters and armies, and optionally converse through an on-device language model. Continuous, pausable time supports 1×, 4×, 16× and 64× speeds.
 
-原创 Android 原生离线文字策略游戏。Kotlin + Compose，包名固定为 `cn.chronicle.shanhe`，minSdk 26 / targetSdk 36。游戏主体为原生 Compose，世界舆图使用本地受限 WebView。没有远程 AI API、分析 SDK 或存档自动上传功能。
+[简体中文](README.zh-CN.md) · [Complete requirements / remaining work](docs/REQUIREMENTS.md) · [Developer handoff — start here](docs/HANDOFF.md) · [Development source / Draft PR](https://github.com/initial2024/game/pull/2)
 
-## 安装与实测
+> Development build, not a finished game. The default branch carries older gameplay plus current documentation. Continue code work on `feature/character-chat-hf-search`; this documentation update does not merge the gameplay branch.
 
-[下载0.6.0 ARM64 APK（约12.5 MiB）](https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.6.0-arm64.apk) · [构建与测试报告](docs/UPGRADE_0.6_TESTING.md) · [开发 Draft PR](https://github.com/initial2024/game/pull/2)
+## Download and verified baseline
 
-旧版：[0.4.0 ARM64 APK](https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.4.0-arm64.apk) · [0.2.1 ARM64 APK](https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.2.1-arm64.apk) · [0.1.1 ARM64 APK](https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.1.1-arm64.apk) · [0.1.1交付报告](docs/TESTING.md)。0.3.1已实际替换为最新上传的v3_2 HTML升级版；输入原文件、升级补丁与输出资源可复现校验，详见 integration/map-upgrade/PROVENANCE.md。
+[Download 0.7.0 ARM64 APK](https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.7.0-arm64.apk) — 3,518,016 bytes / about 3.36 MiB. Model weights are separate; the game is playable without them.
 
-固定开发签名，可覆盖此前同签名0.1.0直链包。模型独立下载，无模型可玩。不是完整P2，vivo真机验收尚未进行。
+SHA-256: `e7ee26053f23ca8e653295dcac2eb080ccdbd7347efaaaeb37b124e836cae472`.
 
-## 运行
+[Build, test evidence and limitations](https://github.com/initial2024/game/blob/f10fb00c3c1a9cf06a36791b80c0a06d270bf438/docs/UPGRADE_0.7_TESTING.md): 92 passing JVM tests, 22 passing native Android regression checks, and two optimized-build checks including real GGUF inference and process-restart persistence. These are Android 15 x86_64 emulator results, not vivo or ARM64 phone measurements. The original full build run had device-job failures; subsequent focused verification passed, as recorded in the report.
 
-安装本次交付的 APK，即可在无网络、无模型状态新建游戏。国家、君主和纪元可在新建界面自由填写；世界 → 宗室中可改元、更名、设置自愿备孕和子女名字。默认国家「承熙」、君主「景衡」、种子 `1847` 可体验有罪案件；种子 `0` 会出现不可直接定罪的案件。
+Package: `cn.chronicle.shanhe`. Published development APKs share a persistent development signing certificate; private keys are never committed. Changing that key later needs an explicit migration plan.
 
-- 剧情：三个建议、规则账簿、自然语言政策预览与确认。
-- 朝政：财政、产业、民生、军政、建设、谍报、项目、趋势分组切换；薪饷、地方军、物资、运河另有小分页。
-- 世界：8州14府171县，按大区→州→府点选城邑，城内分概况、建筑、官员、兵籍、资源。人物分页、独立聊天与旨意草拟；学院讲席、派学人物每组3名；宗室另有家族、自愿选妃、命名和名册。
-- 档案：存档、史书、模型、设置四类切换；存档每页4槽、历史每页5条，长文独立滚动。
+## Playable today
 
-0.2.1修复重启地图首帧空白：完成Canvas绘制及WebView可见状态确认后，才报告地图就绪。
+- Ancient dynasty and early-industrial settings, customizable country/ruler/era, difficulty, seed, national scale and international climate.
+- Deterministic economy, budgets, population, research, projects, terrain/resources, diplomacy and initial strategic warfare; validated policy previews and confirmation.
+- Four native Compose tabs, compact subpages, local SQLite saves, and the user's supplied map upgraded inside a restricted offline WebView.
+- Eight provinces, 14 prefectures and 171 counties in the default hierarchy; city buildings, officers, resources, county/provincial troops, salaries and canals.
+- Royal journeys, disguises, identity verification, evidence, petitions and 64 authored case premises with seeded factual variants and different consequences.
+- Free character conversations and relationship changes, proposed decrees, recruitment, examinations, appointments, academies, overseas study, family naming, adult consorts, optional pregnancy and initial succession.
+- Optional guidance, first-year protection, guards, fictional espionage organizations, chapter objectives, quarterly reports, standing grain orders and four initial development routes.
+- Hugging Face GGUF search, device-memory recommendations, local import, ModelScope / HF Mirror / original-source choices, resumable foreground downloads, hash checks, llama.cpp inference and labeled template fallback.
 
-## 地图与时代
+## Full development backlog
 
-世界 → 打开世界舆图，以当前 SQLite 存档驱动原有2.5D地图。选择城市进入原生地区与行动界面，真实办理城邑更名、新邑营建、旧城修复；疆域面板可在符合外交条件后提出和平移交条约。地图沙盘保留圈地、剧情槽位、JSON导入导出与主题，沙盘编辑不会改动游戏世界。
+All historical requests, statuses and acceptance criteria are in the [complete requirements register](docs/REQUIREMENTS.md). Still incomplete or requiring broader validation:
 
-新建可选古代王朝或工业初兴。古代默认使用手工作坊、格物、府城、驿道与冷兵器背景，不会因数值提高自动进入工业时代；工业初兴保留工厂与原有叙事。旧存档仍保持原时代。已有战略战役与协议边地移交；战术攻城、继承与历代特定制度仍待扩展。
+1. **Conversation convenience:** auto-load the installed default model on message send; show loading, retain failure reasons, allow cancellation and verify every eligible character uses real inference.
+2. **Historical strategy:** meaningful province jurisdiction, autonomous countries, multiple fronts, supply, assault/siege/diplomacy, treaties and era-specific institutions, informed by the actual *Age of History* game.
+3. **Investigation depth:** higher-quality case chains, motivated reversals, ambiguity, linked clues, evidence-board presentation, confrontation, false-evidence counterplay and varied petitions; complete four-domain corruption accounts.
+4. **Characters and continuity:** autonomous lives, faction coalitions, genealogy, per-ruler relationships, recovery/lifespan, inheritance disputes, richer regency, teaching balance and lasting appointments.
+5. **Local government and travel:** independent local finances, county/prefecture policies, settlement growth/damage/recovery, richer terrain production, delegated state affairs and revisit consequences.
+6. **War, intelligence and safety:** deeper armies, commanders, spy networks, conspiracies, fictional missions/bounties, evidence and countermeasures; guard and assassination consequences across country sizes.
+7. **Narrative and goals:** persisted bounded AI histories; deeper investigation → judgment → construction → pressure → inheritance loop, route endings and once-per-game quarter rewind.
+8. **Economy and free actions:** complex validated financing and partial execution, transparent cash-flow forecasts, standing orders, rescue choices and many-seed ten-year balance statistics.
+9. **Map and presentation:** tax/security/morale overlays, moving armies/trade, drawing caches, memory profiling, compact layouts, sound, haptics, readable fonts, ink transitions and accessible seal confirmation.
+10. **On-device AI:** additional licensed lightweight-model tests, grammar-constrained JSON, KV-prefix reuse, thermal adaptation, ARM instruction dispatch, measured recommendations and mirror/background-download reliability.
+11. **Saves and verification:** larger streaming exports, migration/isolation/interruption regressions, long-session memory checks, measured baseline profiles and actual vivo Android 16 / ARM64 acceptance.
+12. **Delivery and handoff:** stable package/signature, real Actions builds/APK links, complete source, honest evidence/limitations and continuously updated bilingual requirements.
 
-## 连续时间与开局模式
+## Build and contribute
 
-当前交互已经改为可暂停的连续时间制，没有“下一回合”按钮。前台每 2 秒推进 1 个游戏日，可切换 1×、4×、16×、64×，应用后台停止计时；读取存档后默认暂停。国家每 90 日自动进行季度记账。工厂/水利/道路按 270/180/180 日建设，旅行、调查、孕期持续推进。最多同时办理 3 项政策或地方事务，先预留资金，完成时重新核验条件；撤销退还 80% 预留资金。重要结果写历史，普通时钟保存不刷满档案。
-
-国家规模可选超级大国、中等国家、小国或按种子随机；世界格局可选和平建设、均势博弈、烽火边疆。所有组合保留腐败与派系。烽火边疆增加外交压力与战备成本，并有条件触发边境劫掠；可选现有军队发动战略战役并争夺已登记边地；尚无各国自主宣战与全面世界战争模拟。
-
-## 一条可玩的纵向流程
-
-1. 世界 → 地区 → 澄江 → 安排巡游。选择「微服私访」、商人、随行顾清禾、留朝沈知衡、30 日。
-2. 出发后恢复时间，旅行会自动推进，抵达客栈。选择集市并探访。可以暂停下令，再恢复时间等待办理。
-3. 暗访取证取得收费凭据。身份仍隐藏，正式审计和定罪会被拒绝。
-4. 公开身份，经随行朝臣与驿站印信验认。核验账册。
-5. 案卷 → 依法审理。仅有罪且真实证据充分时撤职追缴。
-6. 安排返回，保持时间流动，等待下一次季度记账。观察新官接任、地方腐败降低、改革后续事件和原官员关系变化。
-
-另外两条路线：公开巡幸可直接核验账册，再取证；委派监察使花费 65 万两，调查材料在 30 日后归报，随后单独决定处分。撤换不等于定罪；撤销指控也有不同反馈。
-
-## 宗室与命名
-
-新建可自定义纪元，游戏内可更改君主姓名与改元，旧历史不重写。宗室的备孕许可默认关闭；须由玩家开启并再次确认安排，同时满足成年、自愿、健康、关系和年龄条件。安排先预留 20 万两，需办理 30 日，不保证进入孕期。办理成功后，已登记孕期累计 270 日，暂停新的备孕不会改变既有孕期。照护与教育计入季度开支，子女预备名与出生后更名均可自主设置。角色生老与出生由规则引擎决定，AI 无权改变。
-
-可通过自愿面见与登记接纳成年伴侣，上限4人；备孕仍是独立许可与确认。继承人选举、亲属政治与完整继承制度尚未实现。
-
-## 工程与构建
-
-JDK 17、Android SDK 36、Build Tools 35.0.0、NDK 27.2.12479018、CMake 3.22.1、Gradle Wrapper 8.13。
+Read [HANDOFF.md](docs/HANDOFF.md) before changing code. Use JDK 17, Gradle 8.13, Android SDK 36, Build Tools 35.0.0, NDK 27.2.12479018 and CMake 3.22.1. The development branch uses Kotlin/Compose, pure Kotlin `core`, SQLite and vendored llama.cpp b5046; minSdk 26 / targetSdk 36.
 
 ```sh
-./gradlew :core:test :app:assembleDebug :app:assembleDebugAndroidTest
-./gradlew :app:connectedDebugAndroidTest
+git clone https://github.com/initial2024/game.git
+cd game
+git switch feature/character-chat-hf-search
+./gradlew :core:test :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest :app:assembleRelease
 ```
 
-仓库随附 llama.cpp b5046 的上游源码，原生库编译 ARM64 和 x86_64，支持 16 KB 页对齐。可推理语言模型权重不在源代码或 APK 中；vendor保留了上游的小型词表测试文件。
+Run device tests separately on a configured emulator or phone. Actions records real test/build artifacts; optimized inference must be tested as well as debug builds. Models are optional; no paid API is required and player saves are not automatically uploaded.
 
-本地稳定签名构建使用三个环境变量：`CHRONICLE_KEYSTORE`、`CHRONICLE_STORE_PASSWORD`、`CHRONICLE_KEY_PASSWORD`，别名 `chronicle`。然后执行 `./gradlew :app:assembleRelease`。私钥位于单独的私密备份，不进入源码包。公开证书见 `development-cert.pem`。不要使用临时调试签名覆盖稳定签名版本。
+## References and permissions
 
-Actions 包含 JVM 测试、Android界面与存档测试、真实GGUF专项测试及手动触发的稳定签名构建。常规推送先构建一次，再把同一组APK交给模拟器安装测试；真实模型专项可通过手动工作流的real_model选项或提交标记[full-model]启动，不在每次界面修复时重复大模型测试。稳定签名任务需要设置 `CHRONICLE_KEYSTORE_BASE64`、`CHRONICLE_STORE_PASSWORD`、`CHRONICLE_KEY_PASSWORD`，缺失时明确失败，绝不生成另一个身份冒充更新。
-
-使用用户指定的独立仓库 https://github.com/initial2024/game 。Actions 的实际结果与下载链接见交付报告；构建工作流不会自动公开发布 Release。
-
-## 本地 AI
-
-档案 → 本地 AI 模型中心 → 设备推荐或在线搜索 → 下载并自动校验安装。内置目录包含 Qwen2.5 0.5B Q3/Q4 和 1.5B Q4，在线搜索直接查询 Hugging Face 公开 API，不限制模型家族，并可展开仓库查看 GGUF 文件、许可与量化版本。自动安装要求完整单文件、固定修订、SHA-256及可识别许可，并由用户核对许可确认；候选不等于已实测兼容。设备推荐根据当前可用内存、总内存、CPU 和 ABI 计算，内存不足时建议模板模式；安装后可选择自动加载。
-
-官方 Qwen2.5-0.5B-Instruct Q4_K_M（491,400,032 字节，约 469 MiB，Apache 2.0），或从 Android 文件选择器导入 GGUF。下载固定到上游提交并校验 SHA-256，支持暂停与续传。模型加载仍要通过 llama.cpp 架构验证。建议先用 1024 上下文、2–4 线程。
-
-模型还可与已登记人物聊天，使用GGUF聊天模板与角色可知信息过滤；对话可取消、按人物及存档持久化。人物交谈即时免费，不占政令队列，不需要等待冷却。关系由话题、语气与真实经历结算，重复表态不刷属性。模型只生成辅助叙述或提出结构化政策。结构化输出严格拒绝未知字段、未知指令、越界地区、过多政策和无法支付的行动。最多两次解析尝试，失败回到基础规则解析。数值、案件真相和人物生死不交由模型修改。生成可取消，原生推理有截止时间；规则提交先持久化。
-
-本次模型实测与设备范围以交付的测试报告为准，不能从参数量推断手机速度或质量。
-
-## 地形、物产与地方军
-
-直接使用用户原图的地势、水源、山峰与海岸提取参考指标，影响城内营建、矿林开采、农业、运输、行军与战役；不是测绘海拔或真实矿床。物资按石/吨独立记账，矿藏会耗竭、森林缓慢再生，田赋折粮不重复计入现金税。缺原料、缺军粮有实际减产和补给后果。
-
-默认197支地方部队（171县兵、14府卫、4卫营、8州军），配独立军官和8名州刺史；合计778名默认人物。可点选募兵、操练、征调、裁军、任免和对话。官俸、军饷以两计账，兼职取较高俸额，欠付影响忠诚、士气与稳定；补发消耗真实资金。所有在世登记人物共用真实本地模型适配器，无模型保留可玩的模板模式。
-
-## 当前范围与限制
-
-具备项目建设、持续研究、税制、债务与财政危机、粮食人口、33 个因果事件、人物衰老与地方继任、外交关系、地方探索和示范案件。连续时间自动推进，可暂停与选择 1×/4×/16×/64×。政策异步办理，季度仅为后台财政结算周期。
-
-当前不是完整 P2：已有战役、协议边地变化、组织、官员任免、工资及资源，但战术攻城、动态派系联盟、多地区独立案件、多种处罚量刑、全面地方自由政策、复杂融资比例和无限制自由文本尚未实现。腐败的四级完整分类模拟尚未完成；当前中央与地区属性及案件证据可运行，基层收费和军事军需以线索呈现。敬畏数值与全套古代官制尚未全面展开。停留目标与摄政人物用于行程登记，尚未实现完整委任政策 AI。通知选择不发送任何提醒。
-
-规则核心的数值上界：资金/债务 1,000,000 万两、人口 100,000–100,000,000 人、税率 5–40%、发展属性 0–100；新增债务受 2,000 万两信用上限约束。历史独立存表，当前状态只保留 12 条近期记录，人物只保留最近 8 项记忆。导出上限 8 MiB / 10,000 决策。百分制饱和后仍可选择政策，预览不会承诺超越上限。
-
-原创游戏代码未授权公开商业发行。第三方许可见 `docs/THIRD_PARTY.md`。
+The user cited *Age of History*, [Tianming](https://github.com/Barbatos923/Tianming) and [The Orient Doomsday](https://github.com/ZANReping/The-Orient-Doomsday). At inspection, Tianming contained a design README; the latter was an Age of History 3 mod data/assets repository. Neither exposed a recognized repository license. No code or assets from them have been imported. This remains an original game; retain third-party/model licenses and do not perform an unconfirmed commercial launch.
