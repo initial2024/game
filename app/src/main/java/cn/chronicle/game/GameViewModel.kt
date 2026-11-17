@@ -30,6 +30,18 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
  fun foreground(active:Boolean) {foreground=active;models.foreground=active;if(active)models.resumed()}
  fun toggleClock() {val w=mutable.value.world;if(w?.ended==true){message("本纪年已结束，档案仍可查看。");return};if(w!=null&&ChronicleEngine.needsPause(w)){message("请先在剧情的目标与奏报中阅毕重大奏报，再继续时间。");return};mutable.update {it.copy(paused=!it.paused)}}
  fun changeSpeed() {val values=listOf(1,4,16,64);mutable.update { currentUi -> currentUi.copy(speed=values[(values.indexOf(currentUi.speed)+1)%values.size]) }}
+ /** Advance exactly one game day while paused, through the authoritative transaction. */
+ fun advanceOneDay() = task {
+  val current=mutable.value.world?:error("请先建立游戏存档")
+  require(mutable.value.paused){"请先暂停时间再单步推进"}
+  require(!current.ended){"本纪年已结束"}
+  require(!ChronicleEngine.needsPause(current)){"请先阅毕重大奏报"}
+  val result=RealtimeEngine.advance(current,1,stopOnImportant=true)
+  require(result.world.day==current.day+1){"时间未能推进，请保留存档排查"}
+  val meaningful=result.entry.events.isNotEmpty()||result.entry.ledger.isNotEmpty()
+  store.commit(mutable.value.slot,current.revision,result,meaningful)
+  mutable.update { previous->previous.copy(world=result.world,paused=true,slots=if(meaningful)store.slots() else previous.slots,message="已推进1日：${result.world.date}（已存档）") }
+ }
  init {
   viewModelScope.launch(Dispatchers.IO) {
    while(isActive) {
