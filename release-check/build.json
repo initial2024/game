@@ -1,0 +1,6 @@
+{
+  "source_commit": "62253e758cf1611660a07682d7cd8b268245c17f",
+  "purpose": "Development-built optimized x86_64 APK pair for Android Actions verification; shipping ARM64 APK comes from the separate CI build.",
+  "versionCode": 11,
+  "minified": true
+}
