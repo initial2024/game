@@ -1,0 +1,10 @@
+{
+  "source_commit": "23f4975819b0759ef0ad46522f5ab05fe1fd47f1",
+  "run_id": 43845548834,
+  "job_id": 133224694600,
+  "artifact_id": 14214249626,
+  "tests": 21,
+  "source_apk_revision": "fd1c9fc3cf8cf1f0ecceb4ad64eebbbdf0f168ee",
+  "device": "Android15 API35 x86_64 Pixel4 390x844 density160",
+  "phone_tested": false
+}

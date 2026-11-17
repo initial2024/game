@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="cn.chronicle.core.FamilyTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-11-17T10:21:00.377Z" hostname="runnervmccnms" time="0.043">
+  <properties/>
+  <testcase name="pregnancyConsumesTimeAndIsDeterministic" classname="cn.chronicle.core.FamilyTest" time="0.013"/>
+  <testcase name="disabledMinorUnwillingAndDuplicatePregnanciesAreRejected" classname="cn.chronicle.core.FamilyTest" time="0.005"/>
+  <testcase name="rulerEraAndChildNamesArePersisted" classname="cn.chronicle.core.FamilyTest" time="0.024"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,15 @@
+{
+  "source_commit": "16bc7d4b99df4ea866f70c3f7ead9c35a854b1a0",
+  "run_id": 43838626999,
+  "job_id": 133204356773,
+  "artifact_id": 14212637879,
+  "artifact_zip_sha256": "ac7628c3239bc9d01d1f1f945b25dd35a82e03891858bce52fab6f55ecf7262b",
+  "model": "Qwen2.5-0.5B-Instruct Q4_K_M",
+  "model_sha256": "74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db",
+  "backend": "llama.cpp b5046",
+  "threads": 2,
+  "context": 512,
+  "abi": "x86_64",
+  "phone_tested": false,
+  "note": "Following commits only alter academy/personnel UI, loading-navigation visibility and test synchronization; GameCore, GameViewModel, ModelManager, JNI and RealModelTest are unchanged."
+}

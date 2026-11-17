@@ -1,0 +1,16 @@
+{
+  "device_run": 44067225670,
+  "tests": 22,
+  "failures": 0,
+  "groups": [
+    1,
+    9,
+    7,
+    3,
+    1,
+    1
+  ],
+  "apk_pair_revision": "f6877d2b054bc6d636786764be96238c31c539b0",
+  "source_game_commit": "0b5e24912eb96619b297a8f3b4c23bf6c0a71b7a",
+  "correction": "War buttons use the established clipped-viewport scroll helper; model settings selector uses its RadioButton role."
+}

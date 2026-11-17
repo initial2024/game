@@ -1,0 +1,204 @@
+{
+  "schema": "chronicle-map-scenario/v2",
+  "id": "demo-fiction",
+  "revision": 0,
+  "meta": {
+    "title": "虚构演示世界",
+    "era": "虚构历法 · 仅用于测试",
+    "seal": ""
+  },
+  "polities": [
+    {
+      "id": "a",
+      "name": "玄岚",
+      "color": "#b75d45"
+    },
+    {
+      "id": "b",
+      "name": "临川",
+      "color": "#5a90a0"
+    },
+    {
+      "id": "c",
+      "name": "北辰",
+      "color": "#9b8657"
+    }
+  ],
+  "places": {
+    "place-0": {
+      "name": "月京",
+      "rank": "",
+      "description": "",
+      "groupId": "",
+      "polityId": "a"
+    },
+    "place-1": {
+      "name": "河都",
+      "rank": "",
+      "description": "",
+      "groupId": "",
+      "polityId": "b"
+    }
+  },
+  "groups": [
+    {
+      "id": "region-a",
+      "name": "苍岭原",
+      "rank": "郡",
+      "parentId": "",
+      "polityId": "a",
+      "memberIds": [
+        "place-0",
+        "town-new"
+      ]
+    },
+    {
+      "id": "region-b",
+      "name": "河湾平野",
+      "rank": "行省",
+      "parentId": "",
+      "polityId": "b",
+      "memberIds": [
+        "place-1",
+        "town-old"
+      ]
+    }
+  ],
+  "extraPlaces": [
+    {
+      "id": "town-new",
+      "lon": 108.5,
+      "lat": 30.5,
+      "type": "s"
+    },
+    {
+      "id": "town-old",
+      "lon": 116.5,
+      "lat": 32,
+      "type": "x"
+    }
+  ],
+  "placeStates": {
+    "town-new": {
+      "status": "planned",
+      "note": ""
+    },
+    "town-old": {
+      "status": "ruined",
+      "note": ""
+    }
+  },
+  "territories": [
+    {
+      "id": "region-a",
+      "name": "苍岭原",
+      "rank": "",
+      "polityId": "a",
+      "groupId": "",
+      "status": "controlled",
+      "polygon": [
+        [
+          99,
+          30
+        ],
+        [
+          106,
+          28
+        ],
+        [
+          112,
+          29
+        ],
+        [
+          115,
+          35
+        ],
+        [
+          109,
+          39
+        ],
+        [
+          102,
+          37
+        ]
+      ],
+      "description": ""
+    },
+    {
+      "id": "region-b",
+      "name": "河湾平野",
+      "rank": "",
+      "polityId": "b",
+      "groupId": "",
+      "status": "contested",
+      "polygon": [
+        [
+          112,
+          28
+        ],
+        [
+          121,
+          29
+        ],
+        [
+          124,
+          33
+        ],
+        [
+          118,
+          37
+        ],
+        [
+          115,
+          35
+        ]
+      ],
+      "description": ""
+    },
+    {
+      "id": "region-c",
+      "name": "北部山原",
+      "rank": "",
+      "polityId": "c",
+      "groupId": "",
+      "status": "controlled",
+      "polygon": [
+        [
+          104,
+          40
+        ],
+        [
+          114,
+          39
+        ],
+        [
+          119,
+          43
+        ],
+        [
+          112,
+          48
+        ],
+        [
+          105,
+          46
+        ]
+      ],
+      "description": ""
+    }
+  ],
+  "routes": [
+    {
+      "id": "road-a",
+      "name": "",
+      "fromId": "place-0",
+      "toId": "town-new",
+      "kind": "road",
+      "status": "open"
+    }
+  ],
+  "geography": {
+    "kind": "builtin",
+    "landPolygons": []
+  }
+}

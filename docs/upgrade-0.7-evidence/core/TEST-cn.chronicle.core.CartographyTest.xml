@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="cn.chronicle.core.CartographyTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-11-17T10:20:42.018Z" hostname="runnervmccnms" time="10.95">
+  <properties/>
+  <testcase name="nativeRenameIsTimedPaidAndAudited" classname="cn.chronicle.core.CartographyTest" time="1.066"/>
+  <testcase name="treatyHasPrerequisitesAndChangesOwnershipOnlyAfterCompletion" classname="cn.chronicle.core.CartographyTest" time="0.41"/>
+  <testcase name="ancientModeHasDistinctActionsAndCannotBecomeSteamIndustry" classname="cn.chronicle.core.CartographyTest" time="8.866"/>
+  <testcase name="originalCountyIdsRemainCompatibleAndReservedBaseIdsCannotBeDuplicated" classname="cn.chronicle.core.CartographyTest" time="0.056"/>
+  <testcase name="v1ScenarioUpgradesAndCustomGeographyIsSeparate" classname="cn.chronicle.core.CartographyTest" time="0.002"/>
+  <testcase name="rejectsBadGeographyReferencesCyclesAndPrototypeIds" classname="cn.chronicle.core.CartographyTest" time="0.035"/>
+  <testcase name="constructionAndRestorationRequirePaidRealTime" classname="cn.chronicle.core.CartographyTest" time="0.132"/>
+  <testcase name="stableIdsSurviveNamesAndWorldSlotsAreIsolated" classname="cn.chronicle.core.CartographyTest" time="0.029"/>
+  <testcase name="fullAndVersionedDeltaDispatch" classname="cn.chronicle.core.CartographyTest" time="0.155"/>
+  <testcase name="oldWorldLoadsWithoutChangingItsEraOrInventingHistory" classname="cn.chronicle.core.CartographyTest" time="0.192"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

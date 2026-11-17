@@ -1,0 +1,8 @@
+
+cn.chronicle.game.ReleaseSmokeTest:.
+
+Time: 76.037
+
+OK (1 test)
+
+

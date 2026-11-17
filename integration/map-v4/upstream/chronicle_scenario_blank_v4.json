@@ -1,0 +1,21 @@
+{
+  "schema": "chronicle-map-scenario/v2",
+  "id": "blank-scenario",
+  "revision": 0,
+  "meta": {
+    "title": "",
+    "era": "",
+    "seal": ""
+  },
+  "polities": [],
+  "places": {},
+  "groups": [],
+  "extraPlaces": [],
+  "placeStates": {},
+  "territories": [],
+  "routes": [],
+  "geography": {
+    "kind": "builtin",
+    "landPolygons": []
+  }
+}

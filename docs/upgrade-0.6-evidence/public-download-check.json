@@ -1,0 +1,18 @@
+{
+  "verified_at_utc": "2026-11-16T10:23:58.497369+00:00",
+  "artifact_commit": "142c4b46495a7dd14fb29095d9ba96383434ff14",
+  "downloads": [
+    {
+      "url": "https://raw.githubusercontent.com/initial2024/game/142c4b46495a7dd14fb29095d9ba96383434ff14/chronicle-ai-0.6.0-arm64.apk",
+      "bytes": 13139344,
+      "sha256": "b8bb462889282cef0d2f7d255027d6c9e9ee888cb8cb495064458b365b7955c9",
+      "verified_by": "full HTTP GET then local SHA-256"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.6.0-arm64.apk",
+      "bytes": 13139344,
+      "sha256": "b8bb462889282cef0d2f7d255027d6c9e9ee888cb8cb495064458b365b7955c9",
+      "verified_by": "full HTTP GET then local SHA-256"
+    }
+  ]
+}

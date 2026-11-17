@@ -1,0 +1,8 @@
+
+cn.chronicle.game.RealModelTest:.
+
+Time: 283.089
+
+OK (1 test)
+
+

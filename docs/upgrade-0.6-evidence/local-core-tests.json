@@ -1,0 +1,96 @@
+{
+  "tests": 81,
+  "failures": 0,
+  "suites": [
+    {
+      "name": "cn.chronicle.core.MunicipalTest",
+      "tests": "11",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-11-16T09:01:51.200Z",
+      "hostname": "d3ef3cbf3d01",
+      "time": "0.304"
+    },
+    {
+      "name": "cn.chronicle.core.WorldExpansionTest",
+      "tests": "7",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-11-16T09:03:10.549Z",
+      "hostname": "d3ef3cbf3d01",
+      "time": "0.515"
+    },
+    {
+      "name": "cn.chronicle.core.CharacterDevelopmentTest",
+      "tests": "8",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-11-16T09:01:50.239Z",
+      "hostname": "d3ef3cbf3d01",
+      "time": "0.23"
+    },
+    {
+      "name": "cn.chronicle.core.RealtimeTest",
+      "tests": "5",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-11-16T09:01:51.506Z",
+      "hostname": "d3ef3cbf3d01",
+      "time": "15.42"
+    },
+    {
+      "name": "cn.chronicle.core.FamilyTest",
+      "tests": "3",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-11-16T09:01:50.931Z",
+      "hostname": "d3ef3cbf3d01",
+      "time": "0.099"
+    },
+    {
+      "name": "cn.chronicle.core.SimulationTest",
+      "tests": "17",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-11-16T09:02:06.931Z",
+      "hostname": "d3ef3cbf3d01",
+      "time": "63.613"
+    },
+    {
+      "name": "cn.chronicle.core.GeographyMilitaryTest",
+      "tests": "10",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-11-16T09:01:51.033Z",
+      "hostname": "d3ef3cbf3d01",
+      "time": "0.165"
+    },
+    {
+      "name": "cn.chronicle.core.CourtDevelopmentTest",
+      "tests": "10",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-11-16T09:01:50.472Z",
+      "hostname": "d3ef3cbf3d01",
+      "time": "0.457"
+    },
+    {
+      "name": "cn.chronicle.core.CartographyTest",
+      "tests": "10",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-11-16T09:01:38.487Z",
+      "hostname": "d3ef3cbf3d01",
+      "time": "11.748"
+    }
+  ]
+}

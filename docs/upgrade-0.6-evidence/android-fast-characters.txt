@@ -1,0 +1,8 @@
+
+cn.chronicle.game.CharacterFeatureTest:.........
+
+Time: 99.501
+
+OK (9 tests)
+
+

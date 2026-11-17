@@ -3,13 +3,13 @@ package cn.chronicle.core
 import kotlinx.serialization.Serializable
 @Serializable data class ModelSpec(val repo:String,val revision:String,val file:String,val bytes:Long,val sha256:String,val license:String,val label:String) {
  val id get()="$repo/$file"
- val url get()="https://huggingface.co/$repo/resolve/$revision/$file"
+ val url get()="https://huggingface.co/$repo/resolve/$revision/"+file.split('/').joinToString("/"){java.net.URLEncoder.encode(it,"UTF-8").replace("+","%20")}
  fun verify() {
   require(repo.matches(Regex("[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")))
   require(revision.matches(Regex("[a-f0-9]{40}")))
-  require(file.matches(Regex("[A-Za-z0-9_./-]+\\.gguf")) && !file.contains("..") && !file.startsWith("/") && !file.contains(Regex("-\\d{5}-of-\\d{5}")))
-  require(bytes in 50_000_000L..1_610_612_736L && sha256.matches(Regex("[a-f0-9]{64}")))
-  require(license in listOf("apache-2.0","mit"))
+  require(file.endsWith(".gguf",true)&&file.length<=240&&file.split('/').all {it.isNotBlank()&&it !in listOf(".","..")&&it.none {c->c<' '||c=='\\'}}&&!file.contains(Regex("-\\d{5}-of-\\d{5}")))
+  require(bytes in 16_000_000L..8_589_934_592L && sha256.matches(Regex("[a-f0-9]{64}")))
+  require(license !in listOf("unknown","","unspecified")&&license.matches(Regex("[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}")))
  }
 }
 object ModelCatalog {

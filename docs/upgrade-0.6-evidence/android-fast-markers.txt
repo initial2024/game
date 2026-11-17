@@ -1,0 +1,2 @@
+11-16 10:06:09.449  1823  2209 I System.out: LIVE_HF_SEARCH repos=12 repo=bartowski/SmolLM2-135M-Instruct-GGUF revision=09816acd5d99df7be770d85ea30822623dab342c file=SmolLM2-135M-Instruct-Q4_K_M.gguf bytes=105454432 sha256=2e8040ceae7815abe0dcb3540b9995eaa1fa0d2ca9e797d0a635ae4433c68c2d
+11-16 10:08:39.647  3834  3846 I System.out: LARGE_WORLD_RESTART bytes=3537887 people=778 slots=3

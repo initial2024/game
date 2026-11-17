@@ -10,7 +10,9 @@ import org.junit.runner.RunWith
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
+import kotlinx.serialization.json.*
+import kotlinx.serialization.encodeToString
 import androidx.compose.ui.test.*
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.semantics.SemanticsActions
@@ -20,6 +22,21 @@ import org.junit.Rule
 
 @RunWith(AndroidJUnit4::class)
 class StorageTest {
+ @Test fun largeWorldBeyondCursorWindowRestartsWithoutTruncation(){
+  val context=InstrumentationRegistry.getInstrumentation().targetContext;val dbName="large-world-verification.db";context.deleteDatabase(dbName)
+  val original=NewGame.create("大档验证","景衡","综合发展","标准",1847)
+  val world=original.copy(people=original.people.map {p->p.copy(memories=List(8){i->"${p.id}号人物第${i}项经历："+"地方治安粮仓巡检".repeat(20)})})
+  val encoded=SaveJson.encodeToString(world);assertTrue("Must exceed SQLite's common 2 MiB CursorWindow",encoded.toByteArray().size>2*1024*1024)
+  Store(context,dbName).use {it.create(1,world)}
+  Store(context,dbName).use {store->
+   val loaded=requireNotNull(store.load(1));assertEquals(Store.sha(encoded),Store.sha(SaveJson.encodeToString(loaded)));assertEquals(778,loaded.people.size)
+   store.copyTo(1,2);store.import(store.export(1),3);assertEquals(Store.sha(encoded),Store.sha(SaveJson.encodeToString(store.load(3)!!)))
+   val changed=RealtimeEngine.submit(loaded,Command("CONVERSE",target=loaded.localDefense.units.first().commander.toString(),mode="倾听"),loaded.revision)
+   store.commit(1,loaded.revision,changed);assertEquals(0L,store.load(2)!!.revision)
+  }
+  Store(context,dbName).use {assertEquals(1L,it.load(1)!!.revision);assertEquals(0L,it.load(3)!!.revision)}
+  println("LARGE_WORLD_RESTART bytes=${encoded.toByteArray().size} people=${world.people.size} slots=3")
+ }
  @Test fun transactionRestartIsolationAndArchiveIntegrity() {
   val context=InstrumentationRegistry.getInstrumentation().targetContext
   context.deleteDatabase("chronicle-verification.db") // Test-only database; never the user's game database.
@@ -32,6 +49,16 @@ class StorageTest {
   val exported=store.export(1);store.import(exported,3);assertEquals(next.world,store.load(3));assertEquals(2,store.history(3).size)
   try {store.import(exported.replace("测试","篡改"),4);fail("corruption accepted")}catch(_:IllegalArgumentException){}
   store.close()
+ }
+ @Test fun legacyExportChecksumSurvivesCommandSchemaExtension(){
+  val context=InstrumentationRegistry.getInstrumentation().targetContext;context.deleteDatabase("old-command-import-test.db")
+  val start=NewGame.create("旧格式","君主","综合发展","标准",1847);val out=RealtimeEngine.submit(start,Command("FARM"),0)
+  fun strip(e:JsonElement):JsonElement=when(e){is JsonObject->JsonObject(e.filterKeys {it!="level"}.mapValues {strip(it.value)});is JsonArray->JsonArray(e.map {strip(it)});else->e}
+  val original=SaveJson.parseToJsonElement(SaveJson.encodeToString(out.world)).jsonObject
+  val world=strip(JsonObject(original.filterKeys {it !in listOf("towns","socialTopics","resources","localDefense","payroll")}.toMutableMap().apply {put("people",SaveJson.parseToJsonElement(SaveJson.encodeToString(out.world.people.take(10))))})).toString()
+  val history=strip(SaveJson.parseToJsonElement(SaveJson.encodeToString(listOf(out.entry))));val digest=Store.sha(world+history.toString()+"[]")
+  val snapshot=buildJsonObject {put("format",2);put("world",world);put("history",history);put("dialogues",JsonArray(emptyList()));put("sha256",digest)}.toString()
+  Store(context,"old-command-import-test.db").use {store->store.import(snapshot,1);assertEquals(out.world.nation,store.load(1)!!.nation);assertEquals(171,store.load(1)!!.towns.count {it.rank=="县城"});assertEquals("FARM",store.history(1).single().commands.single().type)}
  }
  @Test fun corruptModelHeaderRejected() {
   val f=File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir,"invalid.gguf");f.writeBytes(ByteArray(64))
@@ -68,6 +95,7 @@ class ScreenTest {
   val previousSlot=vm.state.value.slot;val hadWorld=vm.state.value.world!=null
   if(compose.onAllNodesWithText("开启纪年").fetchSemanticsNodes().isNotEmpty())compose.onNodeWithText("开启纪年").performClick()
   else {compose.onNodeWithText("档案",useUnmergedTree=true).performClick();compose.onNodeWithText("新建").performScrollTo().performClick()}
+  compose.onAllNodes(isToggleable()).onFirst().performScrollTo().performClick() // Exercise free play; guided auto-pause is tested separately.
   compose.onNodeWithText("建立国家").performClick()
   compose.waitUntil(30000){vm.state.value.world!=null && !vm.state.value.busy && (!hadWorld || vm.state.value.slot!=previousSlot)}
   fun pause() {if(!vm.state.value.paused)compose.onNodeWithText("暂停时间").performClick()}
@@ -109,7 +137,7 @@ class ScreenTest {
   compose.onNodeWithText("确认执行").assertIsDisplayed().performClick()
   compose.waitUntil(30000){compose.onAllNodesWithText("确认执行").fetchSemanticsNodes().isEmpty()}
   compose.onNodeWithText("展开  ＋").performScrollTo().performClick()
-  compose.onNodeWithText("例如：兴修水渠、资助科研").performScrollTo().performTextInput("兴修水渠")
+  compose.onNode(hasSetTextAction()).performScrollTo().performTextInput("兴修水渠")
   compose.onNodeWithText("解析并预览").performScrollTo().performClick()
   compose.waitUntil(10000){compose.onAllNodesWithText("确认执行").fetchSemanticsNodes().isNotEmpty()};screenshot("custom-action")
   compose.onNodeWithText("确认执行").assertIsDisplayed().performClick()
@@ -142,6 +170,12 @@ class RealModelTest {
   val parsed=runCatching {AiValidation.parse(structured,NewGame.create("测试","君主","综合发展","标准",1847))}.getOrNull()
   println("REAL_INTENT_STRUCTURED_VALID=${parsed!=null} text=$structured")
   val playable=parsed?:IntentParser.parse("兴修水渠");assertEquals("FARM",playable.commands.single().type)
+  val world=NewGame.create("承熙","景衡","综合发展","标准",1847);val person=world.people[1]
+  val formatted=NativeBridge.formatChat(arrayOf("system","user"),arrayOf(DialogueEngine.context(world,person,true).toByteArray(),"请用一句话谈谈你的目标。".toByteArray()),"auto")
+  assertTrue(NativeBridge.countTokens(formatted)+104<512)
+  var chunks=0
+  val dialogue=NativeBridge.generateStreaming(formatted,96,300000,NativeTokenSink {chunks++}).toString(Charsets.UTF_8)
+  assertTrue(dialogue.isNotBlank());assertTrue(chunks>0);assertNotNull(DialogueEngine.sanitize(world,person,dialogue));println("REAL_CHARACTER_CHAT chunks=$chunks text=$dialogue")
   val memory=android.os.Debug.MemoryInfo();android.os.Debug.getMemoryInfo(memory);println("ANDROID_OBSERVED_PSS_KIB=${memory.totalPss}")
   repeat(3) {assertTrue(NativeBridge.generate(prompt,6,120000).isNotEmpty())}
   val executor=java.util.concurrent.Executors.newSingleThreadExecutor()
@@ -151,5 +185,28 @@ class RealModelTest {
   val resident=File("/proc/self/status").readLines().filter {it.startsWith("VmHWM:")||it.startsWith("VmRSS:")}.joinToString("; ")
   println("ANDROID_PROCESS_RESIDENT $resident")
   NativeBridge.unload()
+  // Verify the exact application adapter, not only the raw JNI entry point.
+  val context=InstrumentationRegistry.getInstrumentation().targetContext
+  val manager=ModelManager(context);manager.threads=2;manager.contextLimit=512
+  try {
+   manager.import(android.net.Uri.fromFile(model))
+   runBlocking {withTimeout(120000){while(manager.state.value.working)delay(100)}}
+   assertTrue(manager.state.value.status,manager.state.value.exists)
+   assertFalse(manager.isLoaded)
+   runBlocking {withTimeout(120000){manager.ensureLoadedForChat()}}
+   assertTrue(manager.state.value.status,manager.isLoaded)
+   val county=world.towns.first {it.rank=="县城"};val magistrate=world.people.first {it.id==county.official}
+   assertTrue(DialogueEngine.context(world,magistrate,true).contains(county.name))
+   var appChunks=0;val appStart=System.nanoTime()
+   val reply=runBlocking {withTimeout(210000){manager.chat(world,magistrate,emptyList(),"请用一句话介绍你的任所和职责。",{appChunks++})}}
+   assertEquals("model",reply.source);assertTrue(reply.text.any {it in '\u4e00'..'\u9fff'});assertTrue(appChunks>0)
+   println("REAL_APP_CHARACTER_CHAT elapsed_ms=${(System.nanoTime()-appStart)/1000000} chunks=$appChunks person=${magistrate.id} role=${magistrate.role} town=${county.id} text=${reply.text}")
+   val localUnit=world.localDefense.units.first {it.home==county.id&&it.kind=="县兵"};val captain=world.people.first {it.id==localUnit.commander}
+   assertTrue(DialogueEngine.context(world,captain,true).contains("俸禄"));assertTrue(DialogueEngine.context(world,captain,true).contains(localUnit.name))
+   var militaryChunks=0;val militaryStart=System.nanoTime()
+   val militaryReply=runBlocking {withTimeout(210000){manager.chat(world,captain,emptyList(),"请用一句话说明你的驻地与军务职责。",{militaryChunks++})}}
+   assertEquals("model",militaryReply.source);assertTrue(militaryReply.text.any {it in '\u4e00'..'\u9fff'});assertTrue(militaryChunks>0)
+   println("REAL_APP_LOCAL_OFFICER_CHAT elapsed_ms=${(System.nanoTime()-militaryStart)/1000000} chunks=$militaryChunks person=${captain.id} role=${captain.role} salary_liang=${PayrollEngine.salary(world,captain.id)} text=${militaryReply.text}")
+  } finally {manager.unloadAsync();runBlocking {withTimeout(60000){while(manager.isLoaded)delay(100)}};manager.close()}
  }
 }
