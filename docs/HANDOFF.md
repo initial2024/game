@@ -16,7 +16,7 @@ Updated 2026-11-17 (Asia/Singapore). Read this and the full requirements registe
 
 ## Verified 0.7.1 and active 0.8 work
 
-0.7.1/code12 is delivered. Source `2544aedc4cb9097edff3d92d7f28ad0240149440`, artifact branch commit `697fc50`, [full green Actions44089542122](https://github.com/initial2024/game/actions/runs/44089542122). 92 JVM tests,26 native checks and2 optimized actual-GGUF/restart checks passed. See [0.7.1 report](UPGRADE_0.7.1_TESTING.md). Automatic loading on first send, retained fallback causes, settings/feedback and cancel are implemented; do not reimplement the old missing feature.
+0.7.1/code12 is delivered. Source `2544aedc4cb9097edff3d92d7f28ad0240149440`, artifact branch commit `697fc50`, [full green Actions44089542122](https://github.com/initial2024/game/actions/runs/44089542122). 92 JVM tests,26 native checks and2 optimized actual-GGUF/restart checks passed. See [0.7.1 report](https://github.com/initial2024/game/blob/feature/character-chat-hf-search/docs/UPGRADE_0.7.1_TESTING.md). Automatic loading on first send, retained fallback causes, settings/feedback and cancel are implemented; do not reimplement the old missing feature.
 
 **Active development is 0.8.0/code13; do not label it delivered until its own checks pass.** The user clarified that the map must be an interaction hub, beyond strategy panels, and asked whether the references have maps. [REFERENCES.md](REFERENCES.md) records inspected map/province/scenario data and the original implementation approach.
 
@@ -28,7 +28,7 @@ New code:
 - `DialogueEngine.kt`: formally contacted foreign rulers are diplomatic equals, not ministers; role-visible identity/context and anti-submissive output filtering. Conversation cannot change borders or international relations.
 - New core tests `CampaignChoicesTest` / `MapOrdersTest`; native tests extend map touch → targeted mission → map-selected army → actual queued move/arrival/SQLite and strategy previews. Old region-0 or `territory-r2` assumptions were incorrect fixtures: Chang'an county maps to region1 and its current prefecture territory ID is `prefecture-jingji`.
 
-Next: run/inspect the 0.8 full CI build,106 core checks, native map/strategy regressions and optimized real-model/restart flow; fix failures, collect evidence and deliver a matching stable-signed ARM64 APK. Update the current APK/report/requirements here. The source commit/run link should be checkpointed after pushing.
+Next: run/inspect the 0.8 full CI build,106 core checks, native map/strategy regressions and optimized real-model/restart flow; fix failures, collect evidence and deliver a matching stable-signed ARM64 APK. Update the current APK/report/requirements here. Current0.8 source: `475aa5358442fa7b5acf47f54cbd424163a7c639`; [CI44097229976](https://github.com/initial2024/game/actions/runs/44097229976) is under verification. Check actual outcomes rather than assume success.
 
 This is still a single-front prototype with regional deployment, not complete Age-of-History-level simulation. Moving army/trade markers, full new-territory jurisdiction/local finances, autonomous countries, multiple fronts and many historic requests remain partial/open. Continue the whole requirements register, not just this increment.
 
@@ -115,3 +115,9 @@ Next after auto-load: strategic choices/province jurisdiction/country AI; life-c
 ## Repository metadata limitation
 
 English README/backlog/handoff were successfully published to main in docs-only commit `2f978881055c6af8b75b4e5cb52331c5271f063c`; gameplay was not merged. Updating the GitHub About description/homepage through the managed integration returned HTTP403, Resource not accessible by integration. The public README already contains the English introduction and all backlog links. About metadata remains pending administrative capability; do not report it updated.
+
+## Resume checkpoint: execution environment unavailable
+
+The execution environment disconnected on2026-11-17. All0.8 gameplay/code/tests are safely pushed at `475aa5358442fa7b5acf47f54cbd424163a7c639`; no gameplay merge to main has occurred. CI44097229976 continues independently. Check its actual job results and fix any failed native/map checks before calling0.8 verified. The current verified stable-signed download remains0.7.1. The0.8 APK cannot yet be signed with the established private development key because that key's environment is unavailable; do not generate a different identity or claim a test signature can overwrite it.
+
+Resume in a restored or fresh environment: fetch the development branch, inspect/preserve local diffs, recover the existing private signing identity through its authorized private channel, obtain the exact CI ARM64 release artifact, verify source/DEX/hash/certificate/alignment, sign it, re-download the published APK and update evidence. A restored working tree may contain uncommitted documentation-only checkpoint edits; compare and preserve them before pulling. Use a separate checkout if needed. Never upload the key or player saves. GitHub source/docs/CI remain accessible even while shell access is unavailable.
