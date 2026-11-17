@@ -59,6 +59,7 @@ class MainActivity:ComponentActivity() {
  var theme by rememberSaveable { mutableIntStateOf(prefs.getInt("theme",0)) }
  var scale by rememberSaveable { mutableFloatStateOf(prefs.getFloat("scale",1f)) }
  var tab by rememberSaveable { mutableIntStateOf(0) }
+ var openMapOnWorld by rememberSaveable { mutableStateOf(false) }
  var new by rememberSaveable { mutableStateOf(false) }
  var plan by remember(ui.slot) { mutableStateOf<Preview?>(null) }; var expected by remember(ui.slot) { mutableLongStateOf(0) };var decreePerson by remember(ui.slot) {mutableStateOf<Int?>(null)};var decreeText by remember(ui.slot) {mutableStateOf("")};var planSlot by remember(ui.slot) {mutableIntStateOf(0)}
  val schemes=listOf(darkColorScheme(primary=Gold,secondary=Jade,background=Color(0xFF101D1C),surface=Color(0xFF192B29),surfaceVariant=Color(0xFF253A35),surfaceContainer=Color(0xFF192B29),surfaceContainerHigh=Color(0xFF203631),surfaceContainerHighest=Color(0xFF29423B),primaryContainer=Color(0xFF3C4B34),secondaryContainer=Color(0xFF29463E),onPrimary=Color(0xFF17261F)), lightColorScheme(primary=Color(0xFF546839),secondary=Color(0xFF326759),background=Color(0xFFF6F3EA),surface=Color(0xFFFFFDF7)), darkColorScheme(primary=Color(0xFFC8BA86),secondary=Color(0xFFABC09B),background=Color(0xFF22291F),surface=Color(0xFF30392A)))
@@ -88,9 +89,9 @@ class MainActivity:ComponentActivity() {
      if(!ui.ready) Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){CircularProgressIndicator()}
      else if(w==null) Welcome { new=true }
      else pageState.SaveableStateProvider(tab) { when(tab) {
-      0 -> Story(w,ui,vm,::ask) { preview -> expected=w.revision;plan=preview }
+      0 -> Story(w,ui,vm,::ask,{ preview -> expected=w.revision;plan=preview },{ openMapOnWorld=true;tab=2 })
       1 -> Court(w,::ask,vm)
-      2 -> WorldPage(w,ui.slot,vm,::ask)
+      2 -> WorldPage(w,ui.slot,vm,::ask,openMapOnWorld){ openMapOnWorld=false }
       else -> Archive(ui,vm,{new=true},theme,{ theme=it;prefs.edit().putInt("theme",it).apply() },scale,{scale=it;prefs.edit().putFloat("scale",it).apply()})
      } }
     }
@@ -108,10 +109,11 @@ class MainActivity:ComponentActivity() {
 @Composable private fun Page(content:@Composable ColumnScope.()->Unit) { Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),verticalArrangement=Arrangement.spacedBy(14.dp),content=content) }
 @Composable internal fun Panel(title:String,subtitle:String?=null,content:@Composable ColumnScope.()->Unit) { Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface)) { Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) { Text(title,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold);subtitle?.let {Text(it,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.secondary)};content() } } }
 @Composable internal fun ActionButton(c:Command,ask:(Command)->Unit) { OutlinedButton(onClick={ask(c)},modifier=Modifier.fillMaxWidth(),shape=RoundedCornerShape(12.dp),contentPadding=PaddingValues(12.dp)) { Text(EraRules.label(c,LocalWorldSetting.current),Modifier.weight(1f));Text("${LocalGameWorld.current?.let {Rules.cost(it,c)}?:Rules.cost(c)} 万两",style=MaterialTheme.typography.labelMedium) } }
-@Composable private fun Story(w:World,ui:UiState,vm:GameViewModel,ask:(Command)->Unit,custom:(Preview)->Unit) {
+@Composable private fun Story(w:World,ui:UiState,vm:GameViewModel,ask:(Command)->Unit,custom:(Preview)->Unit,onOpenMap:()->Unit) {
  var text by rememberSaveable {mutableStateOf("")};var group by rememberSaveable {mutableStateOf("纪事")}
  Page {
   ObjectiveCard(w,ask)
+  OutlinedButton(onClick=onOpenMap,modifier=Modifier.fillMaxWidth().testTag("story-open-map")){Text("进入战略地图 · 选择府县、巡视与调兵")}
   Choices(listOf("纪事","行动","事务","目标与奏报","案簿"),group,{group=it})
   when(group) {
    "纪事" -> {
@@ -188,8 +190,9 @@ class MainActivity:ComponentActivity() {
   }
  }
 }
-@Composable private fun WorldPage(w:World,slot:Int,vm:GameViewModel,ask:(Command)->Unit) {
+@Composable private fun WorldPage(w:World,slot:Int,vm:GameViewModel,ask:(Command)->Unit,openMapRequested:Boolean=false,onMapRequestConsumed:()->Unit={}) {
  var showMap by rememberSaveable {mutableStateOf(false)}
+ LaunchedEffect(openMapRequested){if(openMapRequested){showMap=true;onMapRequestConsumed()}}
  var area by rememberSaveable {mutableIntStateOf(0)};var section by rememberSaveable {mutableIntStateOf(0)}
  var regionGroup by rememberSaveable {mutableStateOf("府县")}
  if(showMap){androidx.compose.ui.window.Dialog(onDismissRequest={showMap=false},properties=androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth=false,decorFitsSystemWindows=true)){Surface(Modifier.fillMaxSize()){WorldMapScreen(w,slot,{showMap=false},ask,{area=it;section=0;regionGroup="府县";showMap=false})}}}
