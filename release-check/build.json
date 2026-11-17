@@ -1,6 +1,6 @@
 {
-  "source_commit": "d8f0d0457d7b52974a6b7dad4788346065b24304",
-  "purpose": "Development-built optimized APK pair with shared tracing and Kotlin runtime ABI preserved; shipping ARM64 APK is built by separate CI.",
+  "source_commit": "0b5e24912eb96619b297a8f3b4c23bf6c0a71b7a",
+  "purpose": "Development-built optimized APK pair for CI device tests. Shipping ARM64 comes from the separate full CI build.",
   "versionCode": 11,
   "minified": true
 }
