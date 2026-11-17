@@ -16,6 +16,7 @@ android {
    if (key != null) { storeFile = file(key); storePassword = System.getenv("CHRONICLE_STORE_PASSWORD"); keyAlias = "chronicle"; keyPassword = System.getenv("CHRONICLE_KEY_PASSWORD") }
   }
  }
+ if(providers.gradleProperty("chronicle.testRelease").orNull=="true") sourceSets.getByName("androidTest").java.setSrcDirs(listOf("src/releaseTest/java"))
  testBuildType = if(providers.gradleProperty("chronicle.testRelease").orNull=="true") "release" else "debug"
  buildTypes { getByName("release") {
   isMinifyEnabled = true
