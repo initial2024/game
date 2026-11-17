@@ -4,7 +4,13 @@ on:
     inputs:
       source_run:
         description: Existing CI run containing paired optimized APKs
-        required: true
+        required: false
+        default: ''
+        type: string
+      apk_revision:
+        description: Immutable revision containing a paired development release-check directory
+        required: false
+        default: ''
         type: string
 permissions:
   contents: read
@@ -19,11 +25,25 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: actions/download-artifact@v4
+        if: inputs.source_run != ''
         with:
           name: release-smoke-report-and-mapping
           run-id: ${{ inputs.source_run }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: ci-artifacts
+      - name: Fetch paired development release APKs
+        if: inputs.apk_revision != ''
+        env:
+          APK_REVISION: ${{ inputs.apk_revision }}
+        run: |
+          [[ "$APK_REVISION" =~ ^[a-f0-9]{40}$ ]]
+          mkdir -p ci-artifacts
+          base="https://raw.githubusercontent.com/initial2024/game/$APK_REVISION/release-check"
+          curl -fL "$base/app-x86_64-release.apk" -o ci-artifacts/app-x86_64-release.apk
+          curl -fL "$base/app-release-androidTest.apk" -o ci-artifacts/app-release-androidTest.apk
+          curl -fL "$base/SHA256SUMS" -o ci-artifacts/SHA256SUMS
+          cd ci-artifacts
+          sha256sum -c SHA256SUMS
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
