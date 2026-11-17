@@ -3,6 +3,8 @@ package cn.chronicle.game
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.lifecycle.ViewModelProvider
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.test.platform.app.InstrumentationRegistry
 import cn.chronicle.core.*
 import org.junit.Assert.*
@@ -33,7 +35,7 @@ class ChronicleFeatureTest {
    val exported=store.export(1);store.import(exported,3);assertEquals(store.load(1),store.load(3))
   }
   compose.onNodeWithTag("nav-2").performClick();click("君主");compose.onNodeWithText("${vm.state.value.world!!.sovereign.guard.name} · 第1代君主").assertExists()
-  compose.onNodeWithTag("nav-3").performClick();click("模型");click("搜索、下载与管理模型");click("设置")
+  compose.onNodeWithTag("nav-3").performClick();click("模型");click("搜索、下载与管理模型");compose.onNode(hasText("设置") and SemanticsMatcher.expectValue(SemanticsProperties.Role,Role.RadioButton)).performClick()
   assertEquals(3,ModelTransfer.urls(ModelCatalog.builtIn.first(),"auto").size);assertTrue(ModelTransfer.urls(ModelCatalog.builtIn.first(),"hf-mirror").single().startsWith("https://hf-mirror.com/"))
  }
 }
