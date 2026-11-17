@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -164,6 +165,16 @@ private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapO
   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){TextButton(onClick={if(editor)editor=false else onClose()}){Text(if(editor)"返回游戏地图" else "返回地区列表")};if(!editor)TextButton(onClick={chooseArmy=true}){Text("地图调兵")};TextButton(onClick={editor=!editor;selection=null;mapArmy=""}){Text(if(editor)"查看游戏" else "地图沙盘")}}
   if(!editor&&mapArmy.isNotEmpty())Row(Modifier.padding(horizontal=12.dp)){val unit=CrownEngine.units(world).find {it.id==mapArmy};Text("${unit?.name?:"部队"} · 驻${unit?.let {world.regions[it.region].name}?:"未定"} · 点地图预览调防/战令",Modifier.weight(1f),style=MaterialTheme.typography.labelSmall);TextButton(onClick={mapArmy=""}){Text("取消选军")}}
   if(!editor)ChronicleClockHud(clock.world?:world,clock,gameVm,compact=true)
+  if(!editor)Row(
+   Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal=12.dp,vertical=3.dp).testTag("map-strategy-strip"),
+   horizontalArrangement=Arrangement.spacedBy(16.dp)
+  ){
+   Text("国库 ${world.nation.treasury}万两",style=MaterialTheme.typography.labelSmall)
+   Text("民心 ${world.nation.morale}",style=MaterialTheme.typography.labelSmall)
+   Text("稳定 ${world.nation.stability}",style=MaterialTheme.typography.labelSmall)
+   Text("腐败 ${world.nation.corruption}",style=MaterialTheme.typography.labelSmall)
+   Text(if(world.war==null)"天下无战事"else"战事持续：${world.neighbors.getOrNull(world.war.neighbor)?.name?:"未知前线"}",style=MaterialTheme.typography.labelSmall)
+  }
   if(clock.message.isNotBlank())Row(Modifier.padding(horizontal=12.dp)){Text(clock.message,Modifier.weight(1f),maxLines=2,style=MaterialTheme.typography.labelSmall);TextButton(onClick={gameVm.message("")}){Text("收起反馈")}}
   if(editor)Text("地图沙盘 · 编辑与导入只保存在地图沙盘，不改变游戏",Modifier.padding(horizontal=12.dp),style=MaterialTheme.typography.labelSmall)
   if(error.isNotBlank())Text(error,Modifier.padding(12.dp),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.error)
