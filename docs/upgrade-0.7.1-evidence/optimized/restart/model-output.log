@@ -1,0 +1,38 @@
+--------- beginning of main
+11-17 13:13:51.672  2455  2468 I System.out: Starting: Intent { flg=0x10008000 cmp=cn.chronicle.shanhe/cn.chronicle.game.MainActivity }
+11-17 13:13:51.672  2455  2468 I System.out: Status: ok
+11-17 13:13:51.672  2455  2468 I System.out: LaunchState: WARM
+11-17 13:13:51.672  2455  2468 I System.out: Activity: cn.chronicle.shanhe/cn.chronicle.game.MainActivity
+11-17 13:13:51.672  2455  2468 I System.out: TotalTime: 902
+11-17 13:13:51.672  2455  2468 I System.out: WaitTime: 917
+11-17 13:13:51.672  2455  2468 I System.out: Complete
+11-17 13:13:56.935  2455  2455 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=16
+11-17 13:13:56.997  2455  2455 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=47
+11-17 13:13:57.101  2455  2455 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-17 13:14:05.090  2455  2455 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-17 13:14:05.295  2455  2455 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=76
+11-17 13:14:05.327  2455  2455 I ChronicleMap: Selected type=place-select place=county-jingji-01
+11-17 13:14:15.534  2455  2455 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-17 13:14:19.464  2455  2455 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-17 13:14:21.372  2455  2455 E chromium: [ERROR:aw_browser_terminator.cc(154)] Renderer process (2515) crash detected (code -1).
+11-17 13:14:22.388  2455  2455 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=16
+11-17 13:14:22.538  2455  2455 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=47
+11-17 13:14:22.724  2455  2455 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-17 13:14:23.261  2455  2455 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-17 13:14:25.602  2455  2455 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=76
+11-17 13:14:25.630  2455  2455 I ChronicleMap: Selected type=place-select place=county-jingji-01
+11-17 13:14:33.465  2455  2455 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-17 13:14:59.419  2455  2468 I System.out: RELEASE_MINIFIED_MAP_DATABASE_AND_REAL_MODEL_CHAT=true AUTO_LOAD_ON_FIRST_SEND=true sha=74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db
+11-17 13:15:01.939  2724  2737 I System.out: Starting: Intent { cmp=cn.chronicle.shanhe/cn.chronicle.game.MainActivity }
+11-17 13:15:01.939  2724  2737 I System.out: Status: ok
+11-17 13:15:01.939  2724  2737 I System.out: LaunchState: WARM
+11-17 13:15:01.939  2724  2737 I System.out: Activity: cn.chronicle.shanhe/cn.chronicle.game.MainActivity
+11-17 13:15:01.939  2724  2737 I System.out: TotalTime: 1133
+11-17 13:15:01.939  2724  2737 I System.out: WaitTime: 1138
+11-17 13:15:01.939  2724  2737 I System.out: Complete
+11-17 13:15:03.774  2724  2771 E chromium: [1117/131503.774267:ERROR:variations_seed_loader.cc(37)] Seed missing signature.
+11-17 13:15:04.609  2724  2724 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=16
+11-17 13:15:04.764  2724  2724 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=47
+11-17 13:15:04.941  2724  2724 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53
+11-17 13:15:12.015  2724  2737 I System.out: RELEASE_FULL_PROCESS_RESTART_MAP_PERSISTENCE=true
+11-17 13:15:12.828  2724  2724 I ChronicleMap: Bridge origin=https://appassets.androidplatform.net main=true length=53

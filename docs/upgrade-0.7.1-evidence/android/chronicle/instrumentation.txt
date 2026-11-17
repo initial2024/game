@@ -1,0 +1,8 @@
+
+cn.chronicle.game.ChronicleFeatureTest:.
+
+Time: 4.829
+
+OK (1 test)
+
+

@@ -1,0 +1,13 @@
+{
+  "ci_run": 44089542122,
+  "passed": 26,
+  "groups": {
+    "auto-load/instrumentation.txt": 4,
+    "characters/instrumentation.txt": 9,
+    "chronicle/instrumentation.txt": 1,
+    "huggingface/instrumentation.txt": 1,
+    "instrumentation.txt": 7,
+    "map/instrumentation.txt": 3,
+    "restart/instrumentation.txt": 1
+  }
+}

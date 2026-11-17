@@ -8,11 +8,11 @@ An original, offline, native Android historical strategy game: govern a country,
 
 ## Download and verified baseline
 
-[Download 0.7.0 ARM64 APK](https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.7.0-arm64.apk) — 3,518,016 bytes / about 3.36 MiB. Model weights are separate; the game is playable without them.
+[Download 0.7.1 ARM64 APK](https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.7.1-arm64.apk) — 3,518,016 bytes / about 3.36 MiB. Model weights are separate; the game is playable without them.
 
-SHA-256: `e7ee26053f23ca8e653295dcac2eb080ccdbd7347efaaaeb37b124e836cae472`.
+SHA-256: `7808992b153d3d6f15566e06572b54924584de639391ad41cc798caf87a474ed`.
 
-[Build, test evidence and limitations](https://github.com/initial2024/game/blob/f10fb00c3c1a9cf06a36791b80c0a06d270bf438/docs/UPGRADE_0.7_TESTING.md): 92 passing JVM tests, 22 passing native Android regression checks, and two optimized-build checks including real GGUF inference and process-restart persistence. These are Android 15 x86_64 emulator results, not vivo or ARM64 phone measurements. The original full build run had device-job failures; subsequent focused verification passed, as recorded in the report.
+[Build, test evidence and limitations](https://github.com/initial2024/game/blob/feature/character-chat-hf-search/docs/UPGRADE_0.7.1_TESTING.md): 92 passing JVM tests, 26 passing native Android regression checks, and two optimized-build checks including real GGUF inference and process-restart persistence. These are Android 15 x86_64 emulator results, not vivo or ARM64 phone measurements. The 0.7.1 workflow passed build, browser, native and optimized-model checks; optional jobs and remaining limits are identified in the report.
 
 Package: `cn.chronicle.shanhe`. Published development APKs share a persistent development signing certificate; private keys are never committed. Changing that key later needs an explicit migration plan.
 
@@ -29,7 +29,7 @@ Package: `cn.chronicle.shanhe`. Published development APKs share a persistent de
 
 ## Full development backlog
 
-All historical requests, statuses and acceptance criteria are in the [complete requirements register](docs/REQUIREMENTS.md). Still incomplete or requiring broader validation:
+On-send automatic loading is verified in 0.7.1; broader conversation acceptance and every other unfinished requirement remain tracked. All historical requests, statuses and acceptance criteria are in the [complete requirements register](docs/REQUIREMENTS.md). Still incomplete or requiring broader validation:
 
 1. **Conversation convenience:** auto-load the installed default model on message send; show loading, retain failure reasons, allow cancellation and verify every eligible character uses real inference.
 2. **Historical strategy:** meaningful province jurisdiction, autonomous countries, multiple fronts, supply, assault/siege/diplomacy, treaties and era-specific institutions, informed by the actual *Age of History* game.

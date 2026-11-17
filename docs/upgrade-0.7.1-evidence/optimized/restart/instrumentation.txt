@@ -1,0 +1,8 @@
+
+cn.chronicle.game.ReleaseRestoreTest:.
+
+Time: 12.771
+
+OK (1 test)
+
+
