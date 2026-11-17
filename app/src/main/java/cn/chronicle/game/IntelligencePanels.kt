@@ -5,6 +5,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import cn.chronicle.core.*
 
@@ -59,7 +60,7 @@ import cn.chronicle.core.*
   val u=CrownEngine.units(w).first {it.id==war.army}
   Text("对${w.neighbors[war.neighbor].name}战争 · 第${war.days}日");Text("${u.name} · ${u.soldiers}人 · 补给${u.supply} · 编制战力${CrownEngine.power(w,u)}")
   Text("已交战${war.battles}次 · 优势${war.progress} · 敌战力${war.enemy} · 双方厌战${war.weariness}/${war.enemyWeariness}")
-  SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()){listOf("稳战","速攻","围困","外交").forEachIndexed {i,s->SegmentedButton(selected=approach==s,onClick={approach=s},shape=SegmentedButtonDefaults.itemShape(i,4)){Text(s)}}}
+  SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()){listOf("稳战","速攻","围困","外交").forEachIndexed {i,s->SegmentedButton(selected=approach==s,onClick={approach=s},shape=SegmentedButtonDefaults.itemShape(i,4),modifier=Modifier.testTag("war-mode-$s")){Text(s)}}}
   if(approach=="外交"){
    val selected=w.people.firstOrNull {it.id==envoy&&WarfareEngine.envoyAvailable(w,it)}?:w.people.firstOrNull {WarfareEngine.envoyAvailable(w,it)}
    Text("使者：${selected?.let {"${it.name} · 能力${it.ability}"}?:"暂无合适人选"}")
