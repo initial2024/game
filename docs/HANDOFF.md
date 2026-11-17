@@ -14,9 +14,13 @@ Updated 2026-11-17 (Asia/Singapore). Read this and the full requirements registe
 - [Current APK](https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.7.0-arm64.apk): 0.7.0/code11, 3,518,016 bytes, SHA256 `e7ee26053f23ca8e653295dcac2eb080ccdbd7347efaaaeb37b124e836cae472`.
 - Existing environment checkout: `/workspace/work/chronicle-ai`. Clone the development branch elsewhere; absolute workspace paths are not portable dependencies.
 
-## Immediate next change: send automatically loads model
+## Immediate feature and current verification
 
 The latest user answer says they want to send a message and have the installed default model load automatically.
+
+**Current work:** code is committed as `2544aedc4cb9097edff3d92d7f28ad0240149440` (0.7.1/code12). Awaitable automatic loading, visible settings/loading/cancel, explicit template failure reasons, isolated fault tests and a direct-send real-model smoke are implemented. The first local full build/lint and 92 JVM tests passed; final CI/device verification is [run 44089542122](https://github.com/initial2024/game/actions/runs/44089542122). It is in progress when this note is written. No 0.7.1 download is yet claimed. The older run 44088955923 was intentionally canceled after the import-in-progress guard fix; use the newer source/run. Check run results, fix failures, and finish source/evidence/APK delivery before marking A01/A02 complete.
+
+The numbered diagnosis below describes **0.7.0 baseline behavior**, not the newly changed source; inspect HEAD before editing it again.
 
 1. `ModelManager.kt` uses `filesDir/models/active.gguf`, with hash/settings in `inference` preferences. Current manual `load()` is asynchronous without an awaitable outcome. Add a shared, coalesced, cancellable load path that retains SHA/header/memory checks and the JNI mutex.
 2. `GameViewModel.sendChat()` only calls real inference if `models.isLoaded` was already true. Installed-but-unloaded currently always uses templates. Await loading on send; no silent large download.
@@ -106,3 +110,7 @@ Each new delivery needs exact source/CI outcomes, APK size/hash/cert, model/devi
 Tianming inspected as README-only design, not a playable engine. The Orient Doomsday is Age of History3 mod data/assets, not a reusable standalone engine. No recognized repo license was exposed. Continue original implementation; do not import unlicensed content.
 
 Next after auto-load: strategic choices/province jurisdiction/country AI; life-cycle/succession cleanup; case chains; persistent bounded AI history; once-only rewind; map overlays/movement; balance and presentation/device profiling. Full criteria remain in REQUIREMENTS.md.
+
+## Repository metadata limitation
+
+English README/backlog/handoff were successfully published to main in docs-only commit `2f978881055c6af8b75b4e5cb52331c5271f063c`; gameplay was not merged. Updating the GitHub About description/homepage through the managed integration returned HTTP403, Resource not accessible by integration. The public README already contains the English introduction and all backlog links. About metadata remains pending administrative capability; do not report it updated.

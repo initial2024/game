@@ -99,8 +99,8 @@ Status: **Implemented** = baseline with evidence; **Partial** = usable first ver
 
 | ID | Requirement and remaining acceptance | Status | Priority |
 |---|---|---|---|
-| A01 | On send, automatically load installed selected/default GGUF if enabled, then generate; no repeated manual loading or silent download. Visible nonblocking verification/loading/generation. | Open: immediate task | P0 |
-| A02 | Explicit model/template provenance, persistent failure reason, model-center access if missing, cancellation during loading/inference without save damage or double CONVERSE. | Partial; final fallback currently overwrites error | P0 |
+| A01 | On send, automatically load installed selected/default GGUF if enabled, then generate; no repeated manual loading or silent download. Visible nonblocking verification/loading/generation. | Code implemented in 2544aed; final device verification pending | P0 |
+| A02 | Explicit model/template provenance, persistent failure reason, model-center access if missing, cancellation during loading/inference without save damage or double CONVERSE. | Error retention fixed in 2544aed; final device verification pending | P0 |
 | A03 | Native llama.cpp, replaceable inference adapter, actual licensed Chinese model narration/intent understanding, no fixed fake AI. | Actual inference implemented; adapter partial | P1 |
 | A04 | Broad HF search/GGUF browsing/fixed revision/hash/license/installation, local import, threads/context, unload/delete and measured device recommendations. | Implemented; measured recommendations partial | P1 |
 | A05 | Real mirror URLs, progress/pause/retry/resume/foreground service, SHA+GGUF checks, ModelScope/HF Mirror/original source. | Implemented; HF Mirror full-file and vivo background tests outstanding | V |
@@ -137,7 +137,7 @@ Status: **Implemented** = baseline with evidence; **Partial** = usable first ver
 | T08 | R8/resource shrink, no dev suffix/DebugProbes, 16KiB native alignment, JNI callbacks/signature, own measured baseline profile and memory/power sessions. | Release size/alignment/signature implemented; profiling open | V |
 | T09 | Actions real APKs/tests/source/Draft PR/downloads/hashes/features/limitations; distinguish failed jobs, browsers, emulators and phones. | Repeat existing delivery discipline each release | V |
 | T10 | Actual vivo Android16 ARM64 install/update/UI/inference/memory/thermal/background/offline/long-play acceptance. | Device: no physical hardware available | V |
-| T11 | English About/README, Chinese entry, full portable backlog, branch/build/test/evidence/next-step handoff, kept current. | This documentation update | P0 |
+| T11 | English About/README, Chinese entry, full portable backlog, branch/build/test/evidence/next-step handoff, kept current. | README/backlog/handoff published; About API403 remains | P0 |
 
 ## Completion gates
 
