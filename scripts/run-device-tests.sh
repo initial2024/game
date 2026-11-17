@@ -7,7 +7,12 @@ adb shell getprop ro.build.version.release > "$report_dir/device.txt"
 adb shell wm size >> "$report_dir/device.txt"
 adb shell wm density >> "$report_dir/device.txt"
 adb shell cat /proc/meminfo >> "$report_dir/device.txt"
-if [[ "${CI:-}" == "true" && "${CHRONICLE_ONLINE_TEST:-}" != "true" ]]; then
+if [[ "${CI:-}" == "true" && "${CHRONICLE_ONLINE_TEST:-}" == "true" ]]; then
+  adb shell svc wifi enable
+  adb shell svc data enable
+  # Restore the guest network after an earlier offline test group.
+  sleep 2
+elif [[ "${CI:-}" == "true" ]]; then
   adb shell svc wifi disable
   adb shell svc data disable
   echo "Guest network switches after disabling:" >> "$report_dir/device.txt"
