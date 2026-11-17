@@ -12,3 +12,7 @@
 # AndroidJUnitRunner shares tracing with the target app; retain its public API for
 # optimized-release instrumentation and future startup/profile measurements.
 -keep class androidx.tracing.Trace { *; }
+# AndroidX Test executes in the app process and shares its Kotlin runtime. Keep
+# the standard library ABI so test-only calls do not target optimized-away facade
+# classes. Application/Compose/icon code still shrinks and obfuscates normally.
+-keep class kotlin.** { *; }
