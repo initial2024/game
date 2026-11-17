@@ -63,6 +63,8 @@ class CharacterFeatureTest {
   compose.onAllNodesWithText("2万两",substring=true).assertCountEquals(0)
   compose.onNodeWithText("说些什么…").performTextInput("你希望到国家学院学习吗？");compose.onNodeWithText("发送对话").performClick()
   compose.waitUntil(15000){!vm.chat.value.working&&vm.chat.value.records.size>=2};assertEquals("template",vm.chat.value.records.last().source);assertEquals(beforeChat.nation.treasury,vm.state.value.world!!.nation.treasury);assertEquals(beforeChat.day,vm.state.value.world!!.day);assertTrue(vm.state.value.world!!.pending.none {it.command.type=="CONVERSE"})
+  assertTrue(vm.chat.value.note.contains("尚未安装模型"));assertTrue(vm.chat.value.note.contains("规则模板回复"))
+  compose.onNodeWithText("模型设置").assertIsDisplayed()
   screenshot("character-chat");val store=Store(compose.activity);assertTrue(store.dialogues(vm.state.value.slot,1).size>=2);store.close()
   compose.onNodeWithText("关闭对话").performClick();compose.onNodeWithText("学院",useUnmergedTree=true).performScrollTo().performClick()
   compose.onNodeWithText("更换讲席").performScrollTo().performClick();compose.onNodeWithText("选择讲席").assertIsDisplayed();compose.onNodeWithText("关闭选择").performClick()

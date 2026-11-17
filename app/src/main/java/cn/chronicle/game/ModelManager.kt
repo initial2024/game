@@ -47,7 +47,7 @@ object NativeBridge {
  external fun unload()
 }
 data class HubState(val query:String="",val sort:String="downloads",val ggufOnly:Boolean=true,val repositories:List<HubRepository> = emptyList(),val next:String?=null,val selected:HubRepository?=null,val files:List<HubFile> = emptyList(),val fileNext:String?=null,val busy:Boolean=false,val error:String="")
-data class ModelState(val status:String="未加载模型 · 使用规则叙事",val progress:Float=0f,val working:Boolean=false,val loaded:Boolean=false,val exists:Boolean=false,val paused:Boolean=false)
+data class ModelState(val status:String="未加载模型 · 使用规则叙事",val progress:Float=0f,val working:Boolean=false,val loaded:Boolean=false,val exists:Boolean=false,val paused:Boolean=false,val loading:Boolean=false)
 class ModelManager(private val app:Context) {
  private val scope=CoroutineScope(SupervisorJob()+Dispatchers.IO)
  private val gate=Mutex()
@@ -59,6 +59,7 @@ class ModelManager(private val app:Context) {
  private val mutable=MutableStateFlow(ModelState(exists=model.exists(),paused=partial.exists()))
  val state=mutable.asStateFlow()
  val isLoaded get()=mutable.value.loaded
+ @Volatile private var loadingJob:Job?=null
  private val catalogMutable=MutableStateFlow(ModelCatalog.builtIn)
  val catalog=catalogMutable.asStateFlow()
  private val searchMutable=MutableStateFlow("")
@@ -95,6 +96,7 @@ class ModelManager(private val app:Context) {
  var chatTemplate:String get()=prefs.getString("chat-template","auto")?:"auto";set(v){require(v in listOf("auto","chatml","llama3","gemma","zephyr"));prefs.edit().putString("chat-template",v).apply()}
  var threads:Int get()=prefs.getInt("threads",minOf(4,Runtime.getRuntime().availableProcessors()).coerceAtLeast(1)); set(v){prefs.edit().putInt("threads",v.coerceIn(1,8)).apply()}
  var contextLimit:Int get()=prefs.getInt("context",1024); set(v){prefs.edit().putInt("context",v.coerceIn(512,2048)).apply()}
+ var autoLoadOnChat:Boolean get()=prefs.getBoolean("auto-load-chat",true);set(value){prefs.edit().putBoolean("auto-load-chat",value).apply()}
  private fun update(s:String,work:Boolean=false,progress:Float=mutable.value.progress) {mutable.value=mutable.value.copy(status=s,working=work,progress=progress,exists=model.exists(),paused=partial.exists())}
  var downloadSource:String get()=prefs.getString("download-source","auto")?:"auto";set(value){require(value in ModelTransfer.sources);prefs.edit().putString("download-source",value).apply()}
  @Volatile var foreground=true
@@ -117,14 +119,45 @@ class ModelManager(private val app:Context) {
  fun load() {
   if(mutable.value.working||isLoaded||ModelTransfer.state.value.working) return
   update("校验文件并加载模型…",true)
-  scope.launch {try {gate.withLock {
-   checkHeader(model);require(hash(model)==prefs.getString("sha","")){"模型已被修改或损坏，拒绝加载"}
+  scope.launch {try {loadInstalled()}catch(_:CancellationException){}catch(_:Exception){/* The shared loader retains the actionable error in state. */}}
+ }
+ suspend fun ensureLoadedForChat() {
+  if(isLoaded)return
+  check(autoLoadOnChat){"已关闭发送时自动加载；可在模型设置开启，或手动加载"}
+  loadInstalled()
+ }
+ private suspend fun loadInstalled()=gate.withLock {
+  currentCoroutineContext().ensureActive()
+  if(isLoaded)return@withLock
+  check(!ModelTransfer.state.value.working){"模型仍在下载，请完成安装后再发送"}
+  val caller=currentCoroutineContext()
+  var nativeStarted=false
+  loadingJob=caller[Job]
+  mutable.value=mutable.value.copy(loading=true)
+  update("正在校验已安装模型…",true)
+  try {
+   require(model.isFile){"尚未安装模型，请打开模型设置下载或导入 GGUF"}
+   checkHeader(model);require(hash(model){caller.ensureActive()}==prefs.getString("sha","")){"模型已被修改或损坏，拒绝加载；请重新下载或导入"}
    val info=ActivityManager.MemoryInfo();(app.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager).getMemoryInfo(info)
    require(!info.lowMemory && info.availMem>model.length()+350L*1024*1024){"可用内存不足，继续使用规则模式"}
    val ctx=minOf(contextLimit,if(info.availMem<2L*1024*1024*1024) 768 else 2048)
-   val start=System.nanoTime();require(NativeBridge.load(model.path,threads.coerceAtMost(Runtime.getRuntime().availableProcessors().coerceAtLeast(1)),ctx))
+   caller.ensureActive();update("正在自动加载本地模型…",true)
+   val start=System.nanoTime()
+   // JNI can block while mmap/context allocation runs. Keep cancellation asserted even
+   // if it arrives just before native load resets its stop flag.
+   val watcher=scope.launch(Dispatchers.Default){while(isActive){if(!caller.isActive)runCatching{NativeBridge.cancel()};delay(25)}}
+   try {
+    caller.ensureActive();nativeStarted=true
+    require(NativeBridge.load(model.path,threads.coerceAtMost(Runtime.getRuntime().availableProcessors().coerceAtLeast(1)),ctx)){"模型架构不兼容或加载失败"}
+    caller.ensureActive()
+   }finally {watcher.cancel()}
    activeContext=ctx;mutable.value=mutable.value.copy(loaded=true);update("已加载 · 上下文 $ctx · ${"%.1f".format((System.nanoTime()-start)/1e9)} 秒")
-  }} catch(e:Throwable){mutable.value=mutable.value.copy(loaded=false);update("加载失败：${e.message}；规则模式仍可游玩")}}
+  }catch(e:Throwable){
+   if(nativeStarted)runCatching{NativeBridge.unload()}
+   mutable.value=mutable.value.copy(loaded=false)
+   update(if(e is CancellationException)"加载已取消；模型文件与存档保留"else"加载失败：${e.message}；规则模式仍可游玩")
+   throw e
+  }finally {loadingJob=null;mutable.value=mutable.value.copy(loading=false,working=false)}
  }
  private var activeContext=1024
  fun pendingDownload():ModelSpec?=runCatching {SaveJson.decodeFromString<ModelSpec>(prefs.getString("pending-spec","")!!).also {it.verify()} }.getOrNull()
@@ -164,7 +197,7 @@ class ModelManager(private val app:Context) {
   repeat(2){try{return@withLock AiValidation.parse(NativeBridge.generate(prompt,160,18000).toString(Charsets.UTF_8),w)}catch(e:Exception){last=e}}
   EraRules.parse(text,w).let {it.copy(description="模型输出未通过校验（${last?.message?.take(70)}），已退回规则解析。\n${it.description}",uncertain=true)}
  }
- fun cancel() {if(isLoaded || mutable.value.working) runCatching {NativeBridge.cancel()}}
+ fun cancel() {loadingJob?.cancel();if(isLoaded || mutable.value.working) runCatching {NativeBridge.cancel()}}
  fun unloadAsync() {cancel();scope.launch {gate.withLock {runCatching {NativeBridge.unload()};mutable.value=mutable.value.copy(loaded=false);update("模型已卸载，内存已释放")}}}
  fun delete() {if(mutable.value.working)return;cancel();scope.launch {gate.withLock {runCatching{NativeBridge.unload()};model.delete();partial.delete();prefs.edit().remove("sha").apply();mutable.value=ModelState();update("已移除本地模型文件")}}}
  fun close() {cancelSearch();pause.set(true);cancel();scope.launch {gate.withLock {runCatching {NativeBridge.unload()}};scope.cancel()}}
@@ -177,26 +210,28 @@ class ModelManager(private val app:Context) {
    require(f.exists() && f.length() in 24..MAX_SIZE){"模型不存在或大小不受支持"}
    RandomAccessFile(f,"r").use {r->val header=ByteArray(24);r.readFully(header);val b=ByteBuffer.wrap(header).order(ByteOrder.LITTLE_ENDIAN);require(b.int==0x46554747){"不是 GGUF 文件"};require(b.int in 2..3){"不支持的 GGUF 版本"};require(b.long in 1..10000 && b.long in 1..10000){"GGUF 元数据无效"}}
   }
-  fun hash(file:File):String {val digest=MessageDigest.getInstance("SHA-256");file.inputStream().use {input->val buffer=ByteArray(65536);while(true){val n=input.read(buffer);if(n<0)break;digest.update(buffer,0,n)}};return digest.digest().joinToString(""){"%02x".format(it)}}
+  fun hash(file:File,checkpoint:()->Unit={}):String {val digest=MessageDigest.getInstance("SHA-256");file.inputStream().use {input->val buffer=ByteArray(65536);while(true){checkpoint();val n=input.read(buffer);if(n<0)break;digest.update(buffer,0,n)}};return digest.digest().joinToString(""){"%02x".format(it)}}
  }
 }
-@Composable fun ModelPanel(vm:GameViewModel) {
+@Composable fun ModelPanel(vm:GameViewModel,compact:Boolean=false) {
  val manager=vm.models;val state by manager.state.collectAsState();val hub by manager.hubState.collectAsState()
  var open by rememberSaveable {mutableStateOf(false)};var section by rememberSaveable {mutableIntStateOf(0)}
  var query by rememberSaveable {mutableStateOf("")};var sort by rememberSaveable {mutableStateOf("downloads")};var gguf by rememberSaveable {mutableStateOf(true)}
  var install by remember {mutableStateOf<ModelSpec?>(null)};var accepted by remember {mutableStateOf(false)};var autoLoad by rememberSaveable {mutableStateOf(true)}
  var source by rememberSaveable {mutableStateOf(manager.downloadSource)}
+ var autoChat by rememberSaveable {mutableStateOf(manager.autoLoadOnChat)}
  var advice by remember {mutableStateOf(manager.advice())};var page by rememberSaveable {mutableIntStateOf(0)}
  var threads by rememberSaveable {mutableFloatStateOf(manager.threads.toFloat())};var context by rememberSaveable {mutableFloatStateOf(manager.contextLimit.toFloat())}
  val ctx=androidx.compose.ui.platform.LocalContext.current
  val picker=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()){uri->if(uri!=null)manager.import(uri)}
  fun propose(spec:ModelSpec){accepted=false;install=spec}
- Card(Modifier.fillMaxWidth()){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Text("本地 AI 模型",style=MaterialTheme.typography.titleMedium);Text(state.status,style=MaterialTheme.typography.bodySmall);Button(onClick={open=true},modifier=Modifier.fillMaxWidth()){Text("搜索、下载与管理模型")}}}
+ if(compact)TextButton(onClick={open=true},enabled=!state.loading){Text("模型设置")}
+ else Card(Modifier.fillMaxWidth()){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Text("本地 AI 模型",style=MaterialTheme.typography.titleMedium);Text(state.status,style=MaterialTheme.typography.bodySmall);Button(onClick={open=true},modifier=Modifier.fillMaxWidth()){Text("搜索、下载与管理模型")}}}
  if(open) androidx.compose.ui.window.Dialog(onDismissRequest={open=false;manager.cancelSearch()},properties=DialogProperties(usePlatformDefaultWidth=false,decorFitsSystemWindows=true)){
   Surface(Modifier.fillMaxSize()){Column(Modifier.fillMaxSize().imePadding().padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
    Row{Text("离线模型中心",Modifier.weight(1f),style=MaterialTheme.typography.titleLarge);TextButton(onClick={open=false;manager.cancelSearch()}){Text("完成")}}
    Text(state.status,style=MaterialTheme.typography.labelSmall,maxLines=3)
-   if(state.working){LinearProgressIndicator(progress={state.progress},modifier=Modifier.fillMaxWidth());TextButton(onClick={manager.pauseDownload()}){Text("暂停下载")}}
+   if(state.working){if(state.loading){LinearProgressIndicator(modifier=Modifier.fillMaxWidth());TextButton(onClick={vm.cancelAi();manager.cancel()}){Text("取消加载")}}else{LinearProgressIndicator(progress={state.progress},modifier=Modifier.fillMaxWidth());TextButton(onClick={manager.pauseDownload()}){Text("暂停下载")}}}
    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()){listOf("推荐","模型库","设置").forEachIndexed {i,t->SegmentedButton(selected=section==i,onClick={section=i},shape=SegmentedButtonDefaults.itemShape(i,3)){Text(t)}}}
    Column(Modifier.weight(1f).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(10.dp)){
     when(section){
@@ -231,6 +266,7 @@ class ModelManager(private val app:Context) {
       Text("上下文 ${context.toInt()} tokens");Slider(context,{context=it;manager.contextLimit=it.toInt()},valueRange=512f..2048f,steps=5)
       Text("聊天模板：${manager.chatTemplate}（重新生成时生效）");listOf("auto","chatml","llama3","gemma","zephyr").forEach {t->TextButton(onClick={manager.chatTemplate=t;vm.message("已选聊天模板：$t")}){Text(if(t=="auto")"自动读取GGUF模板（推荐）"else t)}}
       Row{Checkbox(autoLoad,{autoLoad=it});Text("安装后尝试加载",Modifier.padding(top=12.dp))}
+      Row{Checkbox(autoChat,{autoChat=it;manager.autoLoadOnChat=it});Text("发送消息时自动加载已安装模型",Modifier.padding(top=12.dp))}
       Text("线程与上下文在下次加载生效。内存不足或模型不兼容时保留规则模式。人物对话使用模型自带聊天模板。",style=MaterialTheme.typography.bodySmall)
      }
     }

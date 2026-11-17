@@ -82,22 +82,21 @@ class ReleaseSmokeTest {
   click("暂停时间")
   until {scene().getJSONObject("places").getJSONObject("county-jingji-01").getString("name")=="长安新县"}
   screenshot("release-map-saved-city")
-  click("返回地区列表");click("档案");click("模型");click("搜索、下载与管理模型")
-  click("加载已安装")
-  until(60000){device.hasObject(By.textStartsWith("已加载 · 上下文"))}
-  click("完成");click("世界");click("打开世界舆图")
+  // Stay in the map; never visit the model center or manually load the model.
+  click("返回地区列表");click("打开世界舆图")
   until {runCatching {scene().getJSONObject("places").getJSONObject("county-jingji-01").getString("name")=="长安新县"}.getOrDefault(false)}
   js("document.querySelector('#search').click();true");until {js("!!document.querySelector('input[type=search]')")=="true"}
   js("(function(){const e=document.querySelector('input[type=search]');e.value='长安新县';e.dispatchEvent(new Event('input',{bubbles:true}));return true})()")
   until {js("!!document.querySelector('#panel button.listing[title=\"county-jingji-01\"]')")=="true"}
   js("document.querySelector('#panel button.listing[title=\"county-jingji-01\"]').click();true")
   click("官员");click("与地方官交谈")
+  assertTrue("Model must start unloaded and be offered on send",device.wait(Until.hasObject(By.textContains("发送时自动加载本地 AI")),10000))
   val chat=device.wait(Until.findObject(By.clazz("android.widget.EditText")),10000)!!;chat.click();device.waitForIdle(500);chat.text="你近来是否安好";device.pressBack();click("发送对话")
   until(210000){device.hasObject(By.textContains("本地模型回复 ·"))}
   screenshot("release-real-county-chat")
   val db=SQLiteDatabase.openDatabase(ctx.getDatabasePath("chronicle.db").path,null,SQLiteDatabase.OPEN_READONLY)
   db.use {d->assertTrue(d.rawQuery("SELECT content FROM dialogues WHERE role='assistant' AND source='model'",null).use {it.moveToFirst()&&it.getString(0).isNotBlank()})}
-  println("RELEASE_MINIFIED_MAP_DATABASE_AND_REAL_MODEL_CHAT=true sha=$sha")
+  println("RELEASE_MINIFIED_MAP_DATABASE_AND_REAL_MODEL_CHAT=true AUTO_LOAD_ON_FIRST_SEND=true sha=$sha")
  }
 }
 

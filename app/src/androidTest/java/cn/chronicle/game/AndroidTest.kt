@@ -192,7 +192,8 @@ class RealModelTest {
    manager.import(android.net.Uri.fromFile(model))
    runBlocking {withTimeout(120000){while(manager.state.value.working)delay(100)}}
    assertTrue(manager.state.value.status,manager.state.value.exists)
-   manager.load();runBlocking {withTimeout(120000){while(manager.state.value.working)delay(100)}}
+   assertFalse(manager.isLoaded)
+   runBlocking {withTimeout(120000){manager.ensureLoadedForChat()}}
    assertTrue(manager.state.value.status,manager.isLoaded)
    val county=world.towns.first {it.rank=="县城"};val magistrate=world.people.first {it.id==county.official}
    assertTrue(DialogueEngine.context(world,magistrate,true).contains(county.name))

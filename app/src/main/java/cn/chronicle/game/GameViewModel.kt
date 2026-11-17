@@ -138,13 +138,16 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
      val record=DialogueRecord(id,"user",clean,w.day,"player");store.startDialogue(slot,w.revision,out,record)
      val x=out.world;world=x;person=x.people.first {it.id==p.id}
      mutable.update {it.copy(world=x,message="交谈已保存；无需支付资金或等待冷却。")}
-     chatMutable.value=chatMutable.value.copy(records=(chatMutable.value.records+record).takeLast(100),relationship=DialogueEngine.relationship(p,person!!)+(if(p==person)"（重复内容或话题已充分交流）"else""),note=out.entry.events.lastOrNull().orEmpty()+if(models.isLoaded)" 本地模型生成中…"else" 未加载模型，使用规则模板。")
+     chatMutable.value=chatMutable.value.copy(records=(chatMutable.value.records+record).takeLast(100),relationship=DialogueEngine.relationship(p,person!!)+(if(p==person)"（重复内容或话题已充分交流）"else""),note=if(models.isLoaded)"本地模型生成中…"else"正在检查默认模型，准备自动加载…")
     }
     val w=world!!;val p=person!!
-    val reply=if(models.isLoaded)try {
+    var fallbackReason=""
+    val reply=try {
+     models.ensureLoadedForChat()
+     currentCoroutineContext().ensureActive()
+     if(token==chatEpoch)chatMutable.value=chatMutable.value.copy(note="本地模型生成中…")
      models.chat(w,p,previous,text){part->if(token==chatEpoch)chatMutable.value=chatMutable.value.copy(partial=part)}
-    }catch(e:Exception){currentCoroutineContext().ensureActive();chatMutable.value=chatMutable.value.copy(note="模型未完成：${e.message?.take(120)}，已切换模板。");SpokenReply(DialogueEngine.fallback(w,p,text),"template")}
-    else SpokenReply(DialogueEngine.fallback(w,p,text),"template")
+    }catch(e:Exception){currentCoroutineContext().ensureActive();fallbackReason=e.message?.take(160)?:"本地模型未完成生成";SpokenReply(DialogueEngine.fallback(w,p,text),"template")}
     currentCoroutineContext().ensureActive()
     lock.withLock {
      if(token!=chatEpoch||mutable.value.slot!=slot)return@withLock
@@ -152,8 +155,9 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
      val currentPerson=current.people.find {it.id==p.id}?:return@withLock
      if(!currentPerson.alive){chatMutable.value=chatMutable.value.copy(partial="",note="对方已故，未完成的回复已停止，旧记录仍可查看。");return@withLock}
      val safe=DialogueEngine.sanitize(current,currentPerson,reply.text)?:DialogueEngine.fallback(current,currentPerson,text)
+     if(safe!=reply.text)fallbackReason="模型回复未通过当前身份与内容校验"
      val record=DialogueRecord(p.id,"assistant",safe,current.day,if(safe==reply.text)reply.source else "template")
-     store.appendDialogue(slot,record);chatMutable.value=chatMutable.value.copy(records=(chatMutable.value.records+record).takeLast(100),partial="",note=if(record.source=="model")"本地模型回复 · 关系已按规则结算；政策须拟旨确认"else"规则模板回复 · 可继续游戏")
+     store.appendDialogue(slot,record);chatMutable.value=chatMutable.value.copy(records=(chatMutable.value.records+record).takeLast(100),partial="",note=if(record.source=="model")"本地模型回复 · 关系已按规则结算；政策须拟旨确认"else"规则模板回复 · $fallbackReason")
     }
    }catch(e:CancellationException){}catch(e:Exception){if(token==chatEpoch)chatMutable.value=chatMutable.value.copy(note=e.message?:"对话未完成",partial="")}
    finally {if(token==chatEpoch)chatMutable.value=chatMutable.value.copy(working=false)}

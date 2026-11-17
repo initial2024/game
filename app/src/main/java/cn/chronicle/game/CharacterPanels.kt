@@ -20,12 +20,13 @@ import cn.chronicle.core.*
  val chat by vm.chat.collectAsState();val model by vm.models.state.collectAsState()
  val p=w.people.find {it.id==chat.person}?:return
  var text by rememberSaveable(p.id){mutableStateOf("")};var approach by rememberSaveable(p.id){mutableStateOf("倾听")}
+ var showFeedback by remember {mutableStateOf(false)}
  val list=rememberLazyListState()
  LaunchedEffect(chat.records.size,chat.partial){if(chat.records.isNotEmpty())list.animateScrollToItem(chat.records.size-1)}
  Dialog(onDismissRequest={vm.closeChat()},properties=DialogProperties(usePlatformDefaultWidth=false,decorFitsSystemWindows=true)){
   Surface(Modifier.fillMaxSize()) {Column(Modifier.fillMaxSize().imePadding().padding(12.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
    Row {Text("与${p.name}交谈",Modifier.weight(1f),style=MaterialTheme.typography.titleLarge);TextButton(onClick={vm.closeChat()}){Text("关闭对话")}}
-   Text("${p.role} · ${DialogueEngine.identity(w,p)} · ${if(model.loaded)"本地 AI"else"规则模板"}",style=MaterialTheme.typography.labelSmall)
+   Text("${p.role} · ${DialogueEngine.identity(w,p)} · ${when{model.loaded->"本地 AI";model.loading->"本地模型加载中";model.exists&&vm.models.autoLoadOnChat->"发送时自动加载本地 AI";else->"规则模板"}}",style=MaterialTheme.typography.labelSmall)
    Text("信任${p.trust} / 忠诚${p.loyalty} / 怀疑${p.suspicion}",style=MaterialTheme.typography.labelSmall)
    HorizontalDivider()
    LazyColumn(Modifier.weight(1f).fillMaxWidth(),state=list,verticalArrangement=Arrangement.spacedBy(10.dp)){
@@ -35,13 +36,15 @@ import cn.chronicle.core.*
    }
    if(chat.relationship.isNotBlank())Text("本次：${chat.relationship}",color=MaterialTheme.colorScheme.primary,style=MaterialTheme.typography.labelSmall)
    Text(chat.note,maxLines=2,style=MaterialTheme.typography.labelSmall)
+   if(model.loading) {LinearProgressIndicator(Modifier.fillMaxWidth());Text(model.status,maxLines=1,style=MaterialTheme.typography.labelSmall)}
    if(DialogueEngine.access(w,p.id)==null){
     Row {DialogueEngine.approaches.take(3).forEach {a->FilterChip(selected=a==approach,onClick={approach=a},label={Text(a)})}}
     OutlinedTextField(text,{text=it.take(400)},modifier=Modifier.fillMaxWidth().heightIn(max=120.dp),label={Text("说些什么…")},enabled=!chat.working,maxLines=3)
-    Row {if(chat.working)OutlinedButton(onClick={vm.cancelAi()}){Text("取消生成")}else Button(onClick={vm.sendChat(text,approach);text=""},enabled=text.isNotBlank()){Text("发送对话")}}
+    Row {if(chat.working)OutlinedButton(onClick={vm.cancelAi()}){Text(if(model.loading)"取消加载"else"取消生成")}else Button(onClick={vm.sendChat(text,approach);text=""},enabled=text.isNotBlank()){Text("发送对话")};ModelPanel(vm,compact=true);if(chat.note.isNotBlank())TextButton(onClick={showFeedback=true}){Text("反馈")}}
    }
   }}
  }
+ if(showFeedback)AlertDialog(onDismissRequest={showFeedback=false},title={Text("对话反馈")},text={Text(chat.note)},confirmButton={TextButton(onClick={showFeedback=false}){Text("知道了")}})
 }
 
 @Composable fun AcademyPanel(w:World,ask:(Command)->Unit){
