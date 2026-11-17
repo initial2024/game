@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="cn.chronicle.core.SimulationTest" tests="17" skipped="0" failures="0" errors="0" timestamp="2026-11-17T10:21:12.318Z" hostname="runnervmccnms" time="62.212">
+  <properties/>
+  <testcase name="aiStructuredOutputMustMapToLegalPolicies" classname="cn.chronicle.core.SimulationTest" time="0.005"/>
+  <testcase name="invalidTextFallsBack" classname="cn.chronicle.core.SimulationTest" time="0.0"/>
+  <testcase name="startModesAreReproducibleAndNeverEraseCorruption" classname="cn.chronicle.core.SimulationTest" time="31.832"/>
+  <testcase name="modelCatalogAndHardwareAdviceAreConservative" classname="cn.chronicle.core.SimulationTest" time="0.002"/>
+  <testcase name="thousandQuartersAcrossDifficulties" classname="cn.chronicle.core.SimulationTest" time="23.676"/>
+  <testcase name="noOmniscientIdentityOrTruthInPrompt" classname="cn.chronicle.core.SimulationTest" time="0.002"/>
+  <testcase name="falseAccusationCannotConvict" classname="cn.chronicle.core.SimulationTest" time="0.002"/>
+  <testcase name="deadPeopleCannotTakeOffice" classname="cn.chronicle.core.SimulationTest" time="0.007"/>
+  <testcase name="evidenceCannotBeFarmed" classname="cn.chronicle.core.SimulationTest" time="0.003"/>
+  <testcase name="debtIsNotFreeMoney" classname="cn.chronicle.core.SimulationTest" time="0.072"/>
+  <testcase name="constructionCostsAndTakesTime" classname="cn.chronicle.core.SimulationTest" time="0.005"/>
+  <testcase name="thirtyDistinctValidatedEvents" classname="cn.chronicle.core.SimulationTest" time="0.007"/>
+  <testcase name="verticalJourneyPersistsConsequences" classname="cn.chronicle.core.SimulationTest" time="0.05"/>
+  <testcase name="duplicateRevisionRejected" classname="cn.chronicle.core.SimulationTest" time="0.003"/>
+  <testcase name="deterministicSeedAndReplay" classname="cn.chronicle.core.SimulationTest" time="6.537"/>
+  <testcase name="strictJsonAndBounds" classname="cn.chronicle.core.SimulationTest" time="0.002"/>
+  <testcase name="threeCaseRoutesDiffer" classname="cn.chronicle.core.SimulationTest" time="0.005"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

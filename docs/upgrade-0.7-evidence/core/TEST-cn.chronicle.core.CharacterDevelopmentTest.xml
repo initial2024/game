@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="cn.chronicle.core.CharacterDevelopmentTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-11-17T10:20:52.973Z" hostname="runnervmccnms" time="0.203">
+  <properties/>
+  <testcase name="maskedNpcHasNoAccessToRoyalIdentityOrCaseTruth" classname="cn.chronicle.core.CharacterDevelopmentTest" time="0.029"/>
+  <testcase name="overseasStudyUsesDiplomacyAndRecallKeepsTravel" classname="cn.chronicle.core.CharacterDevelopmentTest" time="0.02"/>
+  <testcase name="conversationIsFreeImmediateRepeatableAndNoveltyPreventsFarming" classname="cn.chronicle.core.CharacterDevelopmentTest" time="0.01"/>
+  <testcase name="newContoursAreValidAndLegacyRectanglesMigrateWithoutChangingOwnership" classname="cn.chronicle.core.CharacterDevelopmentTest" time="0.024"/>
+  <testcase name="deadTeacherPausesAndDeadStudentCannotReceiveReward" classname="cn.chronicle.core.CharacterDevelopmentTest" time="0.016"/>
+  <testcase name="studyRequiresPaidTravelAndSchoolAndTeacherMatter" classname="cn.chronicle.core.CharacterDevelopmentTest" time="0.051"/>
+  <testcase name="academyConstructionIsNotInstantAndNoRewardOnRecall" classname="cn.chronicle.core.CharacterDevelopmentTest" time="0.045"/>
+  <testcase name="hugggingFaceSupportsAnyFamilyAndRejectsBadFilesAndPaging" classname="cn.chronicle.core.CharacterDevelopmentTest" time="0.007"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

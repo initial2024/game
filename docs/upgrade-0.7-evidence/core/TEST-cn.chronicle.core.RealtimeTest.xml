@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="cn.chronicle.core.RealtimeTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-11-17T10:21:00.753Z" hostname="runnervmccnms" time="11.563">
+  <properties/>
+  <testcase name="travelAndConstructionUseExactDays" classname="cn.chronicle.core.RealtimeTest" time="0.036"/>
+  <testcase name="threeParallelOrdersAndCancellationAreBounded" classname="cn.chronicle.core.RealtimeTest" time="0.009"/>
+  <testcase name="investigationCanCompleteDuringContinuousTime" classname="cn.chronicle.core.RealtimeTest" time="0.025"/>
+  <testcase name="ordersDoNotAdvanceTimeAndFinishWithoutNextTurnButton" classname="cn.chronicle.core.RealtimeTest" time="0.008"/>
+  <testcase name="realTimePregnancyAndReplayAreDeterministic" classname="cn.chronicle.core.RealtimeTest" time="11.484"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

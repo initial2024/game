@@ -1,0 +1,58 @@
+{
+  "source_commit": "0b5e24912eb96619b297a8f3b4c23bf6c0a71b7a",
+  "ci_run": 44063583058,
+  "tests": 92,
+  "failures": 0,
+  "classes": [
+    {
+      "class": "cn.chronicle.core.CartographyTest",
+      "tests": 10,
+      "failures": 0
+    },
+    {
+      "class": "cn.chronicle.core.CharacterDevelopmentTest",
+      "tests": 8,
+      "failures": 0
+    },
+    {
+      "class": "cn.chronicle.core.ChronicleExpansionTest",
+      "tests": 11,
+      "failures": 0
+    },
+    {
+      "class": "cn.chronicle.core.CourtDevelopmentTest",
+      "tests": 10,
+      "failures": 0
+    },
+    {
+      "class": "cn.chronicle.core.FamilyTest",
+      "tests": 3,
+      "failures": 0
+    },
+    {
+      "class": "cn.chronicle.core.GeographyMilitaryTest",
+      "tests": 10,
+      "failures": 0
+    },
+    {
+      "class": "cn.chronicle.core.MunicipalTest",
+      "tests": 11,
+      "failures": 0
+    },
+    {
+      "class": "cn.chronicle.core.RealtimeTest",
+      "tests": 5,
+      "failures": 0
+    },
+    {
+      "class": "cn.chronicle.core.SimulationTest",
+      "tests": 17,
+      "failures": 0
+    },
+    {
+      "class": "cn.chronicle.core.WorldExpansionTest",
+      "tests": 7,
+      "failures": 0
+    }
+  ]
+}

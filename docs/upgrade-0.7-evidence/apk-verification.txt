@@ -1,0 +1,17 @@
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): true
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+Signer #1 certificate DN: CN=Chronicle AI Development, OU=Offline Game, O=Chronicle, C=CN
+Signer #1 certificate SHA-256 digest: ebd2aa94bee6d781d020e45a203c9b8f2d416a4f4b654da7cfadc9a67e438c49
+Signer #1 certificate SHA-1 digest: fef0f7f08f307bc630303194322a1f69880be4d2
+Signer #1 certificate MD5 digest: f8f9e6ea6aef35f1aa52e9dae80cb8fb
+Signer #1 key algorithm: RSA
+Signer #1 key size (bits): 3072
+Signer #1 public key SHA-256 digest: 8502a71c9b46cfabdbfe5489fc41c469662e0519b91ff564ac0bf7342abf9582
+Signer #1 public key SHA-1 digest: 87e6ff510d6fd1b7c34c7099a6c7553a1a1119f5
+Signer #1 public key MD5 digest: 653e8be9d49d894f280a1b64632b20a8

@@ -1,0 +1,8 @@
+
+cn.chronicle.game.MapIntegrationTest:...
+
+Time: 216.44
+
+OK (3 tests)
+
+

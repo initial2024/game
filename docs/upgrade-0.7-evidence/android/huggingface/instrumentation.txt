@@ -1,0 +1,8 @@
+
+cn.chronicle.game.HubLiveTest:.
+
+Time: 0.958
+
+OK (1 test)
+
+

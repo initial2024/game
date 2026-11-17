@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="cn.chronicle.core.WorldExpansionTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-17T10:22:14.532Z" hostname="runnervmccnms" time="0.601">
+  <properties/>
+  <testcase name="organizationsNeedMoneyPersonnelTimeAndReportsAreDeterministic" classname="cn.chronicle.core.WorldExpansionTest" time="0.026"/>
+  <testcase name="bankruptWarCanAlwaysWithdrawAndDeadInspectorCannotReport" classname="cn.chronicle.core.WorldExpansionTest" time="0.01"/>
+  <testcase name="weakArmyLosesAndCannotAcquireLandByTyping" classname="cn.chronicle.core.WorldExpansionTest" time="0.031"/>
+  <testcase name="warRequiresMobilizationAndVictoryChangesPersistentMapOwnership" classname="cn.chronicle.core.WorldExpansionTest" time="0.055"/>
+  <testcase name="covertViolenceHasFailureAndDeathBranchesWithoutResurrection" classname="cn.chronicle.core.WorldExpansionTest" time="0.42"/>
+  <testcase name="canalsAreRealDelayedProjectsWithMapRoutesAndMaintenance" classname="cn.chronicle.core.WorldExpansionTest" time="0.035"/>
+  <testcase name="denserAtlasHasRealCountiesStatesBoundariesAndConservedResources" classname="cn.chronicle.core.WorldExpansionTest" time="0.024"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

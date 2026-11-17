@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="cn.chronicle.core.ChronicleExpansionTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-11-17T10:20:53.179Z" hostname="runnervmccnms" time="7.009">
+  <properties/>
+  <testcase name="secretContractsArePaidReproducibleBoundedAndDoNotHuntSuccessors" classname="cn.chronicle.core.ChronicleExpansionTest" time="0.013"/>
+  <testcase name="laterMonarchDeathClosesLifeStateAndForeignDeadRulerIsReplaced" classname="cn.chronicle.core.ChronicleExpansionTest" time="0.058"/>
+  <testcase name="quarterlyReportsStopFastClockAtBoundaryAndBorrowingAlwaysCreatesDebt" classname="cn.chronicle.core.ChronicleExpansionTest" time="0.051"/>
+  <testcase name="minorEncounterCannotMarryAndRevealedIdentityIsRemembered" classname="cn.chronicle.core.ChronicleExpansionTest" time="0.014"/>
+  <testcase name="heirTransferChangesMonarchAndDoesNotCopyJourney" classname="cn.chronicle.core.ChronicleExpansionTest" time="0.008"/>
+  <testcase name="stateSizedGuardsReassignExistingTroopsAndProtectionDoesNotReset" classname="cn.chronicle.core.ChronicleExpansionTest" time="0.028"/>
+  <testcase name="covertIdentityCannotReceiveRoyalPetitionOrOrderPublicJudgment" classname="cn.chronicle.core.ChronicleExpansionTest" time="0.011"/>
+  <testcase name="unwillingAdultArrangementPersistsAndCanLeadToPetitionAndCompensation" classname="cn.chronicle.core.ChronicleExpansionTest" time="0.026"/>
+  <testcase name="sixtyFourAuthoredCasesHaveDeterministicSolvableEvidenceAndDistinctTruths" classname="cn.chronicle.core.ChronicleExpansionTest" time="6.766"/>
+  <testcase name="chapterConstructionRequiresActualCompletionRatherThanNarrativeWording" classname="cn.chronicle.core.ChronicleExpansionTest" time="0.029"/>
+  <testcase name="coercionNeverManufacturesLegalEvidenceAndFalseMaterialStaysFalse" classname="cn.chronicle.core.ChronicleExpansionTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
