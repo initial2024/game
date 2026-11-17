@@ -234,3 +234,5 @@ jobs:
           path: |
             ${{ runner.temp }}/release-smoke-report
             app/build/outputs/mapping/release
+            app/build/outputs/apk/release
+            app/build/outputs/apk/androidTest/release
