@@ -11,25 +11,26 @@ Updated 2026-11-17 (Asia/Singapore). Read this and the full requirements registe
 - Default `main` has older gameplay plus updated documentation. This docs update does not merge the game. Never build old main and call it current.
 - Baseline before this docs update: `f10fb00c3c1a9cf06a36791b80c0a06d270bf438`. Shipped 0.7 source: `0b5e24912eb96619b297a8f3b4c23bf6c0a71b7a`; later commits fixed tests/CI and recorded evidence.
 - `apk-preview` contains actual APKs and pinned test pairs, not source. Check remote heads/local changes before starting.
-- [Current APK](https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.7.0-arm64.apk): 0.7.0/code11, 3,518,016 bytes, SHA256 `e7ee26053f23ca8e653295dcac2eb080ccdbd7347efaaaeb37b124e836cae472`.
+- [Current verified APK](https://raw.githubusercontent.com/initial2024/game/apk-preview/chronicle-ai-0.7.1-arm64.apk): 0.7.1/code12, 3,518,016 bytes, SHA256 `7808992b153d3d6f15566e06572b54924584de639391ad41cc798caf87a474ed`.
 - Existing environment checkout: `/workspace/work/chronicle-ai`. Clone the development branch elsewhere; absolute workspace paths are not portable dependencies.
 
-## Immediate feature and current verification
+## Verified 0.7.1 and active 0.8 work
 
-The latest user answer says they want to send a message and have the installed default model load automatically.
+0.7.1/code12 is delivered. Source `2544aedc4cb9097edff3d92d7f28ad0240149440`, artifact branch commit `697fc50`, [full green Actions44089542122](https://github.com/initial2024/game/actions/runs/44089542122). 92 JVM tests,26 native checks and2 optimized actual-GGUF/restart checks passed. See [0.7.1 report](https://github.com/initial2024/game/blob/feature/character-chat-hf-search/docs/UPGRADE_0.7.1_TESTING.md). Automatic loading on first send, retained fallback causes, settings/feedback and cancel are implemented; do not reimplement the old missing feature.
 
-**Current work:** code is committed as `2544aedc4cb9097edff3d92d7f28ad0240149440` (0.7.1/code12). Awaitable automatic loading, visible settings/loading/cancel, explicit template failure reasons, isolated fault tests and a direct-send real-model smoke are implemented. The first local full build/lint and 92 JVM tests passed; final CI/device verification is [run 44089542122](https://github.com/initial2024/game/actions/runs/44089542122). It is in progress when this note is written. No 0.7.1 download is yet claimed. The older run 44088955923 was intentionally canceled after the import-in-progress guard fix; use the newer source/run. Check run results, fix failures, and finish source/evidence/APK delivery before marking A01/A02 complete.
+**Active development is 0.8.0/code13; do not label it delivered until its own checks pass.** The user clarified that the map must be an interaction hub, beyond strategy panels, and asked whether the references have maps. [REFERENCES.md](REFERENCES.md) records inspected map/province/scenario data and the original implementation approach.
 
-The numbered diagnosis below describes **0.7.0 baseline behavior**, not the newly changed source; inspect HEAD before editing it again.
+New code:
 
-1. `ModelManager.kt` uses `filesDir/models/active.gguf`, with hash/settings in `inference` preferences. Current manual `load()` is asynchronous without an awaitable outcome. Add a shared, coalesced, cancellable load path that retains SHA/header/memory checks and the JNI mutex.
-2. `GameViewModel.sendChat()` only calls real inference if `models.isLoaded` was already true. Installed-but-unloaded currently always uses templates. Await loading on send; no silent large download.
-3. Keep missing-file/failure reason visible and offer model management. An explicit auto-load setting can preserve a user's preference for templates.
-4. Current generation catch sets an error note, but final fallback save overwrites it with generic text. Retain the real reason. Cancel must not turn into a reply or execute CONVERSE twice.
-5. Show verification/loading/generation in the compact dialog; preserve identity filtering and the common inference path for all eligible characters.
-6. Modify optimized real-GGUF smoke to start unloaded and send directly, checking persisted `assistant.source=model`. Verify corrupt/no-model cases and cancellation during load. Do not claim this task complete just because code compiles.
+- `MapOrders.kt`: resolve current country/city/territory ownership by stable IDs; domestic army deployment, foreign mobilization/current-front orders and targeted diplomacy. WebView still sends selections only.
+- `WorldMapScreen.kt`: native map-army selection and point-to-order preview; foreign diplomacy/intelligence/ruler tabs. Use current callbacks/state, not a stale WebView-factory capture. County clicks retain real building/officer/troop pages. New controls do not replace the supplied HTML.
+- `WarfareEngine.kt`: steady/rapid/siege differ in time, money, raw materials, supply, power, losses and progress; named envoy negotiation, real eligibility/cost/time/refusal/cooldown/memory; forced border peace requires actual leverage. Saved campaign IDs prevent stale orders applying to a later war, and ended fronts refund/cancel obsolete orders.
+- `DialogueEngine.kt`: formally contacted foreign rulers are diplomatic equals, not ministers; role-visible identity/context and anti-submissive output filtering. Conversation cannot change borders or international relations.
+- New core tests `CampaignChoicesTest` / `MapOrdersTest`; native tests extend map touch → targeted mission → map-selected army → actual queued move/arrival/SQLite and strategy previews. Old region-0 or `territory-r2` assumptions were incorrect fixtures: Chang'an county maps to region1 and its current prefecture territory ID is `prefecture-jingji`.
 
-Afterwards continue P1/P2 in REQUIREMENTS.md. The user asks for all historical requests, not only this convenience change.
+Next: run/inspect the 0.8 full CI build,106 core checks, native map/strategy regressions and optimized real-model/restart flow; fix failures, collect evidence and deliver a matching stable-signed ARM64 APK. Update the current APK/report/requirements here. Current0.8 source: `475aa5358442fa7b5acf47f54cbd424163a7c639`; [CI44097229976](https://github.com/initial2024/game/actions/runs/44097229976) is under verification. Check actual outcomes rather than assume success.
+
+This is still a single-front prototype with regional deployment, not complete Age-of-History-level simulation. Moving army/trade markers, full new-territory jurisdiction/local finances, autonomous countries, multiple fronts and many historic requests remain partial/open. Continue the whole requirements register, not just this increment.
 
 ## Architecture / invariants
 
@@ -114,3 +115,9 @@ Next after auto-load: strategic choices/province jurisdiction/country AI; life-c
 ## Repository metadata limitation
 
 English README/backlog/handoff were successfully published to main in docs-only commit `2f978881055c6af8b75b4e5cb52331c5271f063c`; gameplay was not merged. Updating the GitHub About description/homepage through the managed integration returned HTTP403, Resource not accessible by integration. The public README already contains the English introduction and all backlog links. About metadata remains pending administrative capability; do not report it updated.
+
+## Resume checkpoint: execution environment unavailable
+
+The execution environment disconnected on2026-11-17. All0.8 gameplay/code/tests are safely pushed at `475aa5358442fa7b5acf47f54cbd424163a7c639`; no gameplay merge to main has occurred. CI44097229976 continues independently. Check its actual job results and fix any failed native/map checks before calling0.8 verified. The current verified stable-signed download remains0.7.1. The0.8 APK cannot yet be signed with the established private development key because that key's environment is unavailable; do not generate a different identity or claim a test signature can overwrite it.
+
+Resume in a restored or fresh environment: fetch the development branch, inspect/preserve local diffs, recover the existing private signing identity through its authorized private channel, obtain the exact CI ARM64 release artifact, verify source/DEX/hash/certificate/alignment, sign it, re-download the published APK and update evidence. A restored working tree may contain uncommitted documentation-only checkpoint edits; compare and preserve them before pulling. Use a separate checkout if needed. Never upload the key or player saves. GitHub source/docs/CI remain accessible even while shell access is unavailable.
