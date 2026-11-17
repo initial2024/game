@@ -111,6 +111,9 @@ jobs:
             bash scripts/run-device-tests.sh cn.chronicle.game.MapRestartTest "$RUNNER_TEMP/android-ui-storage-report/restart"
             adb shell pm clear cn.chronicle.shanhe
             bash scripts/run-device-tests.sh cn.chronicle.game.ChronicleFeatureTest "$RUNNER_TEMP/android-ui-storage-report/chronicle"
+            adb shell am force-stop cn.chronicle.shanhe
+            adb shell pm clear cn.chronicle.shanhe
+            bash scripts/run-device-tests.sh cn.chronicle.game.ChronicleClockUiTest "$RUNNER_TEMP/android-ui-storage-report/clock"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
