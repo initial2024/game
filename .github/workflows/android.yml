@@ -101,8 +101,8 @@ jobs:
             adb shell wm density 160
             adb install -r ci-artifacts/app/build/outputs/apk/debug/app-x86_64-debug.apk
             adb install -r ci-artifacts/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-            bash scripts/run-device-tests.sh cn.chronicle.game.AutoLoadChatTest "$RUNNER_TEMP/android-ui-storage-report/auto-load"
             CHRONICLE_ONLINE_TEST=true bash scripts/run-device-tests.sh cn.chronicle.game.HubLiveTest "$RUNNER_TEMP/android-ui-storage-report/huggingface"
+            bash scripts/run-device-tests.sh cn.chronicle.game.AutoLoadChatTest "$RUNNER_TEMP/android-ui-storage-report/auto-load"
             bash scripts/run-device-tests.sh cn.chronicle.game.CharacterFeatureTest "$RUNNER_TEMP/android-ui-storage-report/characters"
             bash scripts/run-device-tests.sh cn.chronicle.game.ScreenTest,cn.chronicle.game.StorageTest "$RUNNER_TEMP/android-ui-storage-report"
             adb shell am force-stop cn.chronicle.shanhe
