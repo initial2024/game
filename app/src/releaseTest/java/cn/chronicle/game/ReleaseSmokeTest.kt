@@ -75,7 +75,7 @@ class ReleaseSmokeTest {
   until {js("!!document.querySelector('#panel button.listing[title=\"county-jingji-01\"]')")=="true"}
   js("document.querySelector('#panel button.listing[title=\"county-jingji-01\"]').click();true")
   click("官员")
-  val field=device.wait(Until.findObject(By.clazz("android.widget.EditText")),10000)!!;field.text="长安新县";device.pressBack()
+  val field=device.wait(Until.findObject(By.clazz("android.widget.EditText")),10000)!!;field.click();device.waitForIdle(500);field.text="长安新县";device.pressBack()
   click("预览更名 · 5万两");click("确认执行");click("关闭城邑")
   click("继续时间")
   until {val ts=world().getJSONArray("towns");(0 until ts.length()).any {ts.getJSONObject(it).optString("name")=="长安新县"}}
@@ -92,7 +92,7 @@ class ReleaseSmokeTest {
   until {js("!!document.querySelector('#panel button.listing[title=\"county-jingji-01\"]')")=="true"}
   js("document.querySelector('#panel button.listing[title=\"county-jingji-01\"]').click();true")
   click("官员");click("与地方官交谈")
-  val chat=device.wait(Until.findObject(By.clazz("android.widget.EditText")),10000)!!;chat.text="你近来是否安好";device.pressBack();click("发送对话")
+  val chat=device.wait(Until.findObject(By.clazz("android.widget.EditText")),10000)!!;chat.click();device.waitForIdle(500);chat.text="你近来是否安好";device.pressBack();click("发送对话")
   until(210000){device.hasObject(By.textContains("本地模型回复 ·"))}
   screenshot("release-real-county-chat")
   val db=SQLiteDatabase.openDatabase(ctx.getDatabasePath("chronicle.db").path,null,SQLiteDatabase.OPEN_READONLY)
