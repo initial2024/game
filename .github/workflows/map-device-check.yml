@@ -3,6 +3,11 @@ on:
   push:
     branches: [feature/world-map-v4, feature/character-chat-hf-search]
   workflow_dispatch:
+    inputs:
+      optimized_release:
+        description: Check the pinned optimized release APK pair instead of the map regression pair
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -16,6 +21,7 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Download paired development APKs
+        if: ${{ !inputs.optimized_release }}
         run: |
           apk_revision="$(cat .github/device-apk-revision)"
           [[ "$apk_revision" =~ ^[a-f0-9]{40}$ ]]
@@ -23,12 +29,24 @@ jobs:
           curl -fL https://raw.githubusercontent.com/initial2024/game/$apk_revision/map-check-test.apk -o test.apk
           curl -fL https://raw.githubusercontent.com/initial2024/game/$apk_revision/map-check.sha256 -o map-check.sha256
           sha256sum -c map-check.sha256
+      - name: Download paired optimized development APKs
+        if: inputs.optimized_release
+        run: |
+          apk_revision="$(cat .github/release-apk-revision)"
+          [[ "$apk_revision" =~ ^[a-f0-9]{40}$ ]]
+          base="https://raw.githubusercontent.com/initial2024/game/$apk_revision/release-check"
+          curl -fL "$base/app-x86_64-release.apk" -o app-x86_64-release.apk
+          curl -fL "$base/app-release-androidTest.apk" -o app-release-androidTest.apk
+          curl -fL "$base/SHA256SUMS" -o release-check.sha256
+          sha256sum -c release-check.sha256
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
       - uses: reactivecircus/android-emulator-runner@v2
+        env:
+          OPTIMIZED_RELEASE: ${{ inputs.optimized_release }}
         with:
           api-level: 35
           arch: x86_64
@@ -37,6 +55,18 @@ jobs:
           script: |
             adb shell wm size 390x844
             adb shell wm density 160
+            if [ "$OPTIMIZED_RELEASE" = "true" ]; then
+              adb install app-x86_64-release.apk
+              adb install app-release-androidTest.apk
+              curl -fL --retry 2 https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/9217f5db79a29953eb74d5343926648285ec7e67/qwen2.5-0.5b-instruct-q4_k_m.gguf -o "$RUNNER_TEMP/release-model.gguf"
+              echo "74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db  $RUNNER_TEMP/release-model.gguf" | sha256sum -c -
+              adb shell mkdir -p /sdcard/Android/data/cn.chronicle.shanhe/files
+              adb push "$RUNNER_TEMP/release-model.gguf" /sdcard/Android/data/cn.chronicle.shanhe/files/qwen.gguf
+              adb shell am start -W -n cn.chronicle.shanhe/cn.chronicle.game.MainActivity
+              CHRONICLE_ONLINE_TEST=true bash scripts/run-device-tests.sh cn.chronicle.game.ReleaseSmokeTest "$RUNNER_TEMP/map-device-report/optimized"
+              adb shell am force-stop cn.chronicle.shanhe
+              CHRONICLE_ONLINE_TEST=true bash scripts/run-device-tests.sh cn.chronicle.game.ReleaseRestoreTest "$RUNNER_TEMP/map-device-report/optimized/restart"
+            else
             adb install app.apk
             adb install test.apk
             CHRONICLE_ONLINE_TEST=true bash scripts/run-device-tests.sh cn.chronicle.game.HubLiveTest "$RUNNER_TEMP/map-device-report/huggingface"
@@ -46,6 +76,7 @@ jobs:
             bash scripts/run-device-tests.sh cn.chronicle.game.MapIntegrationTest "$RUNNER_TEMP/map-device-report"
             adb shell am force-stop cn.chronicle.shanhe
             bash scripts/run-device-tests.sh cn.chronicle.game.MapRestartTest "$RUNNER_TEMP/map-device-report/restart"
+            fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
