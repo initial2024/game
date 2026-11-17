@@ -9,3 +9,6 @@
 
 # kotlinx.serialization and AndroidX WebKit ship their own consumer rules.
 # Do not keep the whole game/core/icon packages: normal reachability must shrink them.
+# AndroidJUnitRunner shares tracing with the target app; retain its public API for
+# optimized-release instrumentation and future startup/profile measurements.
+-keep class androidx.tracing.Trace { *; }
