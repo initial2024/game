@@ -37,7 +37,7 @@ object FamilyEngine {
    "FAMILY_CONTACT"->{val f=h.members.first {it.id==c.target.toInt()};val id=(w.people.maxOfOrNull {it.id}?:-1)+1;val p=Person(id,f.name,f.role,0,((w.day-f.bornDay)/90).coerceAtLeast(0),40,60,"自主表达",if(f.ageAt(w.day)<18)"平安成长与读书"else if(!f.willing)"婉拒入宫，自主生活"else"珍惜家人与自主选择",alive=f.alive,trust=f.relationship);x=w.copy(people=w.people+p,familyPeople=w.familyPeople+(f.id to id));events+="${f.name}的独立交流身份已登记，沿用原家族关系，不收费、不推进时间。"}
 
    "ERA" -> {x=x.copy(era=c.target,eraDay=w.day);events+="改元${c.target}，旧纪年及历史保留。"}
-   "RULER_NAME" -> {x=x.copy(ruler=c.target);events+="君主登记姓名改为${c.target}，此前史料不改写。"}
+   "RULER_NAME" -> {x=x.copy(ruler=c.target,household=h.copy(members=h.members.map {if(it.id==w.sovereign.monarchMember)it.copy(name=c.target)else it}));events+="君主登记姓名改为${c.target}，此前史料不改写。"}
    "CHILD_NAME_PLAN" -> {x=x.copy(household=h.copy(nextChildName=c.target));events+="下一次登记孕期将使用预备名${c.target}；既有孕期与子女名字不变。"}
    "NAME_CHILD" -> {val parts=c.target.split('|',limit=2);x=x.copy(household=h.copy(members=h.members.map {if(it.id==parts[0].toInt())it.copy(name=parts[1]) else it}));events+="宗室名册登记子女新名${parts[1]}。"}
    "FAMILY_PLAN" -> {x=x.copy(household=h.copy(allowPregnancy=c.target=="允许"));events+=if(c.target=="允许") "开启自愿备孕；仍须单独确认安排，不能保证进入孕期。" else "暂停新的备孕安排，已登记孕期继续正常照护。"}

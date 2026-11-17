@@ -136,12 +136,13 @@ import cn.chronicle.core.*
   if(candidates.isEmpty())Text("尚无至少12岁的子女或义亲。可从宗室培养，或在行旅中建立合适的非婚恋义亲关系。")
   candidates.take(8).forEach {p->OutlinedButton(onClick={ask(Command("DESIGNATE_HEIR",target=p.id.toString()))},modifier=Modifier.fillMaxWidth()){Text("议储：${p.name} · ${p.ageAt(w.day)}岁")}}
   Text("未成年继位须摄政；没有合格储位而君主死亡时，本纪年结束，旧档案仍保留。")
+  if(s.regencyUntil>w.day)Text("摄政：${w.people.find {it.id==s.regent}?.name?:"待补任"}，至第${s.regencyUntil}日；在外求学者须实际返程。")
   ActionButton(Command("ABDICATE"),ask)
  }
  else->{
   var target by rememberSaveable {mutableStateOf("foreign:0")};var kind by rememberSaveable {mutableStateOf("缉拿")};var org by rememberSaveable {mutableStateOf("hired")};var reward by rememberSaveable {mutableIntStateOf(100)}
   Panel("列国人物","与在册君主会谈同样使用已加载的本地模型"){
-   s.foreign.forEachIndexed {i,f->Row {Text("${w.neighbors[i].name} · ${f.name} · 第${f.generation}代${if(f.captive)"（被拘）"else""}",Modifier.weight(1f));TextButton(onClick={if(f.person>=0)vm.openChat(f.person)else ask(Command("RULER_CONTACT",region=i))}){Text(if(f.person>=0)"交谈"else"联系")}}}
+   s.foreign.forEachIndexed {i,f->Row {Text("${w.neighbors[i].name} · ${f.name} · 第${f.generation}代${if(f.captive)"（被拘）"else""}",Modifier.weight(1f));TextButton(onClick={if(f.person>=0)vm.openChat(f.person)else ask(Command("RULER_CONTACT",region=i))}){Text(if(f.person>=0)"交谈"else"联系")};if(f.captive)TextButton(onClick={ask(Command("RELEASE_RULER",region=i))}){Text("释放")}}}
   }
   Panel("秘密委托","限本局已登记的虚构成年人物，真实费用与失败风险"){
    Choices(s.foreign.indices.map {"${it+1}·${s.foreign[it].name}"},s.foreign.indices.firstOrNull {target=="foreign:$it"}?.let {"${it+1}·${s.foreign[it].name}"}.orEmpty(),{target="foreign:"+(it.substringBefore('·').toInt()-1)})

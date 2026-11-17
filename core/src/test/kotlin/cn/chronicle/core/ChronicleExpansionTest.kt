@@ -89,4 +89,14 @@ class ChronicleExpansionTest {
   assertNotNull(Rules.validate(x.copy(household=x.household.copy(allowPregnancy=true,members=x.household.members+FamilyMember(5,"成年伴侣","成年伴侣",-25*360))),Command("TRY_HEIR")))
   assertTrue(SovereignEngine.succession(game(),true,mutableListOf()).ended)
  }
+ @Test fun laterMonarchDeathClosesLifeStateAndForeignDeadRulerIsReplaced(){
+  var w=game().copy(household=Household(members=listOf(FamilyMember(4,"景宁","子女",-20*360),FamilyMember(5,"景安","子女",-18*360))))
+  w=act(w,Command("FAMILY_CONTACT",target="4"));val id=w.familyPeople.getValue(4)
+  w=act(w,Command("DESIGNATE_HEIR",target="4"));w=SovereignEngine.succession(w,false,mutableListOf());assertEquals(4,w.sovereign.monarchMember)
+  assertNotNull(Rules.validate(w,Command("ROYAL_CONTRACT",target="hired",objective="person:$id",mode="刺杀",level=100)))
+  w=act(w,Command("DESIGNATE_HEIR",target="5"));w=SovereignEngine.succession(w,true,mutableListOf());assertEquals("景安",w.ruler);assertFalse(w.people.first {it.id==id}.alive);assertFalse(w.household.members.first {it.id==4}.alive);assertNotNull(DialogueEngine.access(w,id));Rules.verify(w)
+  var foreign=act(game(),Command("RULER_CONTACT",region=0));val king=foreign.sovereign.foreign.first().person
+  foreign=foreign.copy(people=foreign.people.map {if(it.id==king)it.copy(alive=false)else it});val replacement=SovereignEngine.advance(foreign,mutableListOf());assertEquals(2,replacement.sovereign.foreign.first().generation);assertEquals(-1,replacement.sovereign.foreign.first().person);assertFalse(replacement.people.last().alive)
+ }
+
 }

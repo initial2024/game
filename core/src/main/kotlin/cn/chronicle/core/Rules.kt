@@ -23,6 +23,7 @@ object Rules {
   if(c.type=="WORKSHOP" && w.setting!=EraRules.ANCIENT)return "工业时代请使用工厂项目。"
   if(c.type !in labels && c.type !in InvestigationEngine.types && c.type !in ChronicleEngine.types && c.type !in SovereignEngine.types && c.type !in EncounterEngine.types) return "未知的行动类型。"
   val assigned=when(c.type){"APPOINT","STUDY_HOME","STUDY_ABROAD","APPOINT_TUTOR"->c.target.toIntOrNull();"ARMY_ASSIGN","ORG_ASSIGN","LOCAL_APPOINT"->c.objective.toIntOrNull();else->null}
+  if(assigned!=null&&(assigned==w.familyPeople[w.sovereign.monarchMember]||w.sovereign.foreign.any {it.person==assigned}))return "在位君主不能兼任本国官职、军职或讲席。"
   if(assigned!=null&&assigned in w.sovereign.captives)return "此人被拘留，须先依法解除限制后再任用。"
   if(c.region !in 0..3) return "目标地区不存在。"
   if(c.type in ChronicleEngine.types)ChronicleEngine.validate(w,c)?.let {return it}
