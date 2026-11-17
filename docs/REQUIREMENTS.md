@@ -99,8 +99,8 @@ Status: **Implemented** = baseline with evidence; **Partial** = usable first ver
 
 | ID | Requirement and remaining acceptance | Status | Priority |
 |---|---|---|---|
-| A01 | On send, automatically load installed selected/default GGUF if enabled, then generate; no repeated manual loading or silent download. Visible nonblocking verification/loading/generation. | Code implemented in 2544aed; final device verification pending | P0 |
-| A02 | Explicit model/template provenance, persistent failure reason, model-center access if missing, cancellation during loading/inference without save damage or double CONVERSE. | Error retention fixed in 2544aed; final device verification pending | P0 |
+| A01 | On send, automatically load installed selected/default GGUF if enabled, then generate; no repeated manual loading or silent download. Visible nonblocking verification/loading/generation. | Implemented and emulator-verified in 0.7.1; phone acceptance outstanding | V |
+| A02 | Explicit model/template provenance, persistent failure reason, model-center access if missing, cancellation during loading/inference without save damage or double CONVERSE. | 0.7.1 inference/first-send/hash-cancel checks passed; phone/JNI-load fault matrix partial | V |
 | A03 | Native llama.cpp, replaceable inference adapter, actual licensed Chinese model narration/intent understanding, no fixed fake AI. | Actual inference implemented; adapter partial | P1 |
 | A04 | Broad HF search/GGUF browsing/fixed revision/hash/license/installation, local import, threads/context, unload/delete and measured device recommendations. | Implemented; measured recommendations partial | P1 |
 | A05 | Real mirror URLs, progress/pause/retry/resume/foreground service, SHA+GGUF checks, ModelScope/HF Mirror/original source. | Implemented; HF Mirror full-file and vivo background tests outstanding | V |
@@ -119,6 +119,7 @@ Status: **Implemented** = baseline with evidence; **Partial** = usable first ver
 | M04 | Detailed selectable provinces/prefectures/counties and native city facts/buildings/officers/troops; keep current 8/14/171 hierarchy and expand useful details. | Implemented baseline; depth partial | P1 |
 | M05 | Tax/security/morale overlays, moving armies/trade, terrain/border detail preserving supplied map identity. | Open | P1 |
 | M06 | Static canvas/Path2D cache, DPR cap/on-demand draw/pause/destroy/recover, malformed data/migration/out-of-order/isolation checks, leak profiling. | Lifecycle/protocol implemented; cache/profiling open | P2/V |
+| M07 | Map as an interaction hub: select army then domestic/foreign destination, direct native policy/war previews, targeted diplomacy/intelligence, foreign ruler communication and local governance; maintain stable IDs, authority boundaries and compact panels. | Code under verification in 0.8; moving markers/local jurisdiction remain partial | P1 |
 | U01 | Four native tabs, bounded pages/folded categories/selectors, retained scroll, font scaling, light/dark/eye-care themes; no critical overlap at 390×844. | Implemented baseline; sweep new screens | V |
 | U02 | Original attractive icon/design, ambience/click sounds/haptics, readable subset font, ink transitions, accessible seal/reject interaction. | Icon/themes implemented; audio/font/seal open | P2 |
 | U03 | Responsive/cancellable AI, background saving, optional useful local notifications, no unwanted reminders. | Implemented baseline; physical lifecycle Device | V |

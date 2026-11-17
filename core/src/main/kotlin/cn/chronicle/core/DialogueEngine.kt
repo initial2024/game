@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 data class SpokenReply(val text:String,val source:String)
 object DialogueEngine {
  val approaches=listOf("倾听","勉励","质询","威胁")
+ fun foreign(w:World,p:Person)=w.sovereign.foreign.indexOfFirst {it.person==p.id}.takeIf {it>=0}
  fun access(w:World,id:Int):String? {
   val p=w.people.find {it.id==id}?:return "人物不存在。"
   if(!p.alive)return "此人已故，旧对话仅供查阅。"
@@ -13,9 +14,10 @@ object DialogueEngine {
  }
  fun hidden(w:World,p:Person):Boolean {
   w.adventure.encounters.find {it.person==p.id}?.let {return !it.knowsIdentity}
+  if(foreign(w,p)!=null)return false // Registered through an authenticated diplomatic channel, not a local disguise encounter.
   return p.id !in w.familyPeople.values&&p.id>=3&&w.journey?.revealed==false
  }
- fun identity(w:World,p:Person)=if(hidden(w,p))(w.journey?.disguise?:"往来旧识") else if(p.id<6||p.id in w.familyPeople.values||TalentEngine.town(w,p.id)!=null||LocalDefenseEngine.office(w,p.id)!=null)"经朝廷文书确认的统治者" else "已验明身份的来访者"
+ fun identity(w:World,p:Person)=if(foreign(w,p)!=null)"经国书验明的${w.name}统治者（平等邦交）"else if(hidden(w,p))(w.journey?.disguise?:"往来旧识") else if(p.id<6||p.id in w.familyPeople.values||TalentEngine.town(w,p.id)!=null||LocalDefenseEngine.office(w,p.id)!=null)"经朝廷文书确认的统治者" else "已验明身份的来访者"
  fun approach(requested:String,text:String):String {
   require(requested in approaches)
   return if(listOf("废物","蠢货","处死你","杀你全家","滚蛋").any(text::contains))"威胁" else requested
@@ -41,15 +43,16 @@ object DialogueEngine {
   val hash=java.security.MessageDigest.getInstance("SHA-256").digest(normalized.toByteArray()).take(8).joinToString("") {"%02x".format(it)}
   return "$base|$hash".take(100)
  }
- fun relationship(before:Person,after:Person):String {
+ fun relationship(before:Person,after:Person,loyaltyLabel:String="忠诚"):String {
   fun change(label:String,a:Int,b:Int)="$label${if(b-a>=0)"+"else ""}${b-a}"
-  return listOf(change("信任",before.trust,after.trust),change("忠诚",before.loyalty,after.loyalty),change("怀疑",before.suspicion,after.suspicion),change("敌意",before.hostility,after.hostility)).joinToString(" · ")
+  return listOf(change("信任",before.trust,after.trust),change(loyaltyLabel,before.loyalty,after.loyalty),change("怀疑",before.suspicion,after.suspicion),change("敌意",before.hostility,after.hostility)).joinToString(" · ")
  }
  fun context(w:World,p:Person,compact:Boolean=false):String {
   require(access(w,p.id)==null)
   val private=hidden(w,p)
   return buildString {
    append("只扮演${p.name}，${p.role}。时代${w.setting}。来客身份：${identity(w,p)}。")
+   foreign(w,p)?.let {i->append("你是${w.neighbors[i].name}君主，与来客平等，不是臣属。不得自称微臣或奉旨服从；两国关系${w.neighbors[i].relation}，${if(w.war?.neighbor==i)"正在交战"else"当前无战线"}。会谈不能改国界、军令或资源；不知对方内部案卷与国库明细。")}
    append(if(compact)"依已知信息以角色口吻简短中文回应；不猜真名、不造证据、不判案、不执行政策。"else"只依给定信息回应，不猜测未给身份，不创设证据、判决或政策结果；不执行资源操作。回答简短中文。")
    if(p.ageQuarters<72)append("角色未成年，只谈日常、家人、学业与成长，语气符合年龄。")
    if(w.setting==EraRules.ANCIENT)append("仅农耕、手工作坊、驿道、冷兵器。")
@@ -72,9 +75,11 @@ object DialogueEngine {
   if(hidden(w,p)&&listOf(w.ruler,"陛下","皇帝","君主","天子").any(s::contains))return null
   if(w.setting==EraRules.ANCIENT&&listOf("蒸汽机","火车","机枪","飞机","电力").any(s::contains))return null
   if(listOf("已为您增加国库","已经将他定罪","新的证据已经入库","已经撤职").any(s::contains))return null
+  if(foreign(w,p)!=null&&listOf("微臣","奴才","臣遵旨","臣领旨","无条件臣服").any(s::contains))return null
   return s
  }
  fun fallback(w:World,p:Person,text:String):String {
+  foreign(w,p)?.let {i->return "${p.name}：我代表${w.neighbors[i].name}与你国平等交涉。会谈不等于服从；邦交、停战与边地条件须由正式外交程序决定。${if(w.war?.neighbor==i)"眼下仍有战线，应通过使团议和。"else"可以商议往来，但不在此承诺未定条款。"}"}
   if(listOf("证据","贪污","摊派","账册").any(text::contains))return "${p.name}：传言和个人判断不能当作证据。请从调查与核验账册取得登记材料，再决定如何办理。"
   if(listOf("学院","学习","留学").any(text::contains))return "${p.name}：学业须有合适的讲席与时日。请在人物培养中核对学院、师资、费用和行期。"
   if(listOf("任命","建设","派遣","赈济").any(text::contains))return "${p.name}：此事需要正式办理。可先商议，实际执行还须从政令或地方行动确认。"

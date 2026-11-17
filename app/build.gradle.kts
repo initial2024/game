@@ -4,7 +4,7 @@ android {
  compileSdk = 36
  ndkVersion = "27.2.12479018"
  externalNativeBuild { cmake { path = file("src/main/cpp/CMakeLists.txt"); version = "3.22.1" } }
- defaultConfig { applicationId = "cn.chronicle.shanhe"; minSdk = 26; targetSdk = 36; versionCode = 12; versionName = "0.7.1"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"; externalNativeBuild { cmake { cppFlags += "-O2"; arguments += listOf("-DANDROID_STL=c++_shared", "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON") } } }
+ defaultConfig { applicationId = "cn.chronicle.shanhe"; minSdk = 26; targetSdk = 36; versionCode = 13; versionName = "0.8.0"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"; externalNativeBuild { cmake { cppFlags += "-O2"; arguments += listOf("-DANDROID_STL=c++_shared", "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON") } } }
  buildFeatures { compose = true }
  packaging { jniLibs.useLegacyPackaging = true; resources.excludes += "DebugProbesKt.bin" }
  splits { abi { isEnable = true; reset(); include("arm64-v8a", "x86_64"); isUniversalApk = false } }

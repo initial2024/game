@@ -27,7 +27,7 @@ import cn.chronicle.core.*
   Surface(Modifier.fillMaxSize()) {Column(Modifier.fillMaxSize().imePadding().padding(12.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
    Row {Text("与${p.name}交谈",Modifier.weight(1f),style=MaterialTheme.typography.titleLarge);TextButton(onClick={vm.closeChat()}){Text("关闭对话")}}
    Text("${p.role} · ${DialogueEngine.identity(w,p)} · ${when{model.loaded->"本地 AI";model.loading->"本地模型加载中";model.exists&&vm.models.autoLoadOnChat->"发送时自动加载本地 AI";else->"规则模板"}}",style=MaterialTheme.typography.labelSmall)
-   Text("信任${p.trust} / 忠诚${p.loyalty} / 怀疑${p.suspicion}",style=MaterialTheme.typography.labelSmall)
+   Text("信任${p.trust} / ${if(DialogueEngine.foreign(w,p)!=null)"履约意愿"else"忠诚"}${p.loyalty} / 怀疑${p.suspicion}",style=MaterialTheme.typography.labelSmall)
    HorizontalDivider()
    LazyColumn(Modifier.weight(1f).fillMaxWidth(),state=list,verticalArrangement=Arrangement.spacedBy(10.dp)){
     if(chat.records.isEmpty())item {Text("可以询问近况、政策或求学意愿。正式调查、派学和任免需要单独确认。")}

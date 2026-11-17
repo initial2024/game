@@ -12,6 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -153,12 +154,15 @@ private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapO
  val context=LocalContext.current;val activity=generateSequence(context){(it as? android.content.ContextWrapper)?.baseContext}.filterIsInstance<MainActivity>().firstOrNull();val scope=rememberCoroutineScope();val lifecycle=LocalLifecycleOwner.current.lifecycle
  var editor by remember {mutableStateOf(false)};var error by remember {mutableStateOf("")};var selection by remember {mutableStateOf<MapHostMessage?>(null)}
  var controller by remember {mutableStateOf<MapWebController?>(null)};var exportData by remember {mutableStateOf("")};var pendingImport by remember {mutableStateOf<MapScenario?>(null)}
+ var mapArmy by rememberSaveable(slot){mutableStateOf("")};var chooseArmy by remember {mutableStateOf(false)}
  val currentWorld by rememberUpdatedState(world);val currentSlot by rememberUpdatedState(slot)
+ val currentAction by rememberUpdatedState(onAction)
  val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")){uri->if(uri!=null)scope.launch {runCatching {withContext(Dispatchers.IO){require(exportData.isNotBlank()){"导出状态已重置，请重新导出。"};context.contentResolver.openOutputStream(uri)!!.use {it.write(exportData.toByteArray())}}}.onFailure {error="导出失败：${it.message}"}}}
  val import=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()){uri->if(uri!=null)scope.launch {runCatching {withContext(Dispatchers.IO){context.contentResolver.openInputStream(uri)!!.use {val out=java.io.ByteArrayOutputStream();val buffer=ByteArray(8192);while(true){val n=it.read(buffer);if(n<0)break;require(out.size()+n<=1024*1024);out.write(buffer,0,n)};MapValidation.parse(out.toString("UTF-8"))}}}.onSuccess {pendingImport=it}.onFailure {error="未导入，原沙盘保持不变：${it.message}"}}}
  BackHandler {if(selection!=null)selection=null else if(editor)editor=false else onClose()}
  Column(Modifier.fillMaxSize()) {
-  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){TextButton(onClick={if(editor)editor=false else onClose()}){Text(if(editor)"返回游戏地图" else "返回地区列表")};TextButton(onClick={editor=!editor;selection=null}){Text(if(editor)"查看游戏" else "地图沙盘")}}
+  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){TextButton(onClick={if(editor)editor=false else onClose()}){Text(if(editor)"返回游戏地图" else "返回地区列表")};if(!editor)TextButton(onClick={chooseArmy=true}){Text("地图调兵")};TextButton(onClick={editor=!editor;selection=null;mapArmy=""}){Text(if(editor)"查看游戏" else "地图沙盘")}}
+  if(!editor&&mapArmy.isNotEmpty())Row(Modifier.padding(horizontal=12.dp)){val unit=CrownEngine.units(world).find {it.id==mapArmy};Text("${unit?.name?:"部队"} · 驻${unit?.let {world.regions[it.region].name}?:"未定"} · 点地图预览调防/战令",Modifier.weight(1f),style=MaterialTheme.typography.labelSmall);TextButton(onClick={mapArmy=""}){Text("取消选军")}}
   if(!editor)Row(Modifier.fillMaxWidth()){TextButton(onClick={gameVm.toggleClock()},modifier=Modifier.testTag("map-clock")){Text(if(clock.paused)"继续时间" else "暂停时间")};TextButton(onClick={gameVm.changeSpeed()},modifier=Modifier.testTag("map-speed")){Text("×${clock.speed}")};Text(world.date,Modifier.padding(top=12.dp),style=MaterialTheme.typography.labelSmall)}
   if(clock.message.isNotBlank())Row(Modifier.padding(horizontal=12.dp)){Text(clock.message,Modifier.weight(1f),maxLines=2,style=MaterialTheme.typography.labelSmall);TextButton(onClick={gameVm.message("")}){Text("收起反馈")}}
   if(editor)Text("地图沙盘 · 编辑与导入只保存在地图沙盘，不改变游戏",Modifier.padding(horizontal=12.dp),style=MaterialTheme.typography.labelSmall)
@@ -166,7 +170,14 @@ private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapO
   key(editor) {
    var owned by remember {mutableStateOf<MapWebController?>(null)}
    AndroidView(factory={ctx->
-    val (web,c)=createMapWebView(ctx,editor,{error=it},{raw->runCatching {MapBridgePolicy.selection(raw,currentWorld,currentSlot)}.onSuccess {android.util.Log.i("ChronicleMap","Selected type=${it.type} place=${it.placeId}");if(it.type=="place-select"&&MunicipalEngine.all(currentWorld).any {t->t.id==it.placeId&&t.rank in listOf("府城","县城")}){gameVm.openCity(it.placeId);selection=null}else selection=it}.onFailure {android.util.Log.w("ChronicleMap","Selection validation failed",it);error="已拒绝无效地图选择。"}},{isImport->if(isImport)import.launch(arrayOf("application/json","text/plain"))else controller?.export {text->exportData=text;export.launch("chronicle-map.json")}})
+    val (web,c)=createMapWebView(ctx,editor,{error=it},{raw->runCatching {
+     val picked=MapBridgePolicy.selection(raw,currentWorld,currentSlot)
+     android.util.Log.i("ChronicleMap","Selected type=${picked.type} place=${picked.placeId}")
+     if(mapArmy.isNotEmpty()){
+      val target=MapOrders.target(currentWorld,picked.type,picked.placeId.ifEmpty {picked.territoryId.ifEmpty {picked.polityId}})
+      val order=MapOrders.military(currentWorld,target,mapArmy);selection=null;currentAction(order)
+     }else if(picked.type=="place-select"&&MunicipalEngine.all(currentWorld).any {t->t.id==picked.placeId&&t.rank in listOf("府城","县城")}){gameVm.openCity(picked.placeId);selection=null}else selection=picked
+    }.onFailure {android.util.Log.w("ChronicleMap","Selection validation failed",it);error=it.message?:"已拒绝无效地图选择。"}},{isImport->if(isImport)import.launch(arrayOf("application/json","text/plain"))else controller?.export {text->exportData=text;export.launch("chronicle-map.json")}})
     owned=c;controller=c;activity?.mapController=c;MapWebController.created();web
    },modifier=Modifier.weight(1f).fillMaxWidth().testTag("world-map-web"),update={owned?.update(world,slot)})
    DisposableEffect(owned,lifecycle){val c=owned;val observer=LifecycleEventObserver {_,event->if(event==Lifecycle.Event.ON_STOP)c?.pause()else if(event==Lifecycle.Event.ON_START)c?.resume()};lifecycle.addObserver(observer);onDispose {lifecycle.removeObserver(observer)}}
@@ -174,6 +185,10 @@ private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapO
   }
  }
  pendingImport?.let {data->AlertDialog(onDismissRequest={pendingImport=null},title={Text("导入地图沙盘？")},text={Text("场景 ${data.id} 将导入沙盘；若同ID已存在，会替换该沙盘槽位。游戏存档不受影响。")},confirmButton={TextButton(onClick={controller?.importPreview(data);pendingImport=null}){Text("导入沙盘")}},dismissButton={TextButton(onClick={pendingImport=null}){Text("取消")}})}
+ if(chooseArmy)AlertDialog(onDismissRequest={chooseArmy=false},title={Text("选择地图部队")},text={Column(Modifier.heightIn(max=320.dp).verticalScroll(rememberScrollState())){
+  Text("选择后点击地图目标。国内按大区调防，外国预览动员或当前战线交战；仍须核对费用并确认。",style=MaterialTheme.typography.bodySmall)
+  CrownEngine.units(world).forEach {u->TextButton(onClick={mapArmy=u.id;chooseArmy=false;selection=null;error=""}){Text("${u.name} · ${u.soldiers}人 · 驻${world.regions[u.region].name}")}}
+ }},confirmButton={TextButton(onClick={chooseArmy=false}){Text("返回")}})
  val picked=selection
  if(picked!=null){
   val scene=MapSnapshotMapper.scene(world,slot)
@@ -181,9 +196,15 @@ private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapO
   val region=if(place!=null)MapSnapshotMapper.regionId(world,picked.placeId)else scene.territories.find {it.id==picked.territoryId}?.let {MapSnapshotMapper.regionForGroup(world,it.groupId)}
   val territory=scene.territories.find {it.id==picked.territoryId}
   val polity=scene.polities.find {it.id==picked.polityId}
+  val selectedId=picked.placeId.ifEmpty {picked.territoryId.ifEmpty {picked.polityId}}
+  val target=runCatching {MapOrders.target(world,picked.type,selectedId)}.getOrNull()
+  val foreign=target?.neighbor
+  var foreignTab by remember(selectedId){mutableStateOf("外交")}
+  var orderError by remember(selectedId){mutableStateOf("")}
   var newName by remember(picked.placeId){mutableStateOf(place?.name?:"")}
   AlertDialog(onDismissRequest={selection=null},title={Text(place?.name?:territory?.name?:polity?.name?:"地图选择")},text={Column(Modifier.heightIn(max=360.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(10.dp)){
    Text("ID：${picked.placeId.ifEmpty {picked.territoryId.ifEmpty {picked.polityId}}}",style=MaterialTheme.typography.labelSmall)
+   if(orderError.isNotBlank())Text(orderError,color=MaterialTheme.colorScheme.error,style=MaterialTheme.typography.bodySmall)
    if(polity?.id=="nation"){Text("国库${world.nation.treasury}万两 · 债务${world.nation.debt}万两");Text("人口${world.nation.population} · 民心${world.nation.morale} · 稳定${world.nation.stability}")}
    if(territory!=null)Text("归属：${scene.polities.find {it.id==territory.polityId}?.name?:"无主"} · 状态：${territory.status}")
    if(place!=null&&MunicipalEngine.all(world).any {it.id==picked.placeId})TextButton(onClick={gameVm.openCity(picked.placeId);selection=null}){Text("城市详情与建筑")}
@@ -194,7 +215,14 @@ private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapO
     if(picked.placeId=="ruin-r0")OutlinedButton(onClick={selection=null;onAction(Command("CITY_RESTORE",region=0,target="ruin-r0"))}){Text("修复旧城 · 80万两 / 90日")}
     OutlinedButton(onClick={selection=null;onAction(Command("CITY_FOUND",region=region))}){Text("营建新邑 · 120万两 / 120日")}
    }
-   if(polity?.id?.startsWith("neighbor-")==true){val n=world.neighbors[polity.id.substringAfterLast('-').toInt()];Text("外交关系${n.relation} · 军事实力${n.strength}");OutlinedButton(onClick={selection=null;onAction(Command("DIPLOMACY"))}){Text("派遣使节")}}
+   if(foreign!=null){val n=world.neighbors[foreign];Text("${n.name} · 邦交${n.relation} · 军力${n.strength}")
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()){listOf("外交","军务","人物").forEachIndexed {i,t->SegmentedButton(selected=foreignTab==t,onClick={foreignTab=t},shape=SegmentedButtonDefaults.itemShape(i,3)){Text(t)}}}
+    when(foreignTab){
+     "外交"->{Text("双边使团只影响所选国家；35万两/20日，关系+8，上限100。",style=MaterialTheme.typography.bodySmall);OutlinedButton(onClick={selection=null;onAction(MapOrders.diplomacy(target))}){Text("向${n.name}派使")};OutlinedButton(onClick={selection=null;onAction(Command("INTEL_SCOUT",region=foreign))}){Text("侦察该国 · 35万两 / 30日")}}
+     "军务"->{Text("点选出征军队后预览。军力、补给、主将、地形与现有战线均由规则核验。",style=MaterialTheme.typography.bodySmall);CrownEngine.units(world).forEach {u->OutlinedButton(onClick={runCatching {MapOrders.military(world,target,u.id)}.onSuccess {selection=null;onAction(it)}.onFailure {orderError=it.message.orEmpty()}}){Text("${u.name} · ${u.soldiers}人 → ${if(world.war?.neighbor==foreign)"前线交战"else"动员预览"}")}}}
+     else->{val ruler=world.sovereign.foreign.getOrNull(foreign);if(ruler!=null){Text("${ruler.name} · ${if(ruler.captive)"被拘"else"在位君主"}");if(ruler.person>=0)OutlinedButton(onClick={selection=null;gameVm.openChat(ruler.person)}){Text("与该国君主交谈")}else OutlinedButton(onClick={selection=null;onAction(Command("RULER_CONTACT",region=foreign))}){Text("登记正式君主会谈")}}else{Text("旧存档尚未登记邻国君主。开启新章会初始化人物与护卫，保留既有世界和历史。");OutlinedButton(onClick={selection=null;onAction(Command("CONTENT_ENABLE"))}){Text("开启人物与护卫档案")}}}
+    }
+   }
    if(territory?.id=="frontier-0"){Text("两国关系达到80后可议定移交；耗资180万两、90日，后续驻防每季5万两。");OutlinedButton(onClick={selection=null;onAction(Command("BORDER_TREATY",target="frontier-0"))}){Text("议定边地移交")}}
   }},confirmButton={TextButton(onClick={selection=null}){Text("关闭")}})
  }

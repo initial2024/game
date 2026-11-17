@@ -48,9 +48,9 @@ class MapIntegrationTest {
   compose.onNodeWithTag("world-map-web").performTouchInput {val factor=width/viewportWidth;click(androidx.compose.ui.geometry.Offset((x*factor).toFloat(),(y*factor).toFloat()))}
 
  }
- private fun cityClick(name:String){
+ private fun cityClick(name:String,expectCityDialog:Boolean=true){
   touch("#search");compose.waitUntil(10000){js("!!document.querySelector('input[type=search]')")=="true"};js("(function(){const e=document.querySelector('input[type=search]');e.value="+MapBridgePolicy.quoted(name)+";e.dispatchEvent(new Event('input',{bubbles:true}));return true})()")
-  touch("#panel button.listing");println("MAP_AFTER_CITY_TOUCH="+js("JSON.stringify({panel:document.querySelector('#panel').textContent,events:window.__nativeEvents||null,error:window.__mapRenderError||null})"));captureMap("map-after-city-touch");compose.waitUntil(10000){compose.onAllNodesWithText("城邑名称").fetchSemanticsNodes().isNotEmpty()||compose.onAllNodesWithText("关闭城邑").fetchSemanticsNodes().isNotEmpty()}
+  touch("#panel button.listing");println("MAP_AFTER_CITY_TOUCH="+js("JSON.stringify({panel:document.querySelector('#panel').textContent,events:window.__nativeEvents||null,error:window.__mapRenderError||null})"));captureMap("map-after-city-touch");if(expectCityDialog)compose.waitUntil(10000){compose.onAllNodesWithText("城邑名称").fetchSemanticsNodes().isNotEmpty()||compose.onAllNodesWithText("关闭城邑").fetchSemanticsNodes().isNotEmpty()}
  }
 
  @Test fun countyCityHasWorkingBuildingsAndPersistsAfterConstruction(){
@@ -82,6 +82,31 @@ class MapIntegrationTest {
   val device=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation());val portraitController=compose.activity.mapController;device.setOrientationLeft();compose.waitUntil(30000){compose.activity.resources.configuration.orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE&&compose.activity.mapController!=null&&compose.activity.mapController!==portraitController};ready(vm);assertEquals("true",js("innerWidth>innerHeight"));assertEquals("active",scene().getJSONObject("placeStates").getJSONObject("settlement-r0").getString("status"));captureMap("map-landscape");val landscapeController=compose.activity.mapController;device.setOrientationNatural();device.unfreezeRotation();compose.waitUntil(30000){compose.activity.resources.configuration.orientation==android.content.res.Configuration.ORIENTATION_PORTRAIT&&compose.activity.mapController!=null&&compose.activity.mapController!==landscapeController};ready(vm)
   vm.newGame("另一条世界线","新君","综合发展","标准","0",setting="工业初兴");compose.waitUntil(30000){vm.state.value.world?.name=="另一条世界线"&&!vm.state.value.busy};if(!vm.state.value.paused)compose.runOnUiThread {vm.toggleClock()};ready(vm);assertNotEquals("game-slot-$a",scene().getString("id"));assertEquals("澄江城",scene().getJSONObject("places").getJSONObject("city-r0").getString("name"))
   vm.load(a);compose.waitUntil(15000){vm.state.value.slot==a&&!vm.state.value.busy};ready(vm);assertEquals("澄江新城",scene().getJSONObject("places").getJSONObject("city-r0").getString("name"))
+  // Finger taps in the supplied HTML select a real country; native confirmation
+  // creates a targeted order rather than globally increasing all relations.
+  val neighbor=vm.state.value.world!!.neighbors[1].name
+  touch("#territory-open")
+  assertEquals("true",js("(function(){const b=[...document.querySelectorAll('#panel button')].find(b=>b.textContent.includes("+MapBridgePolicy.quoted(neighbor)+"));if(!b)return false;b.dataset.ciCountry='yes';return true})()"))
+  touch("#panel button[data-ci-country=yes]")
+  compose.onNodeWithText("向${neighbor}派使").performScrollTo().performClick()
+  compose.onNodeWithText("确认执行").performClick()
+  compose.waitUntil(10000){vm.state.value.world!!.pending.any {it.command.type=="DIPLOMACY_TARGET"&&it.command.target=="neighbor-1"}}
+  while(vm.state.value.speed!=4)vm.changeSpeed()
+  vm.toggleClock();compose.waitUntil(20000){vm.state.value.world!!.pending.none {it.command.type=="DIPLOMACY_TARGET"}};vm.toggleClock();ready(vm)
+  assertTrue(vm.state.value.world!!.recent.flatMap {it.events}.any {it.contains("双边使团抵达${neighbor}")})
+  captureMap("map-targeted-diplomacy")
+  val oldRegion=CrownEngine.units(vm.state.value.world!!).first {it.id=="field"}.region
+  compose.onNodeWithText("地图调兵").performClick()
+  compose.onNode(hasClickAction() and hasText("行营军 ·",substring=true)).performClick()
+  cityClick(scene().getJSONObject("places").getJSONObject("city-r2").getString("name"),false)
+  compose.waitUntil(10000){compose.onAllNodesWithText("确认执行").fetchSemanticsNodes().size==1}
+  compose.onNodeWithText("确认执行").assertIsDisplayed()
+  assertEquals(oldRegion,CrownEngine.units(vm.state.value.world!!).first {it.id=="field"}.region)
+  compose.onNodeWithText("确认执行").performClick()
+  compose.waitUntil(10000){vm.state.value.world!!.pending.any {it.command.type=="ARMY_MOVE"&&it.command.target=="field"&&it.command.region==2}}
+  vm.toggleClock();compose.waitUntil(30000){CrownEngine.units(vm.state.value.world!!).first {it.id=="field"}.region==2};vm.toggleClock();ready(vm)
+  compose.onNodeWithText("取消选军").performClick();captureMap("map-army-arrived")
+  Store(compose.activity).use {assertEquals(2,CrownEngine.units(it.load(a)!!).first {u->u.id=="field"}.region)}
   val saved=vm.state.value.world!!;val marker=JSONObject().put("slot",a).put("revision",saved.revision).put("name",saved.name);java.io.File(compose.activity.getExternalFilesDir(null),"map-checkpoint.json").writeText(marker.toString())
   repeat(4){compose.onNodeWithText("返回地区列表").performClick();compose.waitUntil(5000){compose.activity.mapController==null};assertEquals(0,MapWebController.activeCount);compose.onNodeWithText("打开世界舆图").performScrollTo().performClick();ready(vm)}
   compose.onNodeWithText("地图沙盘").performClick();compose.waitUntil(30000){compose.activity.mapController?.let {it.isEditor&&it.isPageReady}==true}

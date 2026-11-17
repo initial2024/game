@@ -27,11 +27,13 @@ Package: `cn.chronicle.shanhe`. Published development APKs share a persistent de
 - Optional guidance, first-year protection, guards, fictional espionage organizations, chapter objectives, quarterly reports, standing grain orders and four initial development routes.
 - Hugging Face GGUF search, device-memory recommendations, local import, ModelScope / HF Mirror / original-source choices, resumable foreground downloads, hash checks, llama.cpp inference and labeled template fallback.
 
+The developing0.8 branch adds map command controls and campaign choices; these need their own device acceptance before delivery. [Reference inspection](docs/REFERENCES.md).
+
 ## Full development backlog
 
 On-send automatic loading is verified in 0.7.1; broader conversation acceptance and every other unfinished requirement remain tracked. All historical requests, statuses and acceptance criteria are in the [complete requirements register](docs/REQUIREMENTS.md). Still incomplete or requiring broader validation:
 
-1. **Conversation convenience:** auto-load the installed default model on message send; show loading, retain failure reasons, allow cancellation and verify every eligible character uses real inference.
+1. **Conversation coverage:** automatic loading on send is verified in0.7.1; expand device/model/fault coverage and ensure every eligible character uses the same real-inference path.
 2. **Historical strategy:** meaningful province jurisdiction, autonomous countries, multiple fronts, supply, assault/siege/diplomacy, treaties and era-specific institutions, informed by the actual *Age of History* game.
 3. **Investigation depth:** higher-quality case chains, motivated reversals, ambiguity, linked clues, evidence-board presentation, confrontation, false-evidence counterplay and varied petitions; complete four-domain corruption accounts.
 4. **Characters and continuity:** autonomous lives, faction coalitions, genealogy, per-ruler relationships, recovery/lifespan, inheritance disputes, richer regency, teaching balance and lasting appointments.

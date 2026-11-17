@@ -23,7 +23,7 @@ object ResourceEngine {
    "ARMY_RECRUIT"->mapOf("IRON" to 20L,"TIMBER" to 20L,"GRAIN" to 1000L)
    "LOCAL_RECRUIT"->mapOf("IRON" to (c.level/50).toLong(),"TIMBER" to (c.level/50).toLong(),"GRAIN" to c.level.toLong())
    "DECLARE_WAR"->{val army=CrownEngine.units(w).find {it.id==c.target};if(army==null)emptyMap()else mapOf("GRAIN" to army.soldiers.toLong(),"IRON" to 10L,"TIMBER" to if(!TerrainEngine.profile(w,"neighbor-city-${c.region}").land)80L else 20L)}
-   "WAR_BATTLE"->{val army=w.war?.let {f->CrownEngine.units(w).first {it.id==f.army}};if(army==null)emptyMap()else mapOf("GRAIN" to army.soldiers/2L,"IRON" to 8L,"TIMBER" to 5L)}
+   "WAR_BATTLE"->{val army=w.war?.let {f->CrownEngine.units(w).first {it.id==f.army}};if(army==null)emptyMap()else WarfareEngine.approach(c).let {a->mapOf("GRAIN" to army.soldiers.toLong()*a.grainParts/4,"IRON" to a.iron,"TIMBER" to a.timber)}}
    else->emptyMap()
   }
  }

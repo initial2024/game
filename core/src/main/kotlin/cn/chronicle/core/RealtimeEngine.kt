@@ -13,10 +13,10 @@ object RealtimeEngine {
   "CONSORT_ACCEPT","ARMY_ASSIGN" -> 7
   "ARMY_MOVE" -> 14+c.region*3
   "ORG_FOUND" -> 45
-  "ORG_ASSIGN","DECLARE_WAR","WAR_PEACE","WAR_WITHDRAW" -> 7
+  "ORG_ASSIGN" -> 7
+  in WarfareEngine.types -> WarfareEngine.duration(c)
   "INTEL_SCOUT","ASSASSINATE" -> 30
   "INTEL_COUNTER" -> 15
-  "WAR_BATTLE" -> 14
   "LOCAL_APPOINT","LOCAL_RELEASE","LOCAL_DEMOB","ARMY_DEMOB","TRADE_RESOURCE" -> 7
   "LOCAL_MOBILIZE" -> 14
   "LOCAL_TRAIN","LOCAL_RECRUIT" -> 30
@@ -32,7 +32,7 @@ object RealtimeEngine {
   in immediate -> 0
   "RESEARCH","DRILL","TRY_HEIR","REST" -> 30
   "REFORM" -> 60
-  "DIPLOMACY" -> 20
+  "DIPLOMACY","DIPLOMACY_TARGET" -> 20
   "RELIEF","RETURN" -> 7
   "AUDIT","INVESTIGATE" -> 5
   "TAX_UP","TAX_DOWN" -> 5
@@ -45,7 +45,7 @@ object RealtimeEngine {
   "LOCAL_MOBILIZE"->{val from=w.localDefense.units.find {it.id==c.target}?.home?:"city-r0";val to="city-r${CrownEngine.units(w).find {it.id==c.objective}?.region?:0}";duration(c)*TerrainEngine.marchFactor(w,from,to)/100}
   else->duration(c)
  }
- fun describe(w:World,c:Command):String {val raw=describe(c);val shown=if(c.type=="URBAN_BUILD")raw.replace("${MunicipalEngine.duration(c)}日","${MunicipalEngine.duration(w,c)}日")else raw.replace("办理${duration(c)}日","办理${duration(w,c)}日");return shown.replace("${Rules.cost(c)}万两","${Rules.cost(w,c)}万两")+ResourceEngine.requirements(w,c).takeIf {it.isNotEmpty()}?.entries?.joinToString(prefix=" · 物资：") {"${ResourceEngine.labels[it.key]}${it.value}${ResourceEngine.unit(it.key)}"}.orEmpty()}
+ fun describe(w:World,c:Command):String {val raw=describe(c)+(if(c.type in WarfareEngine.types)" · "+WarfareEngine.describe(w,c)else "");val shown=if(c.type=="URBAN_BUILD")raw.replace("${MunicipalEngine.duration(c)}日","${MunicipalEngine.duration(w,c)}日")else raw.replace("办理${duration(c)}日","办理${duration(w,c)}日");return shown.replace("${Rules.cost(c)}万两","${Rules.cost(w,c)}万两")+ResourceEngine.requirements(w,c).takeIf {it.isNotEmpty()}?.entries?.joinToString(prefix=" · 物资：") {"${ResourceEngine.labels[it.key]}${it.value}${ResourceEngine.unit(it.key)}"}.orEmpty()}
  fun describe(c:Command):String {
   val time=when(c.type){"CANAL"->"即刻立项，${c.days}日后竣工，维护3万两/季";"PALACE_BUILD"->"即刻开工，${(CrownEngine.buildings.find {it.id==c.objective}?.days?:0)+c.level*20}日后竣工；新增等级维护2万两/季";"URBAN_BUILD"->"即刻立项，${MunicipalEngine.duration(c)}日后建筑升至${c.level}级";"ACADEMY_UPGRADE"->"即刻立项，180日后竣工；每级维护2万两/季";"STUDY_HOME"->"赴学7日，研习90日，返程7日；离岗期间影响公务";"STUDY_ABROAD"->"赴学与返程各${14+c.region*7}日，研习180日；邦交恶化可能中断";"RECALL_STUDENT"->"开始返程，按实际课业结算，不退学费";"CONVERSE"->"自由交谈，不收费、不推进时间、无需冷却；关系按话题与真实经历变化";"CITY_FOUND"->"即刻立项，120日后验收";"CITY_RESTORE"->"即刻立项，90日后验收";"CANCEL_TASK"->"即刻撤销，返还80%预留资金";"FACTORY","WORKSHOP"->"即刻立项，约270日后完工";"FARM","ROAD"->"即刻立项，约180日后完工";"REMOTE"->"即刻委派，30日后归报";"DEPART"->"即刻出发，旅程随时间推进";else->if(duration(c)==0)"即刻登记" else "办理${duration(c)}日"}
   return "${Rules.label(c)} · ${Rules.cost(c)}万两 · $time"
@@ -60,7 +60,8 @@ object RealtimeEngine {
   val next=w.copy(nation=w.nation.copy(treasury=(w.nation.treasury+refund).coerceAtMost(1000000)),pending=w.pending-old.toSet())
   return finish(w,next,"交流规则升级",listOf("旧版交流预留资金退回 +$refund 万两（受国库上限约束）"),listOf("旧版交流排程已撤销；今后交谈免费、即时、无需冷却。"))
  }
- fun submit(w:World,c:Command,expected:Long):Outcome {
+ fun submit(w:World,input:Command,expected:Long):Outcome {
+  val c=WarfareEngine.bind(w,input)
   require(w.revision==expected){"局势已改变，请重新下令。"}
   if(c.type=="CANCEL_TASK") {
    val task=w.pending.find {it.id==c.target.toLongOrNull()}?:error("事务已完成或不存在。")

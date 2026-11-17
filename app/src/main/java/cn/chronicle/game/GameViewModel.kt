@@ -138,7 +138,7 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
      val record=DialogueRecord(id,"user",clean,w.day,"player");store.startDialogue(slot,w.revision,out,record)
      val x=out.world;world=x;person=x.people.first {it.id==p.id}
      mutable.update {it.copy(world=x,message="交谈已保存；无需支付资金或等待冷却。")}
-     chatMutable.value=chatMutable.value.copy(records=(chatMutable.value.records+record).takeLast(100),relationship=DialogueEngine.relationship(p,person!!)+(if(p==person)"（重复内容或话题已充分交流）"else""),note=if(models.isLoaded)"本地模型生成中…"else"正在检查默认模型，准备自动加载…")
+     chatMutable.value=chatMutable.value.copy(records=(chatMutable.value.records+record).takeLast(100),relationship=DialogueEngine.relationship(p,person!!,if(DialogueEngine.foreign(x,person!!)!=null)"履约意愿"else"忠诚")+(if(p==person)"（重复内容或话题已充分交流）"else""),note=if(models.isLoaded)"本地模型生成中…"else"正在检查默认模型，准备自动加载…")
     }
     val w=world!!;val p=person!!
     var fallbackReason=""

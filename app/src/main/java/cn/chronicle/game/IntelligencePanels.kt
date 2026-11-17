@@ -46,6 +46,7 @@ import cn.chronicle.core.*
 }
 @Composable fun WarPanel(w:World,ask:(Command)->Unit){
  var country by rememberSaveable {mutableIntStateOf(0)};var armyId by rememberSaveable {mutableStateOf("north")}
+ var approach by rememberSaveable {mutableStateOf("稳战")};var envoy by rememberSaveable {mutableIntStateOf(2)};var pickEnvoy by remember {mutableStateOf(false)}
  val war=w.war
  Text("战事与民心",style=MaterialTheme.typography.titleLarge);Text("民心${w.nation.morale} / 稳定${w.nation.stability} / 国库${w.nation.treasury}万两")
  if(war==null){
@@ -57,12 +58,25 @@ import cn.chronicle.core.*
  }else{
   val u=CrownEngine.units(w).first {it.id==war.army}
   Text("对${w.neighbors[war.neighbor].name}战争 · 第${war.days}日");Text("${u.name} · ${u.soldiers}人 · 补给${u.supply} · 编制战力${CrownEngine.power(w,u)}")
-  Text("已交战${war.battles}次 · 战线优势${war.progress} · 敌方战力${war.enemy} · 厌战${war.weariness}")
-  Text("交战14日/35万两，依兵员、主将能力与忠诚、训练、士气、补给、情报及保存的随机种子结算。优势≥60后停战可登记边地移交；失利可能被迫撤回。",style=MaterialTheme.typography.bodySmall)
-  OutlinedButton(onClick={ask(Command("WAR_BATTLE"))},enabled=war.days>=14){Text(if(war.days<14)"动员尚需${14-war.days}日"else"预览前线交战")}
+  Text("已交战${war.battles}次 · 优势${war.progress} · 敌战力${war.enemy} · 双方厌战${war.weariness}/${war.enemyWeariness}")
+  SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()){listOf("稳战","速攻","围困","外交").forEachIndexed {i,s->SegmentedButton(selected=approach==s,onClick={approach=s},shape=SegmentedButtonDefaults.itemShape(i,4)){Text(s)}}}
+  if(approach=="外交"){
+   val selected=w.people.firstOrNull {it.id==envoy&&WarfareEngine.envoyAvailable(w,it)}?:w.people.firstOrNull {WarfareEngine.envoyAvailable(w,it)}
+   Text("使者：${selected?.let {"${it.name} · 能力${it.ability}"}?:"暂无合适人选"}")
+   TextButton(onClick={pickEnvoy=true}){Text("点选出使人物")}
+   val order=Command("WAR_ENVOY",target=selected?.id?.toString().orEmpty())
+   Text(WarfareEngine.describe(w,order),style=MaterialTheme.typography.bodySmall)
+   OutlinedButton(onClick={ask(order)},enabled=selected!=null&&war.days>=14){Text("预览出使议和 · 60万两 / 21日")}
+  }else{
+   val order=Command("WAR_BATTLE",mode=approach);val spec=WarfareEngine.approach(order)
+   Text("${spec.label} · ${spec.cost}万两 / ${spec.days}日",style=MaterialTheme.typography.titleSmall)
+   Text(WarfareEngine.describe(w,order),style=MaterialTheme.typography.bodySmall)
+   OutlinedButton(onClick={ask(order)},enabled=war.days>=14){Text(if(war.days<14)"动员尚需${14-war.days}日"else if(approach=="稳战")"预览前线交战"else"预览${spec.label}")}
+  }
   OutlinedButton(onClick={ask(Command("WAR_PEACE"))}){Text("预览停战 · 40万两 / 7日")}
   TextButton(onClick={ask(Command("WAR_WITHDRAW"))}){Text("无条件撤军 · 无拨款 / 7日")}
   Text("撤军不获领土，民心-3、稳定-3，邦交保持敌对。",style=MaterialTheme.typography.bodySmall)
  }
  Text("这是持续时间驱动的战略战役，结果会改变军队、财政、民心和地图归属。",style=MaterialTheme.typography.bodySmall)
+ if(pickEnvoy)PersonPicker(w,"选择出使人物",{WarfareEngine.envoyAvailable(w,it)},{pickEnvoy=false}){envoy=it}
 }
