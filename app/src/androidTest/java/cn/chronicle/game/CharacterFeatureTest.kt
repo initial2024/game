@@ -157,11 +157,11 @@ class CharacterFeatureTest {
   navigate(1);compose.onNodeWithText("军政",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("战事",useUnmergedTree=true).performScrollTo().performClick()
   scrollActivate(compose.onNodeWithText("预览宣战与动员"));confirm();compose.waitUntil(10000){vm.state.value.world!!.pending.any {it.command.type=="DECLARE_WAR"}&&!vm.state.value.busy};flowTime(vm){(vm.state.value.world!!.war?.days?:0)>=14}
   for((mode,cost) in listOf("速攻" to 75,"围困" to 55)){
-   scrollActivate(compose.onNodeWithText(mode,useUnmergedTree=true));scrollActivate(compose.onNodeWithText(if(mode=="速攻")"预览速攻突击"else"预览围困断粮"))
+   scrollActivate(compose.onNodeWithTag("war-mode-$mode",useUnmergedTree=true));scrollActivate(compose.onNodeWithText(if(mode=="速攻")"预览速攻突击"else"预览围困断粮"))
    compose.onNodeWithText("总费用${cost}万两",substring=true).assertIsDisplayed();compose.onNodeWithText("取消").performClick()
    assertTrue(vm.state.value.world!!.pending.none {it.command.type=="WAR_BATTLE"})
   }
-  scrollActivate(compose.onNodeWithText("稳战",useUnmergedTree=true))
+  scrollActivate(compose.onNodeWithTag("war-mode-稳战",useUnmergedTree=true))
   repeat(3){val old=vm.state.value.world!!.war!!.battles;scrollActivate(compose.onNodeWithText("预览前线交战"));confirm();compose.waitUntil(10000){vm.state.value.world!!.pending.any {it.command.type=="WAR_BATTLE"}&&!vm.state.value.busy};flowTime(vm){(vm.state.value.world!!.war?.battles?:0)>old}}
   assertEquals(75,vm.state.value.world!!.war!!.progress);screenshot("war-front-victory");scrollActivate(compose.onNodeWithText("预览停战 · 40万两 / 7日"));confirm();compose.waitUntil(10000){vm.state.value.world!!.pending.any {it.command.type=="WAR_PEACE"}&&!vm.state.value.busy};flowTime(vm){vm.state.value.world!!.war==null};assertEquals("nation",MapSnapshotMapper.scene(vm.state.value.world!!,vm.state.value.slot).territories.first {it.id=="frontier-0"}.polityId)
   compose.onNodeWithText("谍报",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("筹建",useUnmergedTree=true).performScrollTo().performClick();scrollActivate(compose.onNodeWithText("预览筹建组织"));confirm();compose.waitUntil(10000){vm.state.value.world!!.pending.any {it.command.type=="ORG_FOUND"}&&!vm.state.value.busy};flowTime(vm){vm.state.value.world!!.intelligence.organizations.isNotEmpty()}
