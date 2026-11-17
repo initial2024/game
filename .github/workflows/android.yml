@@ -222,6 +222,7 @@ jobs:
             echo "74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db  $RUNNER_TEMP/release-model.gguf" | sha256sum -c -
             adb shell mkdir -p /sdcard/Android/data/cn.chronicle.shanhe/files
             adb push "$RUNNER_TEMP/release-model.gguf" /sdcard/Android/data/cn.chronicle.shanhe/files/qwen.gguf
+            adb shell am start -W -n cn.chronicle.shanhe/cn.chronicle.game.MainActivity
             CHRONICLE_ONLINE_TEST=true bash scripts/run-device-tests.sh cn.chronicle.game.ReleaseSmokeTest "$RUNNER_TEMP/release-smoke-report"
             adb shell am force-stop cn.chronicle.shanhe
             CHRONICLE_ONLINE_TEST=true bash scripts/run-device-tests.sh cn.chronicle.game.ReleaseRestoreTest "$RUNNER_TEMP/release-smoke-report/restart"
