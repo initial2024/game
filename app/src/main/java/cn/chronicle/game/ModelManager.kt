@@ -124,6 +124,7 @@ class ModelManager(private val app:Context) {
  suspend fun ensureLoadedForChat() {
   if(isLoaded)return
   check(autoLoadOnChat){"已关闭发送时自动加载；可在模型设置开启，或手动加载"}
+  check(!mutable.value.working||mutable.value.loading){"模型正在导入、下载或准备加载，请完成后再发送"}
   loadInstalled()
  }
  private suspend fun loadInstalled()=gate.withLock {
