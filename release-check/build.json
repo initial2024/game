@@ -1,5 +1,5 @@
 {
-  "source_commit": "0b5e24912eb96619b297a8f3b4c23bf6c0a71b7a",
+  "source_commit": "faeabaca1139ca023e54eefbb2adbcdde1730040",
   "purpose": "Development-built optimized APK pair for CI device tests. Shipping ARM64 comes from the separate full CI build.",
   "versionCode": 11,
   "minified": true
