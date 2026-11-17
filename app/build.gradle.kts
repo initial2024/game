@@ -22,6 +22,7 @@ android {
   isMinifyEnabled = true
   isShrinkResources = true
   proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+  testProguardFile("release-test-rules.pro")
   if (System.getenv("CHRONICLE_KEYSTORE") != null) signingConfig = signingConfigs.getByName("stable")
   else if(providers.gradleProperty("chronicle.testRelease").orNull=="true") signingConfig = signingConfigs.getByName("debug")
  } }
