@@ -173,7 +173,7 @@ private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapO
    Text("民心 ${world.nation.morale}",style=MaterialTheme.typography.labelSmall)
    Text("稳定 ${world.nation.stability}",style=MaterialTheme.typography.labelSmall)
    Text("腐败 ${world.nation.corruption}",style=MaterialTheme.typography.labelSmall)
-   Text(if(world.war==null)"天下无战事"else"战事持续：${world.neighbors.getOrNull(world.war.neighbor)?.name?:"未知前线"}",style=MaterialTheme.typography.labelSmall)
+   Text(world.war?.let { front -> "战事持续：${world.neighbors.getOrNull(front.neighbor)?.name ?: "未知前线"}" } ?: "天下无战事",style=MaterialTheme.typography.labelSmall)
   }
   if(clock.message.isNotBlank())Row(Modifier.padding(horizontal=12.dp)){Text(clock.message,Modifier.weight(1f),maxLines=2,style=MaterialTheme.typography.labelSmall);TextButton(onClick={gameVm.message("")}){Text("收起反馈")}}
   if(editor)Text("地图沙盘 · 编辑与导入只保存在地图沙盘，不改变游戏",Modifier.padding(horizontal=12.dp),style=MaterialTheme.typography.labelSmall)
