@@ -37,6 +37,33 @@ class ReleaseSmokeTest {
   device.dumpWindowHierarchy(File(ctx.getExternalFilesDir(null),"release-failure.xml"));error("Missing release control: $selector package=${device.currentPackageName}")
  }
  internal fun click(text:String)=click(By.text(text))
+ /**
+  * Retry only a known Android emulator launcher ANR, never conceal application failures.
+  * Continue only after the real game welcome control is visible.
+  */
+ internal fun waitForWelcome() {
+  repeat(3) { attempt ->
+   val quickstep=device.findObject(By.textContains("Quickstep isn't responding"))
+   if(quickstep!=null){
+    val waitButton=device.findObject(By.text("Wait"))?:error("Quickstep ANR without a Wait action")
+    println("RELEASE_QUICKSTEP_ANR_RECOVERY=${attempt+1}")
+    waitButton.click()
+    device.waitForIdle(1000)
+   }
+   val command=device.executeShellCommand("am start -W -n cn.chronicle.shanhe/cn.chronicle.game.MainActivity")
+   println("RELEASE_START_ATTEMPT=${attempt+1} status=${command.take(400)}")
+   if(device.wait(Until.hasObject(By.text("开启纪年")),15000)) {
+    println("RELEASE_WELCOME_VISIBLE=true attempt=${attempt+1}")
+    return
+   }
+   println("RELEASE_WELCOME_MISSING attempt=${attempt+1} currentPackage=${device.currentPackageName}")
+  }
+  device.dumpWindowHierarchy(File(ctx.getExternalFilesDir(null),"release-failure.xml"))
+  val logs=device.executeShellCommand("logcat -d -t 150 -s AndroidRuntime:E ActivityTaskManager:E")
+  println("RELEASE_STARTUP_DIAGNOSTICS=\n${logs.takeLast(6000)}")
+  error("Game welcome not visible after bounded launcher recovery; package=${device.currentPackageName}")
+ }
+
  internal fun world():JSONObject {
   val db=SQLiteDatabase.openDatabase(ctx.getDatabasePath("chronicle.db").path,null,SQLiteDatabase.OPEN_READONLY)
   return db.use {d->
@@ -62,7 +89,7 @@ class ReleaseSmokeTest {
   val sha=digest.digest().joinToString(""){"%02x".format(it)};assertEquals("74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db",sha)
   ctx.getSharedPreferences("inference",0).edit().putString("sha",sha).putInt("threads",2).putInt("context",512).commit()
 
-  println(device.executeShellCommand("am start -W -f 0x10008000 -n cn.chronicle.shanhe/cn.chronicle.game.MainActivity"))
+  waitForWelcome()
   click("开启纪年");click("建立国家");until {world().getJSONObject("chronicle").getBoolean("enabled")}
   assertTrue(world().getJSONObject("sovereign").getJSONObject("guard").getInt("allocated")>0)
   screenshot("release-new-game")
