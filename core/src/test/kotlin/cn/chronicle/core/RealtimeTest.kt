@@ -28,4 +28,11 @@ class RealtimeTest {
   w=submit(w,Command("REVEAL"));w=advance(w,1);w=submit(w,Command("AUDIT"));w=advance(w,5);w=submit(w,Command("TRIAL"));w=advance(w,3);assertTrue(w.caseFile.resolved)
   w=submit(w,Command("RETURN"));w=advance(w,7);assertNull(w.journey);w=advance(w,90);assertNotEquals(3,w.regions[0].official);assertTrue(w.regions[0].official>=0);assertTrue(w.people.any {it.id==w.regions[0].official && it.alive})
  }
+ @Test fun renamedEraUsesFull360DaysBeforeNewYear() {
+  val base=game().copy(day=170,era="新纪",eraDay=170)
+  assertTrue(base.date.startsWith("新纪1年"))
+  assertTrue(base.copy(day=360).date.startsWith("新纪1年"))
+  assertTrue(base.copy(day=529).date.startsWith("新纪1年"))
+  assertTrue(base.copy(day=530).date.startsWith("新纪2年"))
+ }
 }
