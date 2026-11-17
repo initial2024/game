@@ -83,11 +83,7 @@ class MainActivity:ComponentActivity() {
      }
      HorizontalDivider(color=MaterialTheme.colorScheme.outlineVariant.copy(alpha=.4f))
      val w=ui.world
-     if(w!=null) Row(Modifier.fillMaxWidth().padding(horizontal=16.dp),verticalAlignment=Alignment.CenterVertically) {
-      TextButton(onClick={vm.toggleClock()}){Text(if(ui.paused) "继续时间" else "暂停时间")}
-      TextButton(onClick={vm.changeSpeed()}){Text("×${ui.speed}")}
-      Text(if(ui.paused)"时间已暂停" else "时间流动中",Modifier.weight(1f),style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.secondary)
-     }
+     if(w!=null) ChronicleClockHud(w,ui,vm)
      if(ui.message.isNotBlank()) Surface(Modifier.fillMaxWidth(),color=MaterialTheme.colorScheme.secondaryContainer) {Row(Modifier.padding(start=16.dp),verticalAlignment=Alignment.CenterVertically) {Text(ui.message,Modifier.weight(1f),maxLines=2,overflow=TextOverflow.Ellipsis,style=MaterialTheme.typography.bodySmall);TextButton(onClick={showMessage=true}){Text("详情")};IconButton(onClick={vm.message("")}){Icon(Icons.Outlined.Close,"关闭反馈")}}}
      if(!ui.ready) Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){CircularProgressIndicator()}
      else if(w==null) Welcome { new=true }
@@ -295,6 +291,10 @@ class MainActivity:ComponentActivity() {
    else -> {
     Panel("阅读与主题") {Choices(listOf("深色","正常","护眼"),listOf("深色","正常","护眼")[theme],{onTheme(listOf("深色","正常","护眼").indexOf(it))});Text("字号 ${"%.0f".format(scale*100)}%");Slider(value=scale,onValueChange=onScale,valueRange=.85f..1.3f)}
     Fold("关于山河纪年") {Text("山河纪年 $version · 原创离线文字策略\n连续时间，可暂停与调速。政策异步办理，季度交界自动结算国政。\n\n包含府县治理、地方军政、地形资源、64个地方案件案由及澄江教学案。AI不参与数值结算。\n\n可办理战争、护卫、储位与多地区陈情；当前测试范围详见版本报告。本应用不上传存档，不发送不必要的提醒。")}
+     Fold("设计参考与来源") {
+      Text("玩法与系统设计参考（不是复制的素材来源）：\nTianming — Barbatos923，人物中心的历史模拟与史书叙事：\nhttps://github.com/Barbatos923/Tianming\n\nThe Orient Doomsday — ZANReping，《历史时代3》地图和剧本组织参考：\nhttps://github.com/ZANReping/The-Orient-Doomsday\n\nAge of History 3 — 历史大战略玩法参考；相关名称及素材归各自权利人所有。")
+      Text("项目未从上述仓库复制未授权的代码、地图素材或游戏资产。即便主要供个人使用，在公开 GitHub 分发 APK/源码仍须分别核对许可。",style=MaterialTheme.typography.bodySmall)
+     }
    }
   }
  }
