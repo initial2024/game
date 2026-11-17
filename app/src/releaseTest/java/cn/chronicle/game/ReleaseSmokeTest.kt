@@ -83,7 +83,7 @@ class ReleaseSmokeTest {
   until {scene().getJSONObject("places").getJSONObject("county-jingji-01").getString("name")=="长安新县"}
   screenshot("release-map-saved-city")
   click("返回地区列表");click("档案");click("模型");click("搜索、下载与管理模型")
-  click("档案");click("模型");click("搜索、下载与管理模型");click("加载已安装")
+  click("加载已安装")
   until(60000){device.hasObject(By.textStartsWith("已加载 · 上下文"))}
   click("完成");click("世界");click("打开世界舆图")
   until {runCatching {scene().getJSONObject("places").getJSONObject("county-jingji-01").getString("name")=="长安新县"}.getOrDefault(false)}
