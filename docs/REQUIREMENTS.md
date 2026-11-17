@@ -2,7 +2,7 @@
 
 [Project](../README.md) · [简体中文](REQUIREMENTS.zh-CN.md) · [Developer handoff](HANDOFF.md)
 
-Updated 2026-11-17 (Asia/Singapore). Consolidates all historical user requests, not a declaration of completion. Baseline: `feature/character-chat-hf-search`, `f10fb00c3c1a9cf06a36791b80c0a06d270bf438`, APK 0.7.0/code 11.
+Updated 2026-11-17 (Asia/Singapore). Consolidates all historical user requests, not a declaration of completion. Original baseline: `f10fb00c3c1a9cf06a36791b80c0a06d270bf438`,0.7.0/code11. Current verified APK is0.7.1/code12; developing0.8 map/war changes need separate acceptance on `feature/character-chat-hf-search`.
 
 Status: **Implemented** = baseline with evidence; **Partial** = usable first version with remaining scope; **Open** = undelivered; **Device** = physical validation outstanding. Priorities: **P0** immediate, **P1** next gameplay, **P2** expansion, **V** acceptance. Baseline completion does not imply all edge cases or physical hardware passed.
 
@@ -77,7 +77,7 @@ Status: **Implemented** = baseline with evidence; **Partial** = usable first ver
 |---|---|---|---|
 | S01 | County/prefecture/provincial/central forces, commanders, recruit/train/appoint/pay/mobilize/supply, morale and actual troop counts. | Implemented baseline | V |
 | S02 | Terrain/roads/canals/resources/supply affect march and battle; deeper encirclement, city damage/recovery and campaign movement. | Partial | P1 |
-| S03 | Rapid assault/siege/diplomacy choices, advance warnings, multiple fronts, casualties, peace terms and autonomous foreign governments. | Single-front strategic war and border transfer implemented; rest open | P1 |
+| S03 | Rapid assault/siege/diplomacy choices, advance warnings, multiple fronts, casualties, peace terms and autonomous foreign governments. | Steady/rapid/siege/envoy choices in0.8 verification; multi-front/autonomous nations open | P1 |
 | S04 | Age-of-History-inspired strategy: territory ownership changes actual administration, economy, supply and diplomacy, not merely map color. | Partial | P1 |
 | S05 | Create inspector/intelligence/assassin/guard organizations; spy/counterspy and fictional in-game funded missions/bounties, risk/time/outcome/political cost. | Implemented baseline; networks partial | P1 |
 | S06 | Attacks on player and foreign rulers, warnings/guards/mitigation/novice protection/succession; registered adult fictional targets, uncertain results and coherent refunds. | Implemented baseline; broad life-cycle tests needed | P1 |
@@ -142,7 +142,7 @@ Status: **Implemented** = baseline with evidence; **Partial** = usable first ver
 
 ## Completion gates
 
-1. Finish A01/A02 first, including optimized actual-GGUF verification from an unloaded process session.
+1. A01/A02 first-send baseline passed in0.7.1. Next verify M07 map-native commands and S03 campaign choices in0.8; keep broader device/fault coverage open.
 2. Continue P1 vertical playable loops then P2 depth; keep producing executable builds rather than only documents.
 3. Mark completion only with source paths and reproducible evidence; record limitations. Seed combinations are not separately authored stories.
 4. Revalidate royal travel/investigation/decision/return/follow-up, new strategic loops and real model chat. Separate browser, emulator and hardware results.
