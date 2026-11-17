@@ -99,4 +99,13 @@ class ChronicleExpansionTest {
   foreign=foreign.copy(people=foreign.people.map {if(it.id==king)it.copy(alive=false)else it});val replacement=SovereignEngine.advance(foreign,mutableListOf());assertEquals(2,replacement.sovereign.foreign.first().generation);assertEquals(-1,replacement.sovereign.foreign.first().person);assertFalse(replacement.people.last().alive)
  }
 
+ @Test fun chapterConstructionRequiresActualCompletionRatherThanNarrativeWording(){
+  var w=game().copy(day=90);w=w.copy(chronicle=w.chronicle.copy(stage=2,bulletins=listOf(Bulletin(1,90,100,80,20000,0,emptyList(),emptyList()))))
+  val planned=act(w,Command("FACTORY"));assertEquals(2,planned.chronicle.stage);assertFalse("工程竣工" in planned.chronicle.flags)
+  val misleading=ChronicleEngine.progress(planned,null,mutableListOf("项目立项，完工前不增加效果。"));assertEquals(2,misleading.chronicle.stage)
+  val due=planned.projects.single().remainingDays
+  var x=planned;repeat((due-1)/90){x=RealtimeEngine.advance(x,90).world};if((due-1)%90>0)x=RealtimeEngine.advance(x,(due-1)%90).world
+  assertEquals(2,x.chronicle.stage);assertEquals(3,RealtimeEngine.advance(x,1).world.chronicle.stage)
+ }
+
 }

@@ -144,6 +144,7 @@ object ProjectEngine {
    regions=regions.map {if(it.id==p.region)it.copy(industry=(it.industry+if(p.kind in listOf("FACTORY","WORKSHOP"))8 else 0).coerceAtMost(100),agriculture=(it.agriculture+if(p.kind=="FARM")8 else 0).coerceAtMost(100))else it}
    events+="${w.regions[p.region].name}${Rules.label(Command(p.kind))}竣工：$delta（受百分制上限约束）。"
   }
-  return x.copy(nation=n,regions=regions,projects=w.projects.filter {it.remainingDays>1}.map {it.copy(remainingDays=it.remainingDays-1,quarters=((it.remainingDays-1+89)/90))})
+  val next=x.copy(nation=n,regions=regions,projects=w.projects.filter {it.remainingDays>1}.map {it.copy(remainingDays=it.remainingDays-1,quarters=((it.remainingDays-1+89)/90))})
+  return if(w.projects.any {it.remainingDays<=1})ChronicleEngine.markConstruction(next)else next
  }
 }

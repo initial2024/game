@@ -21,6 +21,7 @@ set -e
 if [[ "$classes" == *CharacterFeatureTest* || "$classes" == *ScreenTest* || "$classes" == *MapIntegrationTest* || "$classes" == *MapRestartTest* || "$classes" == *ReleaseSmokeTest* || "$classes" == *ReleaseRestoreTest* ]]; then
   adb pull /sdcard/Pictures/ChronicleCI "$report_dir/screenshots" || true
 fi
+if [[ "$classes" == *ReleaseSmokeTest* ]]; then adb pull /sdcard/Android/data/cn.chronicle.shanhe/files/release-failure.xml "$report_dir/release-failure.xml" || true; fi
 adb logcat -d -b crash > "$report_dir/crash.log" || true
 adb logcat -d -s AndroidRuntime:E libc:F DEBUG:F > "$report_dir/runtime-errors.log" || true
 adb logcat -d -s System.out:I ChronicleMap:V ChronicleUiDiagnostic:V chromium:E > "$report_dir/model-output.log" || true

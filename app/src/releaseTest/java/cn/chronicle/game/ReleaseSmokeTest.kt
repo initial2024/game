@@ -34,7 +34,7 @@ class ReleaseSmokeTest {
    if(node!=null&&node.visibleBounds.height()>8){node.click();device.waitForIdle(500);return}
    if(scroll)device.swipe(device.displayWidth/2,device.displayHeight-140,device.displayWidth/2,230,12)
   }
-  device.dumpWindowHierarchy(File(ctx.getExternalFilesDir(null),"release-failure.xml"));error("Missing release control: $selector")
+  device.dumpWindowHierarchy(File(ctx.getExternalFilesDir(null),"release-failure.xml"));error("Missing release control: $selector package=${device.currentPackageName}")
  }
  internal fun click(text:String)=click(By.text(text))
  internal fun world():JSONObject {
@@ -62,7 +62,7 @@ class ReleaseSmokeTest {
   val sha=digest.digest().joinToString(""){"%02x".format(it)};assertEquals("74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db",sha)
   ctx.getSharedPreferences("inference",0).edit().putString("sha",sha).putInt("threads",2).putInt("context",512).commit()
 
-  ctx.startActivity(Intent().setClassName(ctx.packageName,"cn.chronicle.game.MainActivity").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
+  println(device.executeShellCommand("am start -W -f 0x10008000 -n cn.chronicle.shanhe/cn.chronicle.game.MainActivity"))
   click("开启纪年");click("建立国家");until {world().getJSONObject("chronicle").getBoolean("enabled")}
   assertTrue(world().getJSONObject("sovereign").getJSONObject("guard").getInt("allocated")>0)
   screenshot("release-new-game")
@@ -105,7 +105,7 @@ class ReleaseRestoreTest {
  @Test fun savedCountyAndMapSurviveFullProcessRestart(){
   val h=ReleaseSmokeTest();val ctx=InstrumentationRegistry.getInstrumentation().targetContext
   val towns=h.world().getJSONArray("towns");assertTrue((0 until towns.length()).any {towns.getJSONObject(it).optString("name")=="长安新县"})
-  ctx.startActivity(Intent().setClassName(ctx.packageName,"cn.chronicle.game.MainActivity").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+  println(UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).executeShellCommand("am start -W -n cn.chronicle.shanhe/cn.chronicle.game.MainActivity"))
   h.click("世界");h.click("打开世界舆图")
   h.until {h.scene().getJSONObject("places").getJSONObject("county-jingji-01").getString("name")=="长安新县"}
   h.screenshot("release-restarted-map")

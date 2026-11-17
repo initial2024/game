@@ -56,13 +56,13 @@ object ChronicleEngine {
   }
   events+="${labels.getValue(c.type)}已登记。";return x
  }
+ fun markConstruction(w:World):World=if(!w.chronicle.enabled)w else w.copy(chronicle=w.chronicle.copy(flags=(w.chronicle.flags+"工程竣工").distinct().takeLast(24)))
  fun progress(w:World,c:Command?,events:MutableList<String>):World {
   if(!w.chronicle.enabled)return w
   var ch=w.chronicle;var flags=ch.flags
   c?.let {if(it.type in listOf("URBAN_BUILD","FACTORY","WORKSHOP","FARM","ROAD","CANAL","ACADEMY_UPGRADE"))flags=(flags+"工程立项").distinct();if(it.type in listOf("DIPLOMACY","TRADE_RESOURCE","RELIEF","ARMY_TRAIN","INTEL_COUNTER","WAR_PEACE","WAR_WITHDRAW","WAR_MEDIATE","EMERGENCY_PAY"))flags=(flags+"外压取舍").distinct()}
-  if(events.any {it.contains("竣工")||it.contains("完工")})flags=(flags+"工程竣工").distinct()
   val selected=w.caseBook.cases.find {it.id==ch.activeCase};val resolved=if(ch.chapter==1)w.caseFile.resolved else selected?.resolved==true;val ready=if(ch.chapter==1)w.caseFile.evidence.size>=2 else selected?.let {InvestigationEngine.score(it)>=65}==true
-  val stage=when(ch.stage){0->if(resolved)2 else if(ready)1 else 0;1->if(resolved)2 else 1;2->if("工程立项" in flags&&ch.bulletins.isNotEmpty()&&("工程竣工" in flags||w.towns.any {(it.buildings["SCHOOL"]?:0)>=2}))3 else 2;3->if("外压取舍" in flags)4 else 3;else->4}
+  val stage=when(ch.stage){0->if(resolved)2 else if(ready)1 else 0;1->if(resolved)2 else 1;2->if("工程立项" in flags&&ch.bulletins.isNotEmpty()&&("工程竣工" in flags))3 else 2;3->if("外压取舍" in flags)4 else 3;else->4}
   if(stage!=ch.stage){events+="【章节目标】${stages[stage]}：${objective(w.copy(chronicle=ch.copy(stage=stage)))}";ch=ch.copy(stage=stage,stageDay=w.day,pauseSerial=ch.pauseSerial+1)}
   val closed=w.caseBook.cases.count {it.resolved};var ending=ch.outcome
   if(ending.isBlank())ending=when(ch.route){"吏治清明"->if(closed>=3&&w.nation.corruption<=35&&w.caseBook.witnessedRulerAbuse==0&&w.sovereign.coercedPeople.isEmpty())"清明之治"else"";"富民安邦"->if(w.nation.morale>=75&&w.nation.agriculture>=70&&w.nation.debt<=500&&w.government.shortages==0)"仓廪安民"else"";"经世兴业"->if(w.setting==EraRules.ANCIENT&&w.government.landSurvey>=2&&w.academy.level>=3)"经世之学"else if(w.setting!=EraRules.ANCIENT&&w.resources.plants.sum()>=3&&w.nation.technology>=40&&w.government.laborSafety)"百工立国"else"";else->if(w.neighbors.all {it.relation>=75}&&w.war==null&&w.payroll.arrears.isEmpty())"和邻守成"else""}

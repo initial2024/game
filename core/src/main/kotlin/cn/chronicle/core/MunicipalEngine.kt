@@ -110,7 +110,8 @@ object MunicipalEngine {
     t.copy(buildings=t.buildings+(work.kind to work.level),work=null)
    }
   }
-  return w.copy(towns=towns,nation=n)
+  val next=w.copy(towns=towns,nation=n)
+  return if(w.towns.any {it.work?.remainingDays==1})ChronicleEngine.markConstruction(next)else next
  }
  fun quarter(w:World,ledger:MutableList<String>):World {
   val income=w.towns.sumOf {extra(it,"MARKET")*5L+extra(it,"WORKSHOP")*4L*(w.resources.yields[it.id]?.operation?:100)/100}
