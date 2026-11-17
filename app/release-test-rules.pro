@@ -1,3 +1,5 @@
-# Test-only Error Prone annotation metadata refers to a javac enum absent on Android.
-# No runtime code uses javax.lang.model; do not apply this exemption to the game APK.
--dontwarn javax.lang.model.element.Modifier
+# Test-only compile-time Error Prone annotations used by AndroidX Test.
+# These annotations are not reflected on or executed on Android. Keep the exemption
+# scoped to instrumentation; the shipping game does not suppress missing classes.
+-dontwarn com.google.errorprone.annotations.CanIgnoreReturnValue
+-dontwarn com.google.errorprone.annotations.MustBeClosed

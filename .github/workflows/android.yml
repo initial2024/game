@@ -12,6 +12,9 @@ on:
         description: Build with the persistent private development signing identity
         type: boolean
         default: false
+concurrency:
+  group: chronicle-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:

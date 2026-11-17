@@ -38,7 +38,6 @@ dependencies {
  implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.0")
  implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
  androidTestImplementation("androidx.test:runner:1.6.2")
- androidTestImplementation("com.google.errorprone:error_prone_annotations:2.36.0")
  androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
  androidTestImplementation("androidx.test.ext:junit:1.2.1")
  androidTestImplementation(platform("androidx.compose:compose-bom:2025.05.01"))
