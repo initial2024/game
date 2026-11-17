@@ -23,9 +23,10 @@ object FamilyEngine {
    if(h.members.none {it.id==parts[0].toIntOrNull() && it.role=="子女" && it.alive}) return "请选择在世子女。"
   }
   if(c.type=="TRY_HEIR") {
+   if(w.sovereign.initialized&&w.day-w.sovereign.bornDay<18*360)return "君主尚未成年，不能安排备孕。"
    if(!h.allowPregnancy) return "备孕尚未开启，可在宗室中自主设置。"
    if(h.pregnancy!=null) return "已有登记孕期，不能重复备孕。"
-   if(h.members.none {it.role=="成年伴侣" && it.alive && it.willing && (w.day-it.bornDay)/360 in 18..44 && it.relationship>=60 && it.health>=50}) return "没有同时满足成年、自愿、年龄、健康与关系条件的伴侣。"
+   if(h.members.none {it.role=="成年伴侣" && it.alive && it.willing && w.familyPeople[it.id] !in w.sovereign.captives && (w.day-it.bornDay)/360 in 18..44 && it.relationship>=60 && it.health>=50}) return "没有同时满足成年、自愿、年龄、健康与关系条件的伴侣。"
    if(h.members.count {it.role=="子女" && it.alive}>=8) return "本版家族管理最多支持 8 名在世子女。"
   }
   return null
@@ -41,7 +42,7 @@ object FamilyEngine {
    "NAME_CHILD" -> {val parts=c.target.split('|',limit=2);x=x.copy(household=h.copy(members=h.members.map {if(it.id==parts[0].toInt())it.copy(name=parts[1]) else it}));events+="宗室名册登记子女新名${parts[1]}。"}
    "FAMILY_PLAN" -> {x=x.copy(household=h.copy(allowPregnancy=c.target=="允许"));events+=if(c.target=="允许") "开启自愿备孕；仍须单独确认安排，不能保证进入孕期。" else "暂停新的备孕安排，已登记孕期继续正常照护。"}
    "TRY_HEIR" -> {
-    val parent=h.members.first {it.role=="成年伴侣" && it.alive && it.willing && (w.day-it.bornDay)/360 in 18..44 && it.relationship>=60 && it.health>=50}
+    val parent=h.members.first {it.role=="成年伴侣" && it.alive && it.willing && w.familyPeople[it.id] !in w.sovereign.captives && (w.day-it.bornDay)/360 in 18..44 && it.relationship>=60 && it.health>=50}
     val success=Math.floorMod(w.seed+w.turn*31L+h.attempts*17L,100L)<65
     x=x.copy(household=h.copy(attempts=h.attempts+1,pregnancy=if(success) Pregnancy(parent.id,270,h.nextChildName) else null))
     events+=if(success) "双方自愿备孕后，医官登记孕期，预计需 270 日。照护开支另记入国库。" else "本次未进入孕期。时间与照护准备费用已经发生，不承诺成功。"

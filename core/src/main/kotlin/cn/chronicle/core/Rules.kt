@@ -6,8 +6,8 @@ import kotlin.math.min
 object Rules {
  val policies = listOf("WORKSHOP","FACTORY","FARM","RESEARCH","ROAD","TAX_DOWN","TAX_UP","DIPLOMACY","DRILL","RELIEF","REPAY","REFORM","REST")
  private val labels = mapOf("TRADE_RESOURCE" to "物资通商", "ARMY_DEMOB" to "裁减中央军", "LOCAL_DEMOB" to "裁减地方兵","PAY_ARREARS" to "补发欠俸军饷", "LOCAL_APPOINT" to "任命地方军政官", "LOCAL_RELEASE" to "交卸地方军政职务", "LOCAL_TRAIN" to "操练地方军", "LOCAL_RECRUIT" to "招募地方兵", "LOCAL_MOBILIZE" to "征调地方兵","WAR_WITHDRAW" to "无条件撤军","CONSORT_DECLINE" to "结束宫廷相看","CANAL" to "修筑运河","ORG_RELEASE" to "交卸组织职务","ORG_FOUND" to "筹建组织", "ORG_ASSIGN" to "任用组织成员", "INTEL_SCOUT" to "派遣间谍", "INTEL_COUNTER" to "反谍排查", "ASSASSINATE" to "秘密刺杀", "DECLARE_WAR" to "宣战动员", "WAR_BATTLE" to "前线交战", "WAR_PEACE" to "谈判停战","FAMILY_CONTACT" to "登记家族交流身份","PALACE_BUILD" to "营建宫廷建筑", "CONSORT_AUDIENCE" to "安排选妃面见", "CONSORT_ACCEPT" to "登记自愿伴侣", "ARMY_ASSIGN" to "任命将领", "ARMY_TRAIN" to "军队训练", "ARMY_MOVE" to "调防军队", "ARMY_RECRUIT" to "募集兵员","EXAM" to "举办科举", "RECRUIT" to "公开招贤", "APPOINT" to "任命地方官","URBAN_BUILD" to "升级城内建筑", "URBAN_AUDIT" to "城邑财政审计", "URBAN_RELIEF" to "城邑赈济","CONVERSE" to "人物交谈", "ACADEMY_UPGRADE" to "扩建国家学院", "APPOINT_TUTOR" to "聘任讲席", "STUDY_HOME" to "入国家学院", "STUDY_ABROAD" to "派往海外学习", "RECALL_STUDENT" to "召回学员", "WORKSHOP" to "营造官营作坊", "CITY_FOUND" to "营建新邑", "CITY_RESTORE" to "修复旧城", "CITY_RENAME" to "城邑更名", "BORDER_TREATY" to "议定边地移交", "ERA" to "更改纪元", "RULER_NAME" to "君主更名", "CHILD_NAME_PLAN" to "预设子女名字", "NAME_CHILD" to "子女更名", "FAMILY_PLAN" to "设置备孕", "TRY_HEIR" to "自愿备孕", "FAMILY_TIME" to "陪伴家人", "STRATEGY" to "调整战略", "FACTORY" to "筹建工厂", "FARM" to "兴修水利", "RESEARCH" to "资助研究", "ROAD" to "修筑道路", "TAX_DOWN" to "减税惠民", "TAX_UP" to "提高税率", "DIPLOMACY" to "派遣使节", "DRILL" to "整训军队", "RELIEF" to "赈济百姓", "REPAY" to "偿还债务", "REFORM" to "考核改革", "REST" to "休养生息", "DEPART" to "出发巡游", "TRAVEL" to "继续行程", "VISIT" to "探访场景", "TALK" to "询问人物", "INVESTIGATE" to "暗访取证", "AUDIT" to "核验账册", "REVEAL" to "公开身份", "TRIAL" to "依法审理", "DISMISS" to "行政撤换", "CLOSE" to "撤销指控", "REMOTE" to "委派监察官", "RETURN" to "返回朝廷")
- fun label(c: Command)=if(c.type=="CANCEL_TASK") "撤销事务" else labels[c.type] ?: c.type
- fun cost(c: Command): Long = when(c.type) { "TRADE_RESOURCE"->if(c.target=="采购")c.level*2L else 0; "PAY_ARREARS"->1; in LocalDefenseEngine.types->LocalDefenseEngine.cost(c); "CANAL"->CanalEngine.cost(c); "ORG_FOUND"->90;"ORG_ASSIGN"->10;"INTEL_SCOUT"->35;"INTEL_COUNTER"->25;"ASSASSINATE"->85;"DECLARE_WAR"->120;"WAR_BATTLE"->35;"WAR_PEACE"->40; in CrownEngine.types->CrownEngine.cost(c); "EXAM"->60;"RECRUIT"->20;"APPOINT"->25; in MunicipalEngine.types->MunicipalEngine.cost(c); "CONVERSE"->0; "APPOINT_TUTOR"->10; "STUDY_HOME"->50; "STUDY_ABROAD"->140; "ACADEMY_UPGRADE"->120; "WORKSHOP" -> 100; "CITY_FOUND" -> 120; "CITY_RESTORE" -> 80; "CITY_RENAME" -> 5; "BORDER_TREATY" -> 180; "TRY_HEIR" -> 20; "FAMILY_TIME" -> 10; "FACTORY" -> 140; "FARM" -> 75; "RESEARCH" -> 65; "ROAD" -> 100; "DIPLOMACY" -> 35; "DRILL" -> 60; "RELIEF" -> 50; "REPAY" -> 80; "REFORM" -> 95; "DEPART" -> if(c.mode=="公开巡幸") 95 else if(c.mode=="秘密调查") 55 else 35; "TRAVEL" -> 8; "TALK" -> 0; "VISIT" -> 3; "INVESTIGATE" -> 12; "AUDIT" -> 20; "REVEAL" -> 10; "TRIAL" -> 25; "DISMISS" -> 20; "REMOTE" -> 65; "RETURN" -> 20; else -> 0 }
+ fun label(c: Command)=if(c.type in ChronicleEngine.types) ChronicleEngine.labels.getValue(c.type) else if(c.type in SovereignEngine.types) SovereignEngine.labels.getValue(c.type) else if(c.type in EncounterEngine.types) EncounterEngine.labels.getValue(c.type) else if(c.type in InvestigationEngine.types) InvestigationEngine.labels.getValue(c.type) else if(c.type=="CANCEL_TASK") "撤销事务" else labels[c.type] ?: c.type
+ fun cost(c: Command): Long = when(c.type) { in ChronicleEngine.types->ChronicleEngine.cost(c); in SovereignEngine.types->SovereignEngine.cost(c); in EncounterEngine.types->EncounterEngine.cost(c); in InvestigationEngine.types->InvestigationEngine.cost(c); "TRADE_RESOURCE"->if(c.target=="采购")c.level*2L else 0; "PAY_ARREARS"->1; in LocalDefenseEngine.types->LocalDefenseEngine.cost(c); "CANAL"->CanalEngine.cost(c); "ORG_FOUND"->90;"ORG_ASSIGN"->10;"INTEL_SCOUT"->35;"INTEL_COUNTER"->25;"ASSASSINATE"->85;"DECLARE_WAR"->120;"WAR_BATTLE"->35;"WAR_PEACE"->40; in CrownEngine.types->CrownEngine.cost(c); "EXAM"->60;"RECRUIT"->20;"APPOINT"->25; in MunicipalEngine.types->MunicipalEngine.cost(c); "CONVERSE"->0; "APPOINT_TUTOR"->10; "STUDY_HOME"->50; "STUDY_ABROAD"->140; "ACADEMY_UPGRADE"->120; "WORKSHOP" -> 100; "CITY_FOUND" -> 120; "CITY_RESTORE" -> 80; "CITY_RENAME" -> 5; "BORDER_TREATY" -> 180; "TRY_HEIR" -> 20; "FAMILY_TIME" -> 10; "FACTORY" -> 140; "FARM" -> 75; "RESEARCH" -> 65; "ROAD" -> 100; "DIPLOMACY" -> 35; "DRILL" -> 60; "RELIEF" -> 50; "REPAY" -> 80; "REFORM" -> 95; "DEPART" -> if(c.mode=="公开巡幸") 95 else if(c.mode=="秘密调查") 55 else 35; "TRAVEL" -> 8; "TALK" -> 0; "VISIT" -> 3; "INVESTIGATE" -> 12; "AUDIT" -> 20; "REVEAL" -> 10; "TRIAL" -> 25; "DISMISS" -> 20; "REMOTE" -> 65; "RETURN" -> 20; else -> 0 }
  fun cost(w:World,c:Command):Long = cost(c)*TerrainEngine.constructionFactor(w,c)/100
  fun duration(c: Command)=when(c.type) { "URBAN_BUILD" -> 0; "URBAN_AUDIT","URBAN_RELIEF"->5; "CONVERSE" -> 0; "APPOINT_TUTOR" -> 7; "ACADEMY_UPGRADE","STUDY_HOME","STUDY_ABROAD","RECALL_STUDENT" -> 0; "ERA","RULER_NAME","CHILD_NAME_PLAN","NAME_CHILD","FAMILY_PLAN","STRATEGY" -> 0; "DEPART" -> 1; "TRAVEL" -> 7; "TALK" -> 0; "VISIT" -> 2; "INVESTIGATE","AUDIT" -> 5; "REVEAL","TRIAL","DISMISS","CLOSE" -> 1; "RETURN" -> 7; else -> 90 }
  fun suggestions(w: World): List<Command> {
@@ -21,8 +21,14 @@ object Rules {
   if(w.day>900000) return "已达到本版纪年上限，请保留档案。"
   if(c.type=="FACTORY" && w.setting==EraRules.ANCIENT)return "纯古代模式使用手工作坊，不可建设工业工厂。"
   if(c.type=="WORKSHOP" && w.setting!=EraRules.ANCIENT)return "工业时代请使用工厂项目。"
-  if(c.type !in labels) return "未知的行动类型。"
+  if(c.type !in labels && c.type !in InvestigationEngine.types && c.type !in ChronicleEngine.types && c.type !in SovereignEngine.types && c.type !in EncounterEngine.types) return "未知的行动类型。"
+  val assigned=when(c.type){"APPOINT","STUDY_HOME","STUDY_ABROAD","APPOINT_TUTOR"->c.target.toIntOrNull();"ARMY_ASSIGN","ORG_ASSIGN","LOCAL_APPOINT"->c.objective.toIntOrNull();else->null}
+  if(assigned!=null&&assigned in w.sovereign.captives)return "此人被拘留，须先依法解除限制后再任用。"
   if(c.region !in 0..3) return "目标地区不存在。"
+  if(c.type in ChronicleEngine.types)ChronicleEngine.validate(w,c)?.let {return it}
+  if(c.type in SovereignEngine.types)SovereignEngine.validate(w,c)?.let {return it}
+  if(c.type in EncounterEngine.types)EncounterEngine.validate(w,c)?.let {return it}
+  if(c.type in InvestigationEngine.types) InvestigationEngine.validate(w,c)?.let {return it}
   if(c.type in FamilyEngine.types) FamilyEngine.validate(w,c)?.let {return it}
   if(c.type in MapActions.types) MapActions.validate(w,c)?.let {return it}
   if(c.type in MunicipalEngine.types)MunicipalEngine.validate(w,c)?.let {return it}
@@ -39,6 +45,7 @@ object Rules {
   if(w.nation.treasury<(quotedCost?:cost(w,c))) return "国库不足：需要 ${quotedCost?:cost(w,c)} 万两。可休养、调整税率或削减研究。"
   if(c.type in listOf("FACTORY","WORKSHOP","FARM","ROAD") && w.projects.any { it.kind==c.type && it.region==c.region }) return "该地区已有同类在建项目。"
   if(c.type=="STRATEGY" && c.target !in listOf("工业强国","商工兴国","富民治国","综合发展")) return "发展方向无效。"
+  if(c.type in listOf("TRIAL","DISMISS")&&w.journey?.revealed==false)return "伪装身份不能直接裁案，请验证身份或返回朝廷后下旨。"
   if(c.type in listOf("TRIAL","DISMISS")&&w.people.none {it.id==w.caseFile.accused&&it.alive})return "涉案人物已故，保留案卷，不能再任免或提审本人。"
   if(c.type=="CLOSE" && w.caseFile.evidence.isEmpty()) return "尚无核查材料，无需结案。"
   if(c.type=="REPAY" && w.nation.debt==0L) return "当前没有债务。"
@@ -82,6 +89,10 @@ object Rules {
    if(x.caseFile.evidence.none { it.id==e.id }) x=x.copy(caseFile=x.caseFile.copy(evidence=x.caseFile.evidence+e, status="存在嫌疑"))
   }
   when(c.type) {
+   in ChronicleEngine.types -> x=ChronicleEngine.execute(x,c,events)
+   in SovereignEngine.types -> x=SovereignEngine.execute(x,c,events)
+   in EncounterEngine.types -> x=EncounterEngine.execute(x,c,events)
+   in InvestigationEngine.types -> x=InvestigationEngine.execute(x,c,events)
    "STRATEGY" -> { x=x.copy(strategy=c.target); events+="国家发展方向调整为${c.target}；既有建设与历史继续保留。" }
    "FACTORY","WORKSHOP","FARM","ROAD" -> { x=x.copy(projects=x.projects+Project(c.type,c.region,if(c.type in listOf("FACTORY","WORKSHOP")) 3 else 2)); events+="${x.regions[c.region].name}项目立项，完工前不增加产能。" }
    "RESEARCH" -> nation { it.copy(research=min(30,it.research+5),technology=it.technology+1) }
@@ -150,6 +161,8 @@ object Rules {
    x=TalentEngine.quarter(x,ledger);x=CrownEngine.quarter(x,ledger);x=IntelligenceEngine.quarter(x,ledger);x=LocalDefenseEngine.quarter(x,ledger);x=PayrollEngine.quarter(x,ledger)
    x=EventEngine.quarter(x,ledger,events)
   }
+  x=ChronicleEngine.progress(x,c,events)
+  if(c.type=="REVEAL")x=EncounterEngine.reveal(x,events)
   val clamped=bounded(FamilyEngine.syncPeople(x))
   if(clamped!=x) ledger+="部分属性触及规定边界，超出部分未计入。"
   x=clamped
@@ -164,6 +177,7 @@ object Rules {
   return w.copy(nation=n.copy(treasury=n.treasury.coerceIn(0,1000000),debt=n.debt.coerceIn(0,1000000),population=n.population.coerceIn(100000,100000000),tax=n.tax.coerceIn(5,40),morale=p(n.morale),stability=p(n.stability),administration=p(n.administration),corruption=p(n.corruption),agriculture=p(n.agriculture),commerce=p(n.commerce),industry=p(n.industry),technology=p(n.technology),infrastructure=p(n.infrastructure),military=p(n.military),research=n.research.coerceIn(0,30)),people=w.people.map { it.copy(ability=p(it.ability),loyalty=p(it.loyalty),hostility=p(it.hostility),trust=p(it.trust),fear=p(it.fear),suspicion=p(it.suspicion)) })
  }
  fun verify(w:World) {
+  InvestigationEngine.verify(w);ChronicleEngine.verify(w);SovereignEngine.verify(w);EncounterEngine.verify(w)
   require(w.familyPeople.size<=100&&w.familyPeople.values.distinct().size==w.familyPeople.size&&w.familyPeople.all {(family,person)->w.household.members.any {it.id==family}&&w.people.any {it.id==person}})
   LocalDefenseEngine.verify(w);PayrollEngine.verify(w);ResourceEngine.verify(w)
   CanalEngine.verify(w)

@@ -95,6 +95,7 @@ class ScreenTest {
   val previousSlot=vm.state.value.slot;val hadWorld=vm.state.value.world!=null
   if(compose.onAllNodesWithText("开启纪年").fetchSemanticsNodes().isNotEmpty())compose.onNodeWithText("开启纪年").performClick()
   else {compose.onNodeWithText("档案",useUnmergedTree=true).performClick();compose.onNodeWithText("新建").performScrollTo().performClick()}
+  compose.onAllNodes(isToggleable()).onFirst().performScrollTo().performClick() // Exercise free play; guided auto-pause is tested separately.
   compose.onNodeWithText("建立国家").performClick()
   compose.waitUntil(30000){vm.state.value.world!=null && !vm.state.value.busy && (!hadWorld || vm.state.value.slot!=previousSlot)}
   fun pause() {if(!vm.state.value.paused)compose.onNodeWithText("暂停时间").performClick()}

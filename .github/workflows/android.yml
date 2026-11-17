@@ -58,6 +58,7 @@ jobs:
             core/build/test-results
             app/build/outputs/apk/debug
             app/build/outputs/apk/androidTest/debug
+            app/build/outputs/mapping/release
       - uses: actions/upload-artifact@v4
         with:
           name: chronicle-arm64-apk
@@ -104,6 +105,8 @@ jobs:
             bash scripts/run-device-tests.sh cn.chronicle.game.MapIntegrationTest "$RUNNER_TEMP/android-ui-storage-report/map"
             adb shell am force-stop cn.chronicle.shanhe
             bash scripts/run-device-tests.sh cn.chronicle.game.MapRestartTest "$RUNNER_TEMP/android-ui-storage-report/restart"
+            adb shell pm clear cn.chronicle.shanhe
+            bash scripts/run-device-tests.sh cn.chronicle.game.ChronicleFeatureTest "$RUNNER_TEMP/android-ui-storage-report/chronicle"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -183,3 +186,48 @@ jobs:
           path: app/build/outputs/apk/release/*.apk
       - if: always()
         run: rm -f "$CHRONICLE_KEYSTORE"
+
+  release-smoke:
+    if: ${{ !contains(github.event.head_commit.message, '[map-check]') && (github.event_name != 'pull_request' || !github.event.pull_request.draft) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'
+      - run: ./gradlew -Pchronicle.testRelease=true :app:assembleRelease :app:assembleReleaseAndroidTest
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_4
+          emulator-options: -no-window -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect -feature -Vulkan
+          script: |
+            adb shell wm size 390x844
+            adb shell wm density 160
+            adb install app/build/outputs/apk/release/app-x86_64-release.apk
+            adb install app/build/outputs/apk/androidTest/release/app-release-androidTest.apk
+            curl -fL --retry 2 https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/9217f5db79a29953eb74d5343926648285ec7e67/qwen2.5-0.5b-instruct-q4_k_m.gguf -o "$RUNNER_TEMP/release-model.gguf"
+            echo "74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db  $RUNNER_TEMP/release-model.gguf" | sha256sum -c -
+            adb shell mkdir -p /sdcard/Android/data/cn.chronicle.shanhe/files
+            adb push "$RUNNER_TEMP/release-model.gguf" /sdcard/Android/data/cn.chronicle.shanhe/files/qwen.gguf
+            CHRONICLE_ONLINE_TEST=true bash scripts/run-device-tests.sh cn.chronicle.game.ReleaseSmokeTest "$RUNNER_TEMP/release-smoke-report"
+            adb shell am force-stop cn.chronicle.shanhe
+            CHRONICLE_ONLINE_TEST=true bash scripts/run-device-tests.sh cn.chronicle.game.ReleaseRestoreTest "$RUNNER_TEMP/release-smoke-report/restart"
+            adb pull /sdcard/Pictures/ChronicleCI "$RUNNER_TEMP/release-smoke-report/screenshots"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-smoke-report-and-mapping
+          path: |
+            ${{ runner.temp }}/release-smoke-report
+            app/build/outputs/mapping/release

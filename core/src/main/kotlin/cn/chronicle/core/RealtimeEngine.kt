@@ -5,6 +5,10 @@ import kotlinx.serialization.Serializable
 object RealtimeEngine {
  private val immediate=setOf("PAY_ARREARS","CONSORT_DECLINE","CANAL","FAMILY_CONTACT","PALACE_BUILD","TALK","URBAN_BUILD","CONVERSE","ACADEMY_UPGRADE","STUDY_HOME","STUDY_ABROAD","RECALL_STUDENT","CITY_FOUND","CITY_RESTORE","ERA","RULER_NAME","CHILD_NAME_PLAN","NAME_CHILD","FAMILY_PLAN","STRATEGY","FACTORY","WORKSHOP","FARM","ROAD","DEPART","REMOTE","REPAY")
  fun duration(c:Command)=when(c.type) {
+  in InvestigationEngine.types->InvestigationEngine.duration(c)
+  in ChronicleEngine.types->ChronicleEngine.duration(c)
+  in SovereignEngine.types->SovereignEngine.duration(c)
+  in EncounterEngine.types->EncounterEngine.duration(c)
   "CONSORT_AUDIENCE","ARMY_TRAIN","ARMY_RECRUIT" -> 30
   "CONSORT_ACCEPT","ARMY_ASSIGN" -> 7
   "ARMY_MOVE" -> 14+c.region*3
@@ -65,17 +69,17 @@ object RealtimeEngine {
   }
   require(c.type!="TRAVEL"){"旅程会随连续时间自动推进，无需按次赶路。"}
   require(Rules.validate(w,c)==null){Rules.validate(w,c)?:"指令无效"}
-  if(c.type in immediate) return Rules.apply(w,c,w.revision,advanceDays=false)
+  if(c.type in immediate||duration(c)==0) return Rules.apply(w,c,w.revision,advanceDays=false)
   require(w.pending.size<3){"同时最多办理3项事务，请等待或撤销一项。"}
   require(w.pending.none {it.command.type==c.type || (c.type in listOf("TAX_UP","TAX_DOWN") && it.command.type in listOf("TAX_UP","TAX_DOWN"))}){"同类事务正在办理，不能重复排程。"}
   val cost=Rules.cost(w,c)
-  val task=PendingOrder(w.revision+1,c,duration(w,c),cost)
+  val task=PendingOrder(maxOf(w.revision,w.pending.maxOfOrNull {it.id}?:0L)+1,c,duration(w,c),cost)
   return finish(w,w.copy(pending=w.pending+task,nation=w.nation.copy(treasury=w.nation.treasury-cost)),"安排${Rules.label(c)}",listOf("预留资金 -$cost 万两，办理 ${task.remainingDays} 日；取消退还80%预留资金。"),listOf("${Rules.label(c)}已交付办理，时间连续推进，完成后另行记录结果。"),commands=listOf(c))
  }
- fun advance(w:World,days:Int):Outcome {
+ fun advance(w:World,days:Int,stopOnImportant:Boolean=false):Outcome {
   require(days in 1..90 && w.day+days<=900090)
   var x=w;val ledger=mutableListOf<String>();val events=mutableListOf<String>();val completed=mutableListOf<Command>()
-  repeat(days) {
+  for(step in 0 until days) {
    x=x.copy(day=x.day+1)
    x.journey?.let {j->
     val travel=(j.remainingTravel-1).coerceAtLeast(0)
@@ -91,12 +95,14 @@ object RealtimeEngine {
     }
    }
    x=FamilyEngine.advance(x,1,events)
+   x=EncounterEngine.advance(x,events)
+   x=SovereignEngine.advance(x,events)
    x=EducationEngine.advance(x,events)
    x=MunicipalEngine.advance(x,events)
    x=CrownEngine.advance(x,events)
    x=WarfareEngine.advance(x,ledger)
    x=ProjectEngine.advance(x,events)
-   if(x.day%90==0) {x=ResourceEngine.quarter(x,ledger,events);x=EconomyEngine.quarter(x,ledger,events,advanceProjects=false);x=MunicipalEngine.quarter(x,ledger);x=CharacterEngine.quarter(x,events);x=TalentEngine.quarter(x,ledger);x=CrownEngine.quarter(x,ledger);x=IntelligenceEngine.quarter(x,ledger);x=LocalDefenseEngine.quarter(x,ledger);x=PayrollEngine.quarter(x,ledger);x=EventEngine.quarter(x,ledger,events)}
+   if(x.day%90==0) {x=ResourceEngine.quarter(x,ledger,events);x=EconomyEngine.quarter(x,ledger,events,advanceProjects=false);x=MunicipalEngine.quarter(x,ledger);x=CharacterEngine.quarter(x,events);x=TalentEngine.quarter(x,ledger);x=CrownEngine.quarter(x,ledger);x=IntelligenceEngine.quarter(x,ledger);x=LocalDefenseEngine.quarter(x,ledger);x=PayrollEngine.quarter(x,ledger);x=EventEngine.quarter(x,ledger,events);x=InvestigationEngine.quarter(x,events);x=ChronicleEngine.quarter(x,ledger,events);x=SovereignEngine.quarter(x,events)}
    val due=x.pending.filter {it.remainingDays<=1}
    x=x.copy(pending=x.pending.filter {it.remainingDays>1}.map {it.copy(remainingDays=it.remainingDays-1)})
    due.forEach {task->
@@ -115,7 +121,8 @@ object RealtimeEngine {
      ledger+="${Rules.label(task.command)}因条件变化未完成：$error；退还 $refund 万两。";events+="${Rules.label(task.command)}中止，结果已登记。"
     }
    }
-   x=Rules.bounded(x)
+   x=ChronicleEngine.progress(Rules.bounded(x),null,events)
+   if(stopOnImportant&&(ChronicleEngine.needsPause(x)||x.ended))break
   }
   return finish(w,x,"时光流转",ledger,events,record=ledger.isNotEmpty()||events.isNotEmpty(),commands=completed)
  }

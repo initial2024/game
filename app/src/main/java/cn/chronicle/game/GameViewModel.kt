@@ -27,8 +27,8 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
  private var chatEpoch=0L
  private val chatOpenEpoch=java.util.concurrent.atomic.AtomicLong()
  @Volatile private var foreground=true
- fun foreground(active:Boolean) {foreground=active}
- fun toggleClock() {mutable.update { currentUi -> currentUi.copy(paused=!currentUi.paused) }}
+ fun foreground(active:Boolean) {foreground=active;models.foreground=active;if(active)models.resumed()}
+ fun toggleClock() {val w=mutable.value.world;if(w?.ended==true){message("本纪年已结束，档案仍可查看。");return};if(w!=null&&ChronicleEngine.needsPause(w)){message("请先在剧情的目标与奏报中阅毕重大奏报，再继续时间。");return};mutable.update {it.copy(paused=!it.paused)}}
  fun changeSpeed() {val values=listOf(1,4,16,64);mutable.update { currentUi -> currentUi.copy(speed=values[(values.indexOf(currentUi.speed)+1)%values.size]) }}
  init {
   viewModelScope.launch(Dispatchers.IO) {
@@ -39,10 +39,10 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
      if(!foreground || mutable.value.paused || mutable.value.busy)return@withLock
      runCatching {
       val current=mutable.value.world?:return@withLock
-      val out=RealtimeEngine.advance(current,mutable.value.speed)
+      val out=RealtimeEngine.advance(current,mutable.value.speed,stopOnImportant=true)
       val meaningful=out.entry.events.isNotEmpty()||out.entry.ledger.isNotEmpty()
       store.commit(mutable.value.slot,current.revision,out,meaningful)
-      mutable.update { currentUi -> currentUi.copy(world=out.world,slots=if(meaningful)store.slots() else mutable.value.slots) }
+      mutable.update { currentUi -> currentUi.copy(world=out.world,paused=currentUi.paused||ChronicleEngine.needsPause(out.world)||out.world.ended,slots=if(meaningful)store.slots() else mutable.value.slots) }
      }.onFailure {mutable.update { currentUi -> currentUi.copy(paused=true,message="时间已暂停：${it.message}") }}
     }
    }
@@ -56,10 +56,10 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
  fun openCity(id:String){val w=mutable.value.world?:return;if(MunicipalEngine.all(w).any {it.id==id})mutable.update {it.copy(cityId=id)}}
  fun closeCity(){mutable.update {it.copy(cityId=null)}}
  fun message(text:String) { mutable.update { currentUi -> currentUi.copy(message=text) } }
- fun newGame(name:String,ruler:String,strategy:String,difficulty:String,seed:String,era:String="启元",scale:String="中等国家",atmosphere:String="均势博弈",setting:String="工业初兴") = task {
+ fun newGame(name:String,ruler:String,strategy:String,difficulty:String,seed:String,era:String="启元",scale:String="中等国家",atmosphere:String="均势博弈",setting:String="工业初兴",guided:Boolean=false,protection:Boolean=true) = task {
   val id=(1..8).firstOrNull { n -> store.slots().none { it.id==n } } ?: error("8 个存档槽已满，请导出后保留现有游戏。")
   val number=seed.toLongOrNull() ?: error("世界种子须为 64 位整数。")
-  cancelAi();chatMutable.value=ChatState();val w=NewGame.create(name,ruler,strategy,difficulty,number,era,scale,atmosphere,setting);store.create(id,w);resumePrefs.edit().putInt("slot",id).commit();mutable.update { currentUi -> currentUi.copy(world=w,slot=id,cityId=null,slots=store.slots(),paused=false,aiText="",archive=emptyList(),message="新纪年已建立。每次行动自动保存。") }
+  cancelAi();chatMutable.value=ChatState();val w=ChronicleEngine.start(NewGame.create(name,ruler,strategy,difficulty,number,era,scale,atmosphere,setting),guided,protection);store.create(id,w);resumePrefs.edit().putInt("slot",id).commit();mutable.update { currentUi -> currentUi.copy(world=w,slot=id,cityId=null,slots=store.slots(),paused=guided,aiText="",archive=emptyList(),message="新纪年已建立。每次行动自动保存。") }
  }
  fun submit(commands:List<Command>,expected:Long) {
   if(mutable.value.busy || commands.isEmpty()) return
@@ -73,7 +73,7 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
    for(c in commands.take(3)) {
     val current=mutable.value.world!!; val out=RealtimeEngine.submit(current,c,current.revision)
     store.commit(mutable.value.slot,current.revision,out)
-    mutable.update { currentUi -> currentUi.copy(world=out.world,slots=store.slots(),aiText="",message="已执行${Rules.label(c)}，自动存档完成。") }
+    mutable.update { currentUi -> currentUi.copy(world=out.world,paused=currentUi.paused||ChronicleEngine.needsPause(out.world)||out.world.ended,slots=store.slots(),aiText="",message="已执行${Rules.label(c)}，自动存档完成。") }
    }
    if(models.isLoaded) generate()
   }

@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
 object IntelligenceEngine {
  val types=setOf("ORG_FOUND","ORG_ASSIGN","ORG_RELEASE","INTEL_SCOUT","INTEL_COUNTER","ASSASSINATE")
  val missions=setOf("INTEL_SCOUT","INTEL_COUNTER","ASSASSINATE")
- val kinds=listOf("监察","谍报","刺客")
+ val kinds=listOf("监察","谍报","刺客","护卫")
  fun membership(w:World,id:Int)=w.intelligence.organizations.firstOrNull {id in it.members}
  fun active(w:World,o:Organization)=o.members.mapNotNull {id->w.people.find {it.id==id&&it.alive&&!EducationEngine.busy(w,id)}}
  fun upkeep(w:World)=w.intelligence.organizations.sumOf {4L+it.members.size*2L}

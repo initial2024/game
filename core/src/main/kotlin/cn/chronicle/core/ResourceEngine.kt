@@ -56,7 +56,7 @@ object ResourceEngine {
    yields[t.id]=ProductionRecord(harvest,logYield,ironYield,coalYield,stoneYield,products,ratio);grain+=harvest;timber+=logYield;iron+=ironYield;coal+=coalYield;stone+=stoneYield;goods+=products
   }
   var industryLoss=0L
-  for(count in w.resources.plants){val ironNeed=count*20L;val fuelKind=if(w.setting==EraRules.ANCIENT)"TIMBER"else"COAL";val fuelNeed=count*30L;val ratios=listOf("IRON" to ironNeed,fuelKind to fuelNeed).filter {it.second>0}.map {(k,n)->(stocks.getValue(k)*100/n).coerceAtMost(100)};val ratio=ratios.minOrNull()?:100;stocks["IRON"]=stocks.getValue("IRON")-ironNeed*ratio/100;stocks[fuelKind]=stocks.getValue(fuelKind)-fuelNeed*ratio/100;goods+=count*240L*ratio/100;industryLoss+=count*18L*(100-ratio)/100}
+  for(count in w.resources.plants){val ironNeed=count*20L;val fuelKind=if(w.setting==EraRules.ANCIENT)"TIMBER"else"COAL";val fuelNeed=count*30L;val ratios=listOf("IRON" to ironNeed,fuelKind to fuelNeed).filter {it.second>0}.map {(k,n)->(stocks.getValue(k)*100/n).coerceAtMost(100)};val ratio=ratios.minOrNull()?:100;stocks["IRON"]=stocks.getValue("IRON")-ironNeed*ratio/100;stocks[fuelKind]=stocks.getValue(fuelKind)-fuelNeed*ratio/100;goods+=count*240L*ratio/100*(if(w.government.laborSafety)92 else 100)/100;industryLoss+=count*18L*(100-ratio)/100}
   val grainTax=grain*w.nation.tax/200;stocks["GRAIN"]=stocks.getValue("GRAIN")+grainTax
   val foodNeed=LocalDefenseEngine.troops(w)*4L/3;val supplied=minOf(stocks.getValue("GRAIN"),foodNeed);stocks["GRAIN"]=stocks.getValue("GRAIN")-supplied;val foodRatio=if(foodNeed==0L)100 else (supplied*100/foodNeed).toInt()
   if(foodRatio<100)events+="军粮供给仅达${foodRatio}%，中央军和地方军补给、士气受影响。"

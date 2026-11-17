@@ -96,39 +96,15 @@ class ModelManager(private val app:Context) {
  var threads:Int get()=prefs.getInt("threads",minOf(4,Runtime.getRuntime().availableProcessors()).coerceAtLeast(1)); set(v){prefs.edit().putInt("threads",v.coerceIn(1,8)).apply()}
  var contextLimit:Int get()=prefs.getInt("context",1024); set(v){prefs.edit().putInt("context",v.coerceIn(512,2048)).apply()}
  private fun update(s:String,work:Boolean=false,progress:Float=mutable.value.progress) {mutable.value=mutable.value.copy(status=s,working=work,progress=progress,exists=model.exists(),paused=partial.exists())}
- fun download(spec:ModelSpec=ModelCatalog.builtIn.first(),autoLoad:Boolean=true) {
-  if(mutable.value.working || isLoaded) return
-  spec.verify();pause.set(false);update("正在连接模型库：${spec.label}",true)
-  scope.launch {
-   try { gate.withLock {
-    if(prefs.getString("pending","")!=spec.id) partial.delete();prefs.edit().putString("pending",spec.id).putString("pending-spec",SaveJson.encodeToString(spec)).apply()
-    require(root.usableSpace>spec.bytes-(partial.takeIf {it.exists()}?.length()?:0L)+50L*1048576){"存储空间不足，需保留完整模型和校验空间"}
-    val start=partial.takeIf {it.exists()}?.length()?:0L
-    if(start==spec.bytes){require(hash(partial)==spec.sha256){partial.delete();"模型校验失败，已移除损坏下载"};checkHeader(partial);require(partial.renameTo(model));prefs.edit().putString("sha",spec.sha256).putString("active",spec.label).apply();update("已安装 ${spec.label}",false,1f);if(autoLoad)load();return@withLock}
-    val connection=URL(spec.url).openConnection() as HttpURLConnection
-    connection.connectTimeout=20000;connection.readTimeout=20000
-    if(start>0) connection.setRequestProperty("Range","bytes=$start-")
-    try {
-     val code=connection.responseCode;require(code==200||code==206){"下载服务器返回 $code"}
-     var offset=if(code==206) start else 0L
-     if(code==206) require(connection.getHeaderField("Content-Range")?.startsWith("bytes $start-")==true){"续传范围不匹配"}
-     RandomAccessFile(partial,"rw").use { out ->
-      if(offset==0L) out.setLength(0);out.seek(offset)
-      connection.inputStream.use { input -> val buffer=ByteArray(65536);var tick=0
-       while(!pause.get()) {val n=input.read(buffer);if(n<0)break;offset+=n;require(offset<=spec.bytes){"下载文件超出目录大小"};out.write(buffer,0,n);if(tick++%8==0) update("下载 ${offset/1048576} / ${spec.bytes/1048576} MiB",true,offset.toFloat()/spec.bytes)}
-      }
-     }
-     if(pause.get()) {update("已暂停，可继续下载");return@withLock}
-     require(offset==spec.bytes){"下载未完整，请重试续传"};update("正在校验 SHA-256",true)
-     require(hash(partial)==spec.sha256){partial.delete();"模型校验失败，已移除损坏下载"}
-     checkHeader(partial);require(partial.renameTo(model)){"无法保存模型"};prefs.edit().putString("sha",spec.sha256).putString("active",spec.label).apply();update("已安装 ${spec.label}",false,1f);if(autoLoad) load()
-    } finally {connection.disconnect()}
-   } } catch(e:Exception) {update("下载失败：${e.message}；可重试")}
-  }
- }
- fun pauseDownload() {pause.set(true)}
+ var downloadSource:String get()=prefs.getString("download-source","auto")?:"auto";set(value){require(value in ModelTransfer.sources);prefs.edit().putString("download-source",value).apply()}
+ @Volatile var foreground=true
+ private var pendingAutoLoad=false
+ init {scope.launch {ModelTransfer.state.collect {transfer->if(transfer.serial!=0L){mutable.value=mutable.value.copy(status=transfer.message,working=transfer.working,progress=transfer.progress,exists=model.exists(),paused=partial.exists());if(transfer.completed&&transfer.autoLoad&&!isLoaded){pendingAutoLoad=true;if(foreground){pendingAutoLoad=false;load()}}}}}}
+ fun resumed(){foreground=true;if(pendingAutoLoad){pendingAutoLoad=false;load()}}
+ fun download(spec:ModelSpec=ModelCatalog.builtIn.first(),autoLoad:Boolean=true){if(mutable.value.working||isLoaded||ModelTransfer.state.value.working)return;runCatching {ModelTransfer.start(app,spec,downloadSource,autoLoad)}.onFailure {update("下载未启动：${it.message}")}}
+ fun pauseDownload(){ModelTransfer.pause()}
  fun import(uri:Uri) {
-  if(mutable.value.working||isLoaded) return
+  if(mutable.value.working||isLoaded||ModelTransfer.state.value.working) return
   update("正在导入并校验 GGUF",true)
   scope.launch {try {gate.withLock {
    val temp=File(root,"import.part")
@@ -139,7 +115,7 @@ class ModelManager(private val app:Context) {
   }} catch(e:Exception){update("导入失败：${e.message}")}}
  }
  fun load() {
-  if(mutable.value.working||isLoaded) return
+  if(mutable.value.working||isLoaded||ModelTransfer.state.value.working) return
   update("校验文件并加载模型…",true)
   scope.launch {try {gate.withLock {
    checkHeader(model);require(hash(model)==prefs.getString("sha","")){"模型已被修改或损坏，拒绝加载"}
@@ -209,6 +185,7 @@ class ModelManager(private val app:Context) {
  var open by rememberSaveable {mutableStateOf(false)};var section by rememberSaveable {mutableIntStateOf(0)}
  var query by rememberSaveable {mutableStateOf("")};var sort by rememberSaveable {mutableStateOf("downloads")};var gguf by rememberSaveable {mutableStateOf(true)}
  var install by remember {mutableStateOf<ModelSpec?>(null)};var accepted by remember {mutableStateOf(false)};var autoLoad by rememberSaveable {mutableStateOf(true)}
+ var source by rememberSaveable {mutableStateOf(manager.downloadSource)}
  var advice by remember {mutableStateOf(manager.advice())};var page by rememberSaveable {mutableIntStateOf(0)}
  var threads by rememberSaveable {mutableFloatStateOf(manager.threads.toFloat())};var context by rememberSaveable {mutableFloatStateOf(manager.contextLimit.toFloat())}
  val ctx=androidx.compose.ui.platform.LocalContext.current
@@ -263,6 +240,8 @@ class ModelManager(private val app:Context) {
  }
  install?.let {spec->AlertDialog(onDismissRequest={install=null},title={Text("安装模型")},text={Column(Modifier.heightIn(max=380.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)){
   Text("${spec.label}\n${spec.bytes/1048576} MiB · 许可 ${spec.license}\n安装后校验 SHA-256，实际兼容性以加载为准。仅替换模型文件，不更改存档。")
+  Text("下载源：切换镜像仍使用清单中的固定SHA-256，校验失败不安装。ModelScope仅映射官方Qwen；其他仓库可用HF Mirror或原站。",style=MaterialTheme.typography.bodySmall)
+  ModelTransfer.sources.forEach {(id,label)->FilterChip(selected=source==id,onClick={source=id;manager.downloadSource=id},label={Text(label)})}
   TextButton(onClick={ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,Uri.parse("https://huggingface.co/${spec.repo}")))}){Text("查看仓库与许可")}
   Row{Checkbox(accepted,{accepted=it});Text("我已核对许可并同意下载",Modifier.padding(top=12.dp),style=MaterialTheme.typography.bodySmall)}
  }},confirmButton={TextButton(onClick={manager.download(spec,autoLoad);install=null},enabled=accepted){Text("下载并安装")}},dismissButton={TextButton(onClick={install=null}){Text("取消")}})}

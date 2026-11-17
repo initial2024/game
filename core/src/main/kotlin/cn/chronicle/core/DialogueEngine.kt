@@ -11,8 +11,11 @@ object DialogueEngine {
   if(!p.alive)return "此人已故，旧对话仅供查阅。"
   return null // Every living registered person can converse, in person or by correspondence.
  }
- fun hidden(w:World,p:Person)=p.id !in w.familyPeople.values&&p.id>=3&&w.journey?.revealed==false
- fun identity(w:World,p:Person)=if(hidden(w,p))w.journey!!.disguise else if(p.id<6||p.id in w.familyPeople.values||TalentEngine.town(w,p.id)!=null||LocalDefenseEngine.office(w,p.id)!=null)"经朝廷文书确认的统治者" else "已验明身份的来访者"
+ fun hidden(w:World,p:Person):Boolean {
+  w.adventure.encounters.find {it.person==p.id}?.let {return !it.knowsIdentity}
+  return p.id !in w.familyPeople.values&&p.id>=3&&w.journey?.revealed==false
+ }
+ fun identity(w:World,p:Person)=if(hidden(w,p))(w.journey?.disguise?:"往来旧识") else if(p.id<6||p.id in w.familyPeople.values||TalentEngine.town(w,p.id)!=null||LocalDefenseEngine.office(w,p.id)!=null)"经朝廷文书确认的统治者" else "已验明身份的来访者"
  fun approach(requested:String,text:String):String {
   require(requested in approaches)
   return if(listOf("废物","蠢货","处死你","杀你全家","滚蛋").any(text::contains))"威胁" else requested
