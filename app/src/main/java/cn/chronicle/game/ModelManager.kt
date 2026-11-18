@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import cn.chronicle.core.*
@@ -172,7 +173,12 @@ class ModelManager(private val app:Context) {
  private var activeContext=1024
  fun pendingDownload():ModelSpec?=runCatching {SaveJson.decodeFromString<ModelSpec>(prefs.getString("pending-spec","")!!).also {it.verify()} }.getOrNull()
  /** Persist the last successfully verified download separately from a failed or paused candidate. */
- fun installedDownload():ModelSpec?=runCatching {SaveJson.decodeFromString<ModelSpec>(prefs.getString("active-spec","")!!).also {it.verify()} }.getOrNull()
+ fun installedDownload():ModelSpec? {
+  if(!model.isFile)return null
+  val digest=prefs.getString("sha",null)?:return null
+  val verified=runCatching {SaveJson.decodeFromString<ModelSpec>(prefs.getString("active-spec","")!!).also {it.verify()} }.getOrNull()
+  return listOfNotNull(verified,pendingDownload()).firstOrNull {it.sha256==digest}
+ }
  private fun format(messages:List<Pair<String,String>>)=NativeBridge.formatChat(messages.map {it.first}.toTypedArray(),messages.map {it.second.toByteArray()}.toTypedArray(),chatTemplate)
  private fun fits(prompt:ByteArray,tokens:Int)=NativeBridge.countTokens(prompt)+tokens+8<=activeContext
  suspend fun chat(w:World,p:Person,history:List<DialogueRecord>,text:String,progress:(String)->Unit):SpokenReply=gate.withLock {
