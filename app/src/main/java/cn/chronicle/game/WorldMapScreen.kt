@@ -155,10 +155,8 @@ private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapO
  val context=LocalContext.current;val activity=generateSequence(context){(it as? android.content.ContextWrapper)?.baseContext}.filterIsInstance<MainActivity>().firstOrNull();val scope=rememberCoroutineScope();val lifecycle=LocalLifecycleOwner.current.lifecycle
  var editor by remember {mutableStateOf(false)};var error by remember {mutableStateOf("")};var selection by remember {mutableStateOf<MapHostMessage?>(null)}
  var controller by remember {mutableStateOf<MapWebController?>(null)};var exportData by remember {mutableStateOf("")};var pendingImport by remember {mutableStateOf<MapScenario?>(null)}
- var mapArmy by rememberSaveable(slot){mutableStateOf("")};var chooseArmy by remember {mutableStateOf(false)}
+ val mapArmyState=rememberSaveable(slot){mutableStateOf("")};var mapArmy by mapArmyState;var chooseArmy by remember {mutableStateOf(false)}
  val currentWorld by rememberUpdatedState(world);val currentSlot by rememberUpdatedState(slot)
- // AndroidView.factory retains its initial listener: use a state holder for the latest selection.
- val currentMapArmy by rememberUpdatedState(mapArmy)
  val currentAction by rememberUpdatedState(onAction)
  val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")){uri->if(uri!=null)scope.launch {runCatching {withContext(Dispatchers.IO){require(exportData.isNotBlank()){"导出状态已重置，请重新导出。"};context.contentResolver.openOutputStream(uri)!!.use {it.write(exportData.toByteArray())}}}.onFailure {error="导出失败：${it.message}"}}}
  val import=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()){uri->if(uri!=null)scope.launch {runCatching {withContext(Dispatchers.IO){context.contentResolver.openInputStream(uri)!!.use {val out=java.io.ByteArrayOutputStream();val buffer=ByteArray(8192);while(true){val n=it.read(buffer);if(n<0)break;require(out.size()+n<=1024*1024);out.write(buffer,0,n)};MapValidation.parse(out.toString("UTF-8"))}}}.onSuccess {pendingImport=it}.onFailure {error="未导入，原沙盘保持不变：${it.message}"}}}
@@ -186,9 +184,10 @@ private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapO
     val (web,c)=createMapWebView(ctx,editor,{error=it},{raw->runCatching {
      val picked=MapBridgePolicy.selection(raw,currentWorld,currentSlot)
      android.util.Log.i("ChronicleMap","Selected type=${picked.type} place=${picked.placeId}")
-     if(currentMapArmy.isNotEmpty()){
+     // The WebView listener survives recompositions. Read the exact state object mutated by the army picker.
+     if(mapArmyState.value.isNotEmpty()){
       val target=MapOrders.target(currentWorld,picked.type,picked.placeId.ifEmpty {picked.territoryId.ifEmpty {picked.polityId}})
-      val order=MapOrders.military(currentWorld,target,currentMapArmy);selection=null;currentAction(order)
+      val order=MapOrders.military(currentWorld,target,mapArmyState.value);selection=null;currentAction(order)
      }else if(picked.type=="place-select"&&MunicipalEngine.all(currentWorld).any {t->t.id==picked.placeId&&t.rank in listOf("府城","县城")}){gameVm.openCity(picked.placeId);selection=null}else selection=picked
     }.onFailure {android.util.Log.w("ChronicleMap","Selection validation failed",it);error=it.message?:"已拒绝无效地图选择。"}},{isImport->if(isImport)import.launch(arrayOf("application/json","text/plain"))else controller?.export {text->exportData=text;export.launch("chronicle-map.json")}})
     owned=c;controller=c;activity?.mapController=c;MapWebController.created();web
