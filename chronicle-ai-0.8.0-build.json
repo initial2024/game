@@ -1,0 +1,11 @@
+{
+  "version": "0.8.0",
+  "versionCode": 13,
+  "applicationId": "cn.chronicle.shanhe",
+  "source_sha": "f5e9451ff9214c37ae8f1acd8b0261093d35d34c",
+  "workflow_run_id": "44263370233",
+  "signed": true,
+  "certificate_sha256": "fd1025cdc4d99c82720d6af49812d6b0491c5be03305a086608d97f0615fa768",
+  "apk_sha256": "04ad951202c3cff3d7ad2b32fc07dfcf54ed048921cc69b135af91c43f4ab8e6",
+  "apk_bytes": 3529593
+}
