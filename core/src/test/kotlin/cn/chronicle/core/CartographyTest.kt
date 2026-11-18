@@ -15,6 +15,17 @@ class CartographyTest {
   val s=MapSnapshotMapper.scene(w,1);MapValidation.verify(s);assertEquals(120,s.extraPlaces.size);assertEquals(w.name,s.polities.first().name);assertTrue(w.recent.isEmpty())
   assertEquals(s,MapValidation.parse(SaveJson.encodeToString(s)))
  }
+ @Test fun foreignPolityDisplayTracksAuthoritativeNeighborAfterSaveSwitch(){
+  val w=game();val original=MapSnapshotMapper.state(w)
+  val stale=original.copy(polities=original.polities.map {p->if(p.id=="neighbor-1")p.copy(name="旧剧本邻国") else p})
+  val updated=w.copy(cartography=stale,neighbors=w.neighbors.mapIndexed {i,n->if(i==1)n.copy(name="新剧情邻国")else n})
+  val scene=MapSnapshotMapper.scene(updated,3)
+  assertEquals("新剧情邻国",scene.polities.first {it.id=="neighbor-1"}.name)
+  assertEquals("旧剧本邻国",updated.cartography!!.polities.first {it.id=="neighbor-1"}.name)
+  assertEquals("game-slot-3",scene.id)
+  assertEquals(original.territories,MapSnapshotMapper.state(updated).territories)
+  MapValidation.verify(scene)
+ }
  @Test fun stableIdsSurviveNamesAndWorldSlotsAreIsolated(){
   val w=game();val a=MapSnapshotMapper.scene(w,1);val b=MapSnapshotMapper.scene(w.copy(name="另一国"),2)
   assertNotEquals(a.id,b.id);assertEquals(a.extraPlaces,b.extraPlaces);assertNotEquals(a.meta.title,b.meta.title)

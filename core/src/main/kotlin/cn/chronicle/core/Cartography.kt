@@ -91,7 +91,7 @@ object MapSnapshotMapper {
  fun scene(w:World,slot:Int):MapScenario {
   require(slot in 1..8)
   val s=state(w)
-  return s.copy(id="game-slot-$slot",revision=w.revision,meta=MapMeta(w.name,w.date,if(w.setting=="古代王朝")"古" else "纪"),polities=s.polities.map {if(it.id=="nation")it.copy(name=w.name)else it},groups=s.groups.map {g->w.regions.find {"region-${it.id}"==g.id}?.let {g.copy(name=it.name)}?:g}).also(MapValidation::verify)
+  return s.copy(id="game-slot-$slot",revision=w.revision,meta=MapMeta(w.name,w.date,if(w.setting=="古代王朝")"古" else "纪"),polities=s.polities.map {p->when {p.id=="nation"->p.copy(name=w.name);p.id.startsWith("neighbor-")->p.id.removePrefix("neighbor-").toIntOrNull()?.takeIf {it in w.neighbors.indices}?.let {p.copy(name=w.neighbors[it].name)}?:p;else->p}},groups=s.groups.map {g->w.regions.find {"region-${it.id}"==g.id}?.let {g.copy(name=it.name)}?:g}).also(MapValidation::verify)
  }
  fun regionId(w:World,placeId:String):Int? = state(w).places[placeId]?.let {regionForGroup(w,it.groupId)}
  fun regionForGroup(w:World,groupId:String):Int? {

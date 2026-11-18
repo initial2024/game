@@ -86,8 +86,11 @@ class MapIntegrationTest {
   // creates a targeted order rather than globally increasing all relations.
   val neighbor=vm.state.value.world!!.neighbors[1].name
   touch("#territory-open")
-  assertEquals("true",js("(function(){const b=[...document.querySelectorAll('#panel button')].find(b=>b.textContent.includes("+MapBridgePolicy.quoted(neighbor)+"));if(!b)return false;b.dataset.ciCountry='yes';return true})()"))
-  touch("#panel button[data-ci-country=yes]")
+  println("MAP_POLITY_PANEL="+js("""JSON.stringify({hidden:document.querySelector('#panel').hidden,polities:ChronicleMap.exportScenario().polities.map(p=>({id:p.id,name:p.name})),buttons:[...document.querySelectorAll('#panel button[data-polity-id]')].map(b=>({id:b.dataset.polityId,text:b.textContent}))})"""))
+  compose.waitUntil(10000){js("""!!document.querySelector('#panel button[data-polity-id="neighbor-1"]')""")=="true"}
+  val visiblePolities=scene().getJSONArray("polities")
+  assertEquals(neighbor,(0 until visiblePolities.length()).map {visiblePolities.getJSONObject(it)}.first {it.getString("id")=="neighbor-1"}.getString("name"))
+  touch("""#panel button[data-polity-id="neighbor-1"]""")
   compose.onNodeWithText("向${neighbor}派使").performScrollTo().performClick()
   compose.onNodeWithText("确认执行").performClick()
   compose.waitUntil(10000){vm.state.value.world!!.pending.any {it.command.type=="DIPLOMACY_TARGET"&&it.command.target=="neighbor-1"}}
