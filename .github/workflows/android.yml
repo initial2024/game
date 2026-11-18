@@ -161,7 +161,7 @@ jobs:
           path: ${{ runner.temp }}/android-real-model-report
   signed-apk:
     # Do not sign untested source or forked PRs: all four upstream gates must pass.
-    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/feature/character-chat-hf-search') || (github.event_name == 'workflow_dispatch' && inputs.signed_apk && github.ref == 'refs/heads/feature/character-chat-hf-search') }}
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/feature/character-chat-hf-search' && contains(github.event.head_commit.message, '[release-0.8]')) || (github.event_name == 'workflow_dispatch' && inputs.signed_apk && github.ref == 'refs/heads/feature/character-chat-hf-search') }}
     needs: [build, browser-map, android-test, release-smoke]
     runs-on: ubuntu-latest
     permissions:
@@ -219,7 +219,7 @@ jobs:
           path: app/build/outputs/apk/release/app-arm64-v8a-release.apk
           compression-level: 9
       - name: Publish verified ARM64 APK to apk-preview
-        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/character-chat-hf-search'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/character-chat-hf-search' && contains(github.event.head_commit.message, '[release-0.8]')
         shell: bash
         run: |
           set -euo pipefail
