@@ -59,6 +59,15 @@ class ModelManager(private val app:Context) {
  private val mutable=MutableStateFlow(ModelState(exists=model.exists(),paused=partial.exists()))
  val state=mutable.asStateFlow()
  val isLoaded get()=mutable.value.loaded
+ /** Reconcile a GGUF added after ViewModel creation without starting inference. */
+ fun refreshInstalled() {
+  val existsNow=model.isFile
+  val pausedNow=partial.isFile
+  mutable.value=mutable.value.let {s->
+   if(s.exists==existsNow&&s.paused==pausedNow)s
+   else s.copy(exists=existsNow,paused=pausedNow)
+  }
+ }
  @Volatile private var loadingJob:Job?=null
  private val catalogMutable=MutableStateFlow(ModelCatalog.builtIn)
  val catalog=catalogMutable.asStateFlow()

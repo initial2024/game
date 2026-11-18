@@ -29,7 +29,7 @@ fi
 if [[ "$classes" == *ReleaseSmokeTest* ]]; then adb pull /sdcard/Android/data/cn.chronicle.shanhe/files/release-failure.xml "$report_dir/release-failure.xml" || true; fi
 adb logcat -d -b crash > "$report_dir/crash.log" || true
 adb logcat -d -s AndroidRuntime:E libc:F DEBUG:F > "$report_dir/runtime-errors.log" || true
-adb logcat -d -s System.out:I ChronicleMap:V ChronicleUiDiagnostic:V chromium:E > "$report_dir/model-output.log" || true
+adb logcat -d -s System.out:I ChronicleMap:V ChronicleOrder:V ChronicleUiDiagnostic:V chromium:E > "$report_dir/model-output.log" || true
 if [[ "$runner_status" -ne 0 ]] || ! grep -Eq '^OK \([1-9][0-9]* tests?\)' "$report_dir/instrumentation.txt"; then
   echo 'Instrumentation did not report a successful test run.'
   exit 1

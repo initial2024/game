@@ -103,7 +103,13 @@ class MapIntegrationTest {
   compose.onNode(hasClickAction() and hasText("行营军 ·",substring=true)).performClick()
   cityClick(scene().getJSONObject("places").getJSONObject("city-r2").getString("name"),false)
   val armyOrderDialog=runCatching {compose.waitUntil(12000){compose.onAllNodesWithText("确认执行").fetchSemanticsNodes().size==1}}.isSuccess
-  if(!armyOrderDialog)compose.onRoot(useUnmergedTree=true).printToLog("CHRONICLE_MAP_ARMY_CONFIRM")
+  if(!armyOrderDialog){
+   // The host and map Dialog are distinct Compose roots. Do not call onRoot() here.
+   val rootCount=compose.onAllNodes(isRoot(),useUnmergedTree=true).fetchSemanticsNodes().size
+   val confirmCount=compose.onAllNodesWithText("确认执行").fetchSemanticsNodes().size
+   println("MAP_ARMY_CONFIRM_MISSING roots=$rootCount confirmButtons=$confirmCount city=${vm.state.value.cityId} feedback=${vm.state.value.message} revision=${vm.state.value.world?.revision}")
+   captureMap("map-army-confirm-missing")
+  }
   assertTrue("Army tap did not show confirmation; cityId=${vm.state.value.cityId}, feedback=${vm.state.value.message}, revision=${vm.state.value.world?.revision}",armyOrderDialog)
   compose.onNodeWithText("确认执行").assertIsDisplayed()
   assertEquals(oldRegion,CrownEngine.units(vm.state.value.world!!).first {it.id=="field"}.region)
