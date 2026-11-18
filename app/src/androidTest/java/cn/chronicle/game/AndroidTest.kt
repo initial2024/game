@@ -98,10 +98,10 @@ class ScreenTest {
   compose.onAllNodes(isToggleable()).onFirst().performScrollTo().performClick() // Exercise free play; guided auto-pause is tested separately.
   compose.onNodeWithText("建立国家").performClick()
   compose.waitUntil(30000){vm.state.value.world!=null && !vm.state.value.busy && (!hadWorld || vm.state.value.slot!=previousSlot)}
-  fun pause() {if(!vm.state.value.paused)compose.onNodeWithText("暂停时间").performClick()}
+  fun pause() {if(!vm.state.value.paused)compose.onNodeWithTag("clock-toggle").performClick()}
   fun choose(label:String) {compose.onNodeWithText(label).performScrollTo().performClick();compose.waitUntil(10000){compose.onAllNodesWithText("确认执行").fetchSemanticsNodes().isNotEmpty()};compose.onNodeWithText("确认执行").performClick();compose.waitUntil(10000){!vm.state.value.busy}}
-  fun until(test:(World)->Boolean) {if(vm.state.value.paused)compose.onNodeWithText("继续时间").performClick();compose.waitUntil(60000){vm.state.value.world?.let(test)==true};pause()}
-  pause();while(vm.state.value.speed!=4)compose.onNodeWithText("×${vm.state.value.speed}").performClick()
+  fun until(test:(World)->Boolean) {if(vm.state.value.paused)compose.onNodeWithTag("clock-toggle").performClick();compose.waitUntil(60000){vm.state.value.world?.let(test)==true};pause()}
+  pause();while(vm.state.value.speed!=4)compose.onNodeWithTag("clock-speed").performClick()
   compose.onNodeWithText("世界",useUnmergedTree=true).performClick();compose.onNodeWithText("地区",useUnmergedTree=true).performScrollTo().performClick()
   compose.onNodeWithText("行旅",useUnmergedTree=true).performScrollTo().performClick()
   compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.SetProgress)).performScrollTo().performSemanticsAction(SemanticsActions.SetProgress){it(90f)}
@@ -115,7 +115,7 @@ class ScreenTest {
   choose("依法审理");until {it.caseFile.resolved}
   compose.onNodeWithText("行旅",useUnmergedTree=true).performScrollTo().performClick()
   choose("返回朝廷");until {it.journey==null}
-  while(vm.state.value.speed!=64)compose.onNodeWithText("×${vm.state.value.speed}").performClick()
+  while(vm.state.value.speed!=64)compose.onNodeWithTag("clock-speed").performClick()
   until {it.regions[0].official>=0 && it.regions[0].official!=3 && it.people.any {p->p.id==it.regions[0].official && p.alive}}
   val world=vm.state.value.world!!;assertTrue(world.day>=90);assertEquals("免职候审",world.people[3].role);assertTrue(world.regions[0].corruption<58)
   val store=Store(compose.activity);assertEquals(world,store.load(vm.state.value.slot));store.close();compose.onNodeWithText("概览",useUnmergedTree=true).performScrollTo().performClick();compose.onNodeWithText("地方官：",substring=true).performScrollTo();screenshot("tour-long-term-result")
@@ -131,13 +131,13 @@ class ScreenTest {
   compose.onNode(hasText("御前纪事") or hasText("行旅札记")).assertIsDisplayed();screenshot("story")
   compose.onNodeWithText("行动",useUnmergedTree=true).performScrollTo().performClick()
   compose.waitUntil(30000){compose.onAllNodesWithText("亲拟诏令").fetchSemanticsNodes().isNotEmpty()}
-  if(compose.onAllNodesWithText("暂停时间").fetchSemanticsNodes().isNotEmpty())compose.onNodeWithText("暂停时间").performClick()
+  if(!vm.state.value.paused)compose.onNodeWithTag("clock-toggle").performClick()
   compose.onNodeWithText("休养生息").performScrollTo().performClick()
   compose.waitUntil(10000){compose.onAllNodesWithText("确认执行").fetchSemanticsNodes().isNotEmpty()}
   compose.onNodeWithText("确认执行").assertIsDisplayed().performClick()
   compose.waitUntil(30000){compose.onAllNodesWithText("确认执行").fetchSemanticsNodes().isEmpty()}
-  compose.onNodeWithText("展开  ＋").performScrollTo().performClick()
-  compose.onNode(hasSetTextAction()).performScrollTo().performTextInput("兴修水渠")
+  if(compose.onAllNodesWithTag("custom-decree-input").fetchSemanticsNodes().isEmpty()) compose.onNodeWithTag("fold-toggle-亲拟诏令").performScrollTo().performClick()
+  compose.waitUntil(10000){compose.onAllNodesWithTag("custom-decree-input").fetchSemanticsNodes().isNotEmpty()};compose.onNodeWithTag("custom-decree-input").performScrollTo().performTextInput("兴修水渠")
   compose.onNodeWithText("解析并预览").performScrollTo().performClick()
   compose.waitUntil(10000){compose.onAllNodesWithText("确认执行").fetchSemanticsNodes().isNotEmpty()};screenshot("custom-action")
   compose.onNodeWithText("确认执行").assertIsDisplayed().performClick()
