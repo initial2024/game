@@ -36,6 +36,7 @@ import org.json.JSONObject
 import java.io.ByteArrayInputStream
 
 @Serializable data class MapHostMessage(val type:String,val sceneId:String="",val placeId:String="",val territoryId:String="",val polityId:String="")
+private data class MapMilitaryConfirmation(val command:Command,val slot:Int,val revision:Long)
 object MapBridgePolicy {
  const val ORIGIN="https://appassets.androidplatform.net"
  const val PAGE="$ORIGIN/assets/maps/chronicle_world_map.html"
@@ -156,9 +157,11 @@ private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapO
  var editor by remember {mutableStateOf(false)};var error by remember {mutableStateOf("")};var selection by remember {mutableStateOf<MapHostMessage?>(null)}
  var controller by remember {mutableStateOf<MapWebController?>(null)};var exportData by remember {mutableStateOf("")};var pendingImport by remember {mutableStateOf<MapScenario?>(null)}
  val mapArmyState=remember {mutableStateOf("")};var mapArmy by mapArmyState;var chooseArmy by remember {mutableStateOf(false)}
+ // Bind military confirmation state to the live map composition rather than an old host callback.
+ val mapMilitaryState=remember {mutableStateOf<MapMilitaryConfirmation?>(null)}
  // Do not replace this state holder on slot changes: the retained AndroidView.factory callback captures it.
  // Clear its value and stale selections whenever a different game slot becomes active.
- LaunchedEffect(slot){mapArmyState.value="";chooseArmy=false;selection=null}
+ LaunchedEffect(slot){mapArmyState.value="";chooseArmy=false;selection=null;mapMilitaryState.value=null}
  val currentWorld by rememberUpdatedState(world);val currentSlot by rememberUpdatedState(slot)
  val currentAction by rememberUpdatedState(onAction)
  val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")){uri->if(uri!=null)scope.launch {runCatching {withContext(Dispatchers.IO){require(exportData.isNotBlank()){"导出状态已重置，请重新导出。"};context.contentResolver.openOutputStream(uri)!!.use {it.write(exportData.toByteArray())}}}.onFailure {error="导出失败：${it.message}"}}}
@@ -190,14 +193,20 @@ private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapO
      // The WebView listener survives recompositions. Read the exact state object mutated by the army picker.
      if(mapArmyState.value.isNotEmpty()){
       val target=MapOrders.target(currentWorld,picked.type,picked.placeId.ifEmpty {picked.territoryId.ifEmpty {picked.polityId}})
-      val order=MapOrders.military(currentWorld,target,mapArmyState.value);android.util.Log.i("ChronicleMap","Map military preview command=${order.type} region=${order.region} unit=${mapArmyState.value}");selection=null
-       // The host event originates from WebView while the DOM click is still dispatching.
-       // Queue the native action to the next UI event-loop turn so dialog creation cannot be
-       // interleaved with the underlying WebView pointer-up/click handler.
+      val order=MapOrders.military(currentWorld,target,mapArmyState.value)
+      android.util.Log.i("ChronicleMap","Map military preview command=${order.type} region=${order.region} unit=${mapArmyState.value}")
+      selection=null
+      val rejection=Rules.validate(currentWorld,order)
+      if(rejection!=null){error=rejection;gameVm.message(rejection);android.util.Log.w("ChronicleOrder","map military rejected command=${order.type} reason=$rejection")}
+      else {
+       val requestedSlot=currentSlot;val requestedRevision=currentWorld.revision
        android.os.Handler(android.os.Looper.getMainLooper()).post {
-        android.util.Log.i("ChronicleMap","Dispatch military command=${order.type} region=${order.region} slot=$currentSlot")
-        currentAction(order)
+        if(currentSlot==requestedSlot&&currentWorld.revision==requestedRevision){
+         mapMilitaryState.value=MapMilitaryConfirmation(order,requestedSlot,requestedRevision)
+         android.util.Log.i("ChronicleOrder","map military confirmation stored type=${order.type} slot=$requestedSlot revision=$requestedRevision")
+        }else android.util.Log.w("ChronicleOrder","map military preview expired before showing")
        }
+      }
      }else if(picked.type=="place-select"&&MunicipalEngine.all(currentWorld).any {t->t.id==picked.placeId&&t.rank in listOf("府城","县城")}){gameVm.openCity(picked.placeId);selection=null}else selection=picked
     }.onFailure {android.util.Log.w("ChronicleMap","Selection validation failed",it);error=it.message?:"已拒绝无效地图选择。"}},{isImport->if(isImport)import.launch(arrayOf("application/json","text/plain"))else controller?.export {text->exportData=text;export.launch("chronicle-map.json")}})
     owned=c;controller=c;activity?.mapController=c;MapWebController.created();web
@@ -207,6 +216,29 @@ private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapO
   }
  }
  pendingImport?.let {data->AlertDialog(onDismissRequest={pendingImport=null},title={Text("导入地图沙盘？")},text={Text("场景 ${data.id} 将导入沙盘；若同ID已存在，会替换该沙盘槽位。游戏存档不受影响。")},confirmButton={TextButton(onClick={controller?.importPreview(data);pendingImport=null}){Text("导入沙盘")}},dismissButton={TextButton(onClick={pendingImport=null}){Text("取消")}})}
+ val pendingMilitary=mapMilitaryState.value
+ LaunchedEffect(pendingMilitary){if(pendingMilitary!=null)android.util.Log.i("ChronicleOrder","map military confirmation composed type=${pendingMilitary.command.type} slot=${pendingMilitary.slot} revision=${pendingMilitary.revision}")}
+ if(pendingMilitary!=null)AlertDialog(
+  onDismissRequest={mapMilitaryState.value=null},
+  properties=androidx.compose.ui.window.DialogProperties(dismissOnClickOutside=false),
+  title={Text("确认行动")},
+  text={Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)){
+   Text(RealtimeEngine.describe(world,pendingMilitary.command))
+   Text("请核对军队、目标及费用。确认后由规则引擎办理并自动存档；未确认不会调动部队。")
+  }},
+  confirmButton={TextButton(onClick={
+   val state=gameVm.state.value
+   val problem=when{
+    state.slot!=pendingMilitary.slot||state.world?.revision!=pendingMilitary.revision->"局势已改变，请重新点选地图目标。"
+    state.world==null->"当前存档不存在。"
+    else->Rules.validate(state.world!!,pendingMilitary.command)
+   }
+   mapMilitaryState.value=null
+   if(problem!=null){error=problem;gameVm.message(problem);android.util.Log.w("ChronicleOrder","map military confirmation refused: $problem")}
+   else {android.util.Log.i("ChronicleOrder","map military confirmed type=${pendingMilitary.command.type} slot=${pendingMilitary.slot}");gameVm.submit(listOf(pendingMilitary.command),pendingMilitary.revision)}
+  },enabled=!clock.busy){Text("确认执行")}},
+  dismissButton={TextButton(onClick={mapMilitaryState.value=null}){Text("返回")}}
+ )
  if(chooseArmy)AlertDialog(onDismissRequest={chooseArmy=false},title={Text("选择地图部队")},text={Column(Modifier.heightIn(max=320.dp).verticalScroll(rememberScrollState())){
   Text("选择后点击地图目标。国内按大区调防，外国预览动员或当前战线交战；仍须核对费用并确认。",style=MaterialTheme.typography.bodySmall)
   CrownEngine.units(world).forEach {u->TextButton(onClick={mapArmy=u.id;chooseArmy=false;selection=null;error=""}){Text("${u.name} · ${u.soldiers}人 · 驻${world.regions[u.region].name}")}}
