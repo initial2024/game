@@ -140,7 +140,7 @@ class ScreenTest {
   // Dialog dismissal is not the same as a committed rule-engine transaction.
   compose.waitUntil(30000){!vm.state.value.busy && (vm.state.value.world?.revision ?: -1L)>beforeRestRevision}
   val decreeFold=compose.onNodeWithTag("fold-toggle-亲拟诏令").performScrollTo()
-  val foldState=decreeFold.fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription)
+  val foldState=decreeFold.fetchSemanticsNode().config[SemanticsProperties.StateDescription]
   assertTrue("Unknown decree fold state: $foldState",foldState=="已折叠"||foldState=="已展开")
   if(foldState=="已折叠")decreeFold.performClick()
   val inputFound=runCatching {compose.waitUntil(15000){compose.onAllNodesWithTag("custom-decree-input",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}}.isSuccess
