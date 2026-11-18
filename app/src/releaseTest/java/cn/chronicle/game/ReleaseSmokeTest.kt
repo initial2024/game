@@ -56,6 +56,47 @@ class ReleaseSmokeTest {
  }
  internal fun click(text:String)=click(By.text(text))
  /**
+  * Compose can replace an EditText's accessibility node when the keyboard opens.
+  * Requery after focusing and after each write, and verify the actual field value.
+  */
+ internal fun enterEditText(value:String) {
+  val selector=By.clazz("android.widget.EditText")
+  var focused=false
+  for(attempt in 1..6){
+   val node=device.wait(Until.findObject(selector),1000)?:continue
+   try {
+    node.click()
+    focused=true
+    break
+   }catch(e:androidx.test.uiautomator.StaleObjectException){
+    println("RELEASE_EDIT_FOCUS_STALE_REQUERY attempt=$attempt")
+   }
+  }
+  if(!focused){
+   device.dumpWindowHierarchy(File(ctx.getExternalFilesDir(null),"release-failure.xml"))
+   error("Required release EditText cannot receive focus")
+  }
+  device.waitForIdle(500)
+  for(attempt in 1..8){
+   val node=device.wait(Until.findObject(selector),1000)?:continue
+   try {
+    node.text=value
+    // The release test may proceed only if the current Compose node exposes
+    // exactly the value intended for the city or character conversation.
+    val observed=device.wait(Until.findObject(selector),1000)?.text
+    if(observed==value){
+     device.pressBack()
+     return
+    }
+    println("RELEASE_EDIT_VALUE_NOT_COMMITTED attempt=$attempt actual=${observed?.take(40)}")
+   }catch(e:androidx.test.uiautomator.StaleObjectException){
+    println("RELEASE_EDIT_WRITE_STALE_REQUERY attempt=$attempt")
+   }
+  }
+  device.dumpWindowHierarchy(File(ctx.getExternalFilesDir(null),"release-failure.xml"))
+  error("Required release EditText never committed the specified value")
+ }
+ /**
   * Retry only a known Android emulator launcher ANR, never conceal application failures.
   * Continue only after the real game welcome control is visible.
   */
@@ -120,7 +161,7 @@ class ReleaseSmokeTest {
   until {js("!!document.querySelector('#panel button.listing[title=\"county-jingji-01\"]')")=="true"}
   js("document.querySelector('#panel button.listing[title=\"county-jingji-01\"]').click();true")
   click("官员")
-  val field=device.wait(Until.findObject(By.clazz("android.widget.EditText")),10000)!!;field.click();device.waitForIdle(500);field.text="长安新县";device.pressBack()
+  enterEditText("长安新县")
   click("预览更名 · 5万两");click("确认执行");click("关闭城邑")
   click("▶ 继续")
   until {val ts=world().getJSONArray("towns");(0 until ts.length()).any {ts.getJSONObject(it).optString("name")=="长安新县"}}
@@ -136,7 +177,7 @@ class ReleaseSmokeTest {
   js("document.querySelector('#panel button.listing[title=\"county-jingji-01\"]').click();true")
   click("官员");click("与地方官交谈")
   assertTrue("Model must start unloaded and be offered on send",device.wait(Until.hasObject(By.textContains("发送时自动加载本地 AI")),10000))
-  val chat=device.wait(Until.findObject(By.clazz("android.widget.EditText")),10000)!!;chat.click();device.waitForIdle(500);chat.text="你近来是否安好";device.pressBack();click("发送对话")
+  enterEditText("你近来是否安好");click("发送对话")
   until(210000){device.hasObject(By.textContains("本地模型回复 ·"))}
   screenshot("release-real-county-chat")
   val db=SQLiteDatabase.openDatabase(ctx.getDatabasePath("chronicle.db").path,null,SQLiteDatabase.OPEN_READONLY)
