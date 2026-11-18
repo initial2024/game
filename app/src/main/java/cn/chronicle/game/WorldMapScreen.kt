@@ -155,7 +155,10 @@ private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapO
  val context=LocalContext.current;val activity=generateSequence(context){(it as? android.content.ContextWrapper)?.baseContext}.filterIsInstance<MainActivity>().firstOrNull();val scope=rememberCoroutineScope();val lifecycle=LocalLifecycleOwner.current.lifecycle
  var editor by remember {mutableStateOf(false)};var error by remember {mutableStateOf("")};var selection by remember {mutableStateOf<MapHostMessage?>(null)}
  var controller by remember {mutableStateOf<MapWebController?>(null)};var exportData by remember {mutableStateOf("")};var pendingImport by remember {mutableStateOf<MapScenario?>(null)}
- val mapArmyState=rememberSaveable(slot){mutableStateOf("")};var mapArmy by mapArmyState;var chooseArmy by remember {mutableStateOf(false)}
+ val mapArmyState=remember {mutableStateOf("")};var mapArmy by mapArmyState;var chooseArmy by remember {mutableStateOf(false)}
+ // Do not replace this state holder on slot changes: the retained AndroidView.factory callback captures it.
+ // Clear its value and stale selections whenever a different game slot becomes active.
+ LaunchedEffect(slot){mapArmyState.value="";chooseArmy=false;selection=null}
  val currentWorld by rememberUpdatedState(world);val currentSlot by rememberUpdatedState(slot)
  val currentAction by rememberUpdatedState(onAction)
  val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")){uri->if(uri!=null)scope.launch {runCatching {withContext(Dispatchers.IO){require(exportData.isNotBlank()){"导出状态已重置，请重新导出。"};context.contentResolver.openOutputStream(uri)!!.use {it.write(exportData.toByteArray())}}}.onFailure {error="导出失败：${it.message}"}}}
