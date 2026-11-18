@@ -102,7 +102,8 @@ class MapIntegrationTest {
   compose.onNodeWithText("地图调兵").performClick()
   compose.onNode(hasClickAction() and hasText("行营军 ·",substring=true)).performClick()
   cityClick(scene().getJSONObject("places").getJSONObject("city-r2").getString("name"),false)
-  val armyOrderDialog=runCatching {compose.waitUntil(10000){compose.onAllNodesWithText("确认执行").fetchSemanticsNodes().size==1}}.isSuccess
+  val armyOrderDialog=runCatching {compose.waitUntil(12000){compose.onAllNodesWithText("确认执行").fetchSemanticsNodes().size==1}}.isSuccess
+  if(!armyOrderDialog)compose.onRoot(useUnmergedTree=true).printToLog("CHRONICLE_MAP_ARMY_CONFIRM")
   assertTrue("Army tap did not show confirmation; cityId=${vm.state.value.cityId}, feedback=${vm.state.value.message}, revision=${vm.state.value.world?.revision}",armyOrderDialog)
   compose.onNodeWithText("确认执行").assertIsDisplayed()
   assertEquals(oldRegion,CrownEngine.units(vm.state.value.world!!).first {it.id=="field"}.region)

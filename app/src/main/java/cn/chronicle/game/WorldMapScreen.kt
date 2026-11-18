@@ -190,7 +190,14 @@ private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapO
      // The WebView listener survives recompositions. Read the exact state object mutated by the army picker.
      if(mapArmyState.value.isNotEmpty()){
       val target=MapOrders.target(currentWorld,picked.type,picked.placeId.ifEmpty {picked.territoryId.ifEmpty {picked.polityId}})
-      val order=MapOrders.military(currentWorld,target,mapArmyState.value);android.util.Log.i("ChronicleMap","Map military preview command=${order.type} region=${order.region} unit=${mapArmyState.value}");selection=null;currentAction(order)
+      val order=MapOrders.military(currentWorld,target,mapArmyState.value);android.util.Log.i("ChronicleMap","Map military preview command=${order.type} region=${order.region} unit=${mapArmyState.value}");selection=null
+       // The host event originates from WebView while the DOM click is still dispatching.
+       // Queue the native action to the next UI event-loop turn so dialog creation cannot be
+       // interleaved with the underlying WebView pointer-up/click handler.
+       android.os.Handler(android.os.Looper.getMainLooper()).post {
+        android.util.Log.i("ChronicleMap","Dispatch military command=${order.type} region=${order.region} slot=$currentSlot")
+        currentAction(order)
+       }
      }else if(picked.type=="place-select"&&MunicipalEngine.all(currentWorld).any {t->t.id==picked.placeId&&t.rank in listOf("府城","县城")}){gameVm.openCity(picked.placeId);selection=null}else selection=picked
     }.onFailure {android.util.Log.w("ChronicleMap","Selection validation failed",it);error=it.message?:"已拒绝无效地图选择。"}},{isImport->if(isImport)import.launch(arrayOf("application/json","text/plain"))else controller?.export {text->exportData=text;export.launch("chronicle-map.json")}})
     owned=c;controller=c;activity?.mapController=c;MapWebController.created();web
