@@ -183,11 +183,11 @@ private fun denied()=WebResourceResponse("text/plain","UTF-8",403,"Blocked",mapO
    AndroidView(factory={ctx->
     val (web,c)=createMapWebView(ctx,editor,{error=it},{raw->runCatching {
      val picked=MapBridgePolicy.selection(raw,currentWorld,currentSlot)
-     android.util.Log.i("ChronicleMap","Selected type=${picked.type} place=${picked.placeId}")
+     android.util.Log.i("ChronicleMap","Selected type=${picked.type} place=${picked.placeId} selectedArmy=${mapArmyState.value} slot=$currentSlot")
      // The WebView listener survives recompositions. Read the exact state object mutated by the army picker.
      if(mapArmyState.value.isNotEmpty()){
       val target=MapOrders.target(currentWorld,picked.type,picked.placeId.ifEmpty {picked.territoryId.ifEmpty {picked.polityId}})
-      val order=MapOrders.military(currentWorld,target,mapArmyState.value);selection=null;currentAction(order)
+      val order=MapOrders.military(currentWorld,target,mapArmyState.value);android.util.Log.i("ChronicleMap","Map military preview command=${order.type} region=${order.region} unit=${mapArmyState.value}");selection=null;currentAction(order)
      }else if(picked.type=="place-select"&&MunicipalEngine.all(currentWorld).any {t->t.id==picked.placeId&&t.rank in listOf("府城","县城")}){gameVm.openCity(picked.placeId);selection=null}else selection=picked
     }.onFailure {android.util.Log.w("ChronicleMap","Selection validation failed",it);error=it.message?:"已拒绝无效地图选择。"}},{isImport->if(isImport)import.launch(arrayOf("application/json","text/plain"))else controller?.export {text->exportData=text;export.launch("chronicle-map.json")}})
     owned=c;controller=c;activity?.mapController=c;MapWebController.created();web
