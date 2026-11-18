@@ -9,7 +9,7 @@ on:
         type: boolean
         default: true
       signed_apk:
-        description: Build with the persistent private development signing identity
+        description: Build with the provisioned replacement private signing identity
         type: boolean
         default: false
 concurrency:
@@ -182,16 +182,16 @@ jobs:
           packages: platform-tools
       - uses: gradle/actions/setup-gradle@v4
       - run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'
-      - name: Require EXISTING private signing identity
+      - name: Require provisioned private signing identity
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$CHRONICLE_KEYSTORE_BASE64" || { echo 'BLOCKED_NO_EXISTING_PRIVATE_SIGNING_KEY'; exit 1; }
-          test -n "$CHRONICLE_STORE_PASSWORD" || { echo 'BLOCKED_NO_EXISTING_STORE_PASSWORD'; exit 1; }
-          test -n "$CHRONICLE_KEY_PASSWORD" || { echo 'BLOCKED_NO_EXISTING_KEY_PASSWORD'; exit 1; }
+          test -n "$CHRONICLE_KEYSTORE_BASE64" || { echo 'BLOCKED_NO_PROVISIONED_PRIVATE_SIGNING_KEY'; exit 1; }
+          test -n "$CHRONICLE_STORE_PASSWORD" || { echo 'BLOCKED_NO_PROVISIONED_STORE_PASSWORD'; exit 1; }
+          test -n "$CHRONICLE_KEY_PASSWORD" || { echo 'BLOCKED_NO_PROVISIONED_KEY_PASSWORD'; exit 1; }
           printf '%s' "$CHRONICLE_KEYSTORE_BASE64" | base64 -d > "$CHRONICLE_KEYSTORE"
           chmod 600 "$CHRONICLE_KEYSTORE"
-      - name: Build original-identity ARM64 release
+      - name: Build pinned-identity ARM64 release
         run: ./gradlew :app:assembleRelease
       - name: Verify certificate, package, version and ABI
         shell: bash
@@ -202,7 +202,7 @@ jobs:
           signer="$ANDROID_HOME/build-tools/35.0.0/apksigner"
           "$signer" verify --verbose "$apk"
           cert="$("$signer" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n 1 | tr -d ':' | tr '[:upper:]' '[:lower:]')"
-          expected="ebd2aa94bee6d781d020e45a203c9b8f2d416a4f4b654da7cfadc9a67e438c49"
+          expected="0ed01577085333ba3d64c54f25304aaa4068e2b37b6f7c5d7aa2baf81a4d3b87"
           if [ "$cert" != "$expected" ]; then echo 'BLOCKED_SIGNING_CERTIFICATE_MISMATCH'; exit 1; fi
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" > "$RUNNER_TEMP/chronicle-badging.txt"
           grep -q "^package: name='cn.chronicle.shanhe' versionCode='13' versionName='0.8.0'" "$RUNNER_TEMP/chronicle-badging.txt" || { echo 'BLOCKED_RELEASE_VERSION_OR_PACKAGE_MISMATCH'; exit 1; }
@@ -235,7 +235,7 @@ jobs:
             "version":"0.8.0", "versionCode":13, "applicationId":"cn.chronicle.shanhe",
             "source_sha":os.environ["GITHUB_SHA"], "workflow_run_id":os.environ["GITHUB_RUN_ID"],
             "signed":True,
-            "certificate_sha256":"ebd2aa94bee6d781d020e45a203c9b8f2d416a4f4b654da7cfadc9a67e438c49",
+            "certificate_sha256":"0ed01577085333ba3d64c54f25304aaa4068e2b37b6f7c5d7aa2baf81a4d3b87",
             "apk_sha256":hashlib.sha256(apk.read_bytes()).hexdigest(),
             "apk_bytes":apk.stat().st_size
           },indent=2,ensure_ascii=False)+"\n",encoding="utf-8")
