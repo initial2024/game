@@ -38,7 +38,18 @@ class ReleaseSmokeTest {
     device.waitForIdle(700)
    }
    val node=device.wait(Until.findObject(selector),1000)
-   if(node!=null&&node.visibleBounds.height()>8){node.click();device.waitForIdle(500);return}
+   if(node!=null){
+    // Compose may replace a UiObject2 between lookup and bounds/click.
+    // Recover this specific stale node by finding the SAME required selector again.
+    // Do not ignore a missing control or relax the downstream save/map/GGUF assertions.
+    val clicked=try {
+     if(node.visibleBounds.height()>8){node.click();true}else false
+    }catch(e:androidx.test.uiautomator.StaleObjectException){
+     println("RELEASE_STALE_NODE_REQUERY attempt=${attempt+1} selector=$selector")
+     return@repeat
+    }
+    if(clicked){device.waitForIdle(500);return}
+   }
    if(scroll)device.swipe(device.displayWidth/2,device.displayHeight-140,device.displayWidth/2,230,12)
   }
   device.dumpWindowHierarchy(File(ctx.getExternalFilesDir(null),"release-failure.xml"));error("Missing release control: $selector package=${device.currentPackageName}")
