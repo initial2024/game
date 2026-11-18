@@ -29,7 +29,14 @@ class ReleaseSmokeTest {
  private val device get()=UiDevice.getInstance(ins)
  internal fun until(timeout:Long=20000,test:()->Boolean){val end=android.os.SystemClock.uptimeMillis()+timeout;while(android.os.SystemClock.uptimeMillis()<end){if(runCatching(test).getOrDefault(false))return;android.os.SystemClock.sleep(150)};error("Release condition timed out")}
  internal fun click(selector:BySelector,scroll:Boolean=true){
-  repeat(if(scroll)14 else 1){
+  repeat(if(scroll)14 else 1){attempt->
+   // Recover only a verified emulator launcher ANR. All actual app controls remain mandatory.
+   if(device.findObject(By.textContains("Quickstep isn't responding"))!=null){
+    val waitAction=device.findObject(By.text("Wait"))?:error("Quickstep ANR lacks its Wait control")
+    println("RELEASE_MIDRUN_QUICKSTEP_RECOVERY attempt=${attempt+1} selector=$selector")
+    waitAction.click()
+    device.waitForIdle(700)
+   }
    val node=device.wait(Until.findObject(selector),1000)
    if(node!=null&&node.visibleBounds.height()>8){node.click();device.waitForIdle(500);return}
    if(scroll)device.swipe(device.displayWidth/2,device.displayHeight-140,device.displayWidth/2,230,12)
