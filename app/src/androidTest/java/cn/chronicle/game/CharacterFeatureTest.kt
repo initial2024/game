@@ -158,7 +158,7 @@ class CharacterFeatureTest {
   scrollActivate(compose.onNodeWithText("预览宣战与动员"));confirm();compose.waitUntil(10000){vm.state.value.world!!.pending.any {it.command.type=="DECLARE_WAR"}&&!vm.state.value.busy};flowTime(vm){(vm.state.value.world!!.war?.days?:0)>=14}
   for((mode,cost) in listOf("速攻" to 75,"围困" to 55)){
    scrollActivate(compose.onNodeWithTag("war-mode-$mode",useUnmergedTree=true));scrollActivate(compose.onNodeWithText(if(mode=="速攻")"预览速攻突击"else"预览围困断粮"))
-   compose.onNodeWithTag("action-preview-description",useUnmergedTree=true).assertExists().assertTextContains("${cost}万两",substring=true).assertIsDisplayed();compose.onNodeWithText("取消").performClick()
+   compose.onNodeWithTag("action-preview-description",useUnmergedTree=true).assertExists().assertTextContains("${cost}万两",substring=true).assertIsDisplayed();compose.onNodeWithText("返回").performClick()
    assertTrue(vm.state.value.world!!.pending.none {it.command.type=="WAR_BATTLE"})
   }
   scrollActivate(compose.onNodeWithTag("war-mode-稳战",useUnmergedTree=true))
