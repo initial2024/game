@@ -28,6 +28,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -147,7 +149,7 @@ class MainActivity:ComponentActivity() {
  }
 }
 @Composable private fun BadgeText(s:String) { Text(s,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.secondary,modifier=Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.secondary.copy(alpha=.1f)).padding(horizontal=8.dp,vertical=6.dp)) }
-@Composable internal fun Fold(title:String,openInitially:Boolean=false,content:@Composable ColumnScope.()->Unit) { var open by rememberSaveable {mutableStateOf(openInitially)};Panel(title) { TextButton(onClick={open=!open},modifier=Modifier.fillMaxWidth().testTag("fold-toggle-$title")) {Text(if(open) "收起  −" else "展开  ＋")};if(open) content() } }
+@Composable internal fun Fold(title:String,openInitially:Boolean=false,content:@Composable ColumnScope.()->Unit) { var open by rememberSaveable {mutableStateOf(openInitially)};Panel(title) { TextButton(onClick={open=!open},modifier=Modifier.fillMaxWidth().testTag("fold-toggle-$title").semantics { stateDescription=if(open)"已展开" else "已折叠" }) {Text(if(open) "收起  −" else "展开  ＋")};if(open) content() } }
 @Composable private fun Stat(name:String,value:Int) { Row(verticalAlignment=Alignment.CenterVertically) { Text(name,Modifier.width(74.dp),style=MaterialTheme.typography.bodyMedium);LinearProgressIndicator(progress={value/100f},modifier=Modifier.weight(1f).height(5.dp),color=MaterialTheme.colorScheme.secondary);Text(" $value",Modifier.width(38.dp),style=MaterialTheme.typography.labelMedium) } }
 @Composable private fun Court(w:World,ask:(Command)->Unit,vm:GameViewModel) {
  val n=w.nation;var group by rememberSaveable {mutableStateOf("财政")};var projectPage by rememberSaveable {mutableIntStateOf(0)}

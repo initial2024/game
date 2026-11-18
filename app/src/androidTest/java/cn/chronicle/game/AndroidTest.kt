@@ -16,6 +16,7 @@ import kotlinx.serialization.encodeToString
 import androidx.compose.ui.test.*
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.lifecycle.ViewModelProvider
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import org.junit.Rule
@@ -132,12 +133,20 @@ class ScreenTest {
   compose.onNodeWithText("行动",useUnmergedTree=true).performScrollTo().performClick()
   compose.waitUntil(30000){compose.onAllNodesWithText("亲拟诏令").fetchSemanticsNodes().isNotEmpty()}
   if(!vm.state.value.paused)compose.onNodeWithTag("clock-toggle").performClick()
+  val beforeRestRevision=requireNotNull(vm.state.value.world).revision
   compose.onNodeWithText("休养生息").performScrollTo().performClick()
   compose.waitUntil(10000){compose.onAllNodesWithText("确认执行").fetchSemanticsNodes().isNotEmpty()}
   compose.onNodeWithText("确认执行").assertIsDisplayed().performClick()
-  compose.waitUntil(30000){compose.onAllNodesWithText("确认执行").fetchSemanticsNodes().isEmpty()}
-  if(compose.onAllNodesWithTag("custom-decree-input").fetchSemanticsNodes().isEmpty()) compose.onNodeWithTag("fold-toggle-亲拟诏令").performScrollTo().performClick()
-  compose.waitUntil(10000){compose.onAllNodesWithTag("custom-decree-input").fetchSemanticsNodes().isNotEmpty()};compose.onNodeWithTag("custom-decree-input").performScrollTo().performTextInput("兴修水渠")
+  // Dialog dismissal is not the same as a committed rule-engine transaction.
+  compose.waitUntil(30000){!vm.state.value.busy && (vm.state.value.world?.revision ?: -1L)>beforeRestRevision}
+  val decreeFold=compose.onNodeWithTag("fold-toggle-亲拟诏令").performScrollTo()
+  val foldState=decreeFold.fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription)
+  assertTrue("Unknown decree fold state: $foldState",foldState=="已折叠"||foldState=="已展开")
+  if(foldState=="已折叠")decreeFold.performClick()
+  val inputFound=runCatching {compose.waitUntil(15000){compose.onAllNodesWithTag("custom-decree-input",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}}.isSuccess
+  if(!inputFound) compose.onRoot(useUnmergedTree=true).printToLog("CHRONICLE_DECREE_SEMANTICS")
+  assertTrue("Decree input absent after transaction; fold=$foldState revision=${vm.state.value.world?.revision} busy=${vm.state.value.busy}",inputFound)
+  compose.onNodeWithTag("custom-decree-input",useUnmergedTree=true).performScrollTo().performTextInput("兴修水渠")
   compose.onNodeWithText("解析并预览").performScrollTo().performClick()
   compose.waitUntil(10000){compose.onAllNodesWithText("确认执行").fetchSemanticsNodes().isNotEmpty()};screenshot("custom-action")
   compose.onNodeWithText("确认执行").assertIsDisplayed().performClick()
