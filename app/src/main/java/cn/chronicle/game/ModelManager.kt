@@ -121,7 +121,7 @@ class ModelManager(private val app:Context) {
    val temp=File(root,"import.part")
    try {
     app.contentResolver.openInputStream(uri)?.use { input -> temp.outputStream().use {out->val buffer=ByteArray(65536);var total=0L;while(true){val n=input.read(buffer);if(n<0)break;total+=n;require(total<=MAX_SIZE){"模型超过 8 GiB 上限"};out.write(buffer,0,n)}} }?:error("无法打开所选文件")
-    checkHeader(temp);val digest=hash(temp);require(temp.renameTo(model)){"无法保存模型"};prefs.edit().putString("sha",digest).putString("active","本地导入模型").apply();update("导入完成；兼容性以实际加载为准")
+    checkHeader(temp);val digest=hash(temp);require(temp.renameTo(model)){"无法保存模型"};prefs.edit().putString("sha",digest).putString("active","本地导入模型").remove("active-spec").apply();update("导入完成；兼容性以实际加载为准")
    } finally {temp.delete()}
   }} catch(e:Exception){update("导入失败：${e.message}")}}
  }
@@ -171,6 +171,8 @@ class ModelManager(private val app:Context) {
  }
  private var activeContext=1024
  fun pendingDownload():ModelSpec?=runCatching {SaveJson.decodeFromString<ModelSpec>(prefs.getString("pending-spec","")!!).also {it.verify()} }.getOrNull()
+ /** Persist the last successfully verified download separately from a failed or paused candidate. */
+ fun installedDownload():ModelSpec?=runCatching {SaveJson.decodeFromString<ModelSpec>(prefs.getString("active-spec","")!!).also {it.verify()} }.getOrNull()
  private fun format(messages:List<Pair<String,String>>)=NativeBridge.formatChat(messages.map {it.first}.toTypedArray(),messages.map {it.second.toByteArray()}.toTypedArray(),chatTemplate)
  private fun fits(prompt:ByteArray,tokens:Int)=NativeBridge.countTokens(prompt)+tokens+8<=activeContext
  suspend fun chat(w:World,p:Person,history:List<DialogueRecord>,text:String,progress:(String)->Unit):SpokenReply=gate.withLock {
@@ -209,7 +211,7 @@ class ModelManager(private val app:Context) {
  }
  fun cancel() {loadingJob?.cancel();if(isLoaded || mutable.value.working) runCatching {NativeBridge.cancel()}}
  fun unloadAsync() {cancel();scope.launch {gate.withLock {runCatching {NativeBridge.unload()};mutable.value=mutable.value.copy(loaded=false);update("模型已卸载，内存已释放")}}}
- fun delete() {if(mutable.value.working)return;cancel();scope.launch {gate.withLock {runCatching{NativeBridge.unload()};model.delete();partial.delete();prefs.edit().remove("sha").apply();mutable.value=ModelState();update("已移除本地模型文件")}}}
+ fun delete() {if(mutable.value.working)return;cancel();scope.launch {gate.withLock {runCatching{NativeBridge.unload()};model.delete();partial.delete();prefs.edit().remove("sha").remove("active").remove("active-spec").apply();mutable.value=ModelState();update("已移除本地模型文件")}}}
  fun close() {cancelSearch();pause.set(true);cancel();scope.launch {gate.withLock {runCatching {NativeBridge.unload()}};scope.cancel()}}
  companion object {
   const val URL_MODEL="https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/9217f5db79a29953eb74d5343926648285ec7e67/qwen2.5-0.5b-instruct-q4_k_m.gguf"
@@ -280,6 +282,11 @@ class ModelManager(private val app:Context) {
       Text("线程与上下文在下次加载生效。内存不足或模型不兼容时保留规则模式。人物对话使用模型自带聊天模板。",style=MaterialTheme.typography.bodySmall)
      }
     }
+   }
+   if(state.exists) {
+    manager.installedDownload()?.let {spec->TextButton(onClick={propose(spec)},enabled=!state.working&&!state.loaded,modifier=Modifier.testTag("redownload-installed-model")){Text("重新下载：${spec.label}")}}
+    if(manager.installedDownload()==null)Text("当前模型来自本地导入或旧版本；如需重新下载，请从推荐或模型库中选择相同GGUF。",style=MaterialTheme.typography.bodySmall)
+    if(state.loaded)Text("重新下载前请先卸载内存，已存档内容不会删除。",style=MaterialTheme.typography.labelSmall)
    }
    Row{TextButton(onClick={manager.load()},enabled=state.exists&&!state.working&&!state.loaded){Text("加载已安装")};TextButton(onClick={vm.cancelAi();manager.unloadAsync()},enabled=state.loaded){Text("卸载内存")};TextButton(onClick={manager.delete()},enabled=!state.working){Text("移除文件")}}
   }}

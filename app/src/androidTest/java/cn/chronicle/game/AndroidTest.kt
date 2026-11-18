@@ -61,6 +61,28 @@ class StorageTest {
   val snapshot=buildJsonObject {put("format",2);put("world",world);put("history",history);put("dialogues",JsonArray(emptyList()));put("sha256",digest)}.toString()
   Store(context,"old-command-import-test.db").use {store->store.import(snapshot,1);assertEquals(out.world.nation,store.load(1)!!.nation);assertEquals(171,store.load(1)!!.towns.count {it.rank=="县城"});assertEquals("FARM",store.history(1).single().commands.single().type)}
  }
+ @Test fun deleteSaveSlotClearsOnlyItsHistoryAndDialogueAndCanBeReused() {
+  val context=InstrumentationRegistry.getInstrumentation().targetContext
+  val name="delete-slot-verification.db"
+  context.deleteDatabase(name)
+  val w=NewGame.create("删除槽测试","景衡","综合发展","标准",1847)
+  Store(context,name).use {store->
+   store.create(1,w);store.create(2,w)
+   val out=Rules.apply(w,Command("FACTORY"),w.revision)
+   store.commit(1,w.revision,out)
+   store.appendDialogue(1,DialogueRecord(w.people.first().id,"user","查看地方史书",w.day,"player"))
+   assertEquals(1,store.history(1).size)
+   assertEquals(1,store.dialogueCount(1))
+   store.deleteSlot(1)
+   assertNull(store.load(1));assertTrue(store.history(1).isEmpty())
+   assertEquals(0,store.dialogueCount(1))
+   assertEquals(w,store.load(2))
+   store.create(1,w)
+   assertEquals(w,store.load(1))
+   assertTrue(store.history(1).isEmpty())
+  }
+  Store(context,name).use {store->assertEquals(w,store.load(1));assertEquals(w,store.load(2))}
+ }
  @Test fun corruptModelHeaderRejected() {
   val f=File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir,"invalid.gguf");f.writeBytes(ByteArray(64))
   try {ModelManager.checkHeader(f);fail("invalid GGUF accepted")}catch(_:IllegalArgumentException){}finally {f.delete()}

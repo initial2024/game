@@ -64,6 +64,7 @@ class MainActivity:ComponentActivity() {
  var openMapOnWorld by rememberSaveable { mutableStateOf(false) }
  var new by rememberSaveable { mutableStateOf(false) }
  val planState=remember(ui.slot) { mutableStateOf<Preview?>(null) }; var plan by planState; var expected by remember(ui.slot) { mutableLongStateOf(0) };var decreePerson by remember(ui.slot) {mutableStateOf<Int?>(null)};var decreeText by remember(ui.slot) {mutableStateOf("")};var planSlot by remember(ui.slot) {mutableIntStateOf(0)}
+ LaunchedEffect(ui.world==null) { if(ui.world==null)planState.value=null }
  val schemes=listOf(darkColorScheme(primary=Gold,secondary=Jade,background=Color(0xFF101D1C),surface=Color(0xFF192B29),surfaceVariant=Color(0xFF253A35),surfaceContainer=Color(0xFF192B29),surfaceContainerHigh=Color(0xFF203631),surfaceContainerHighest=Color(0xFF29423B),primaryContainer=Color(0xFF3C4B34),secondaryContainer=Color(0xFF29463E),onPrimary=Color(0xFF17261F)), lightColorScheme(primary=Color(0xFF546839),secondary=Color(0xFF326759),background=Color(0xFFF6F3EA),surface=Color(0xFFFFFDF7)), darkColorScheme(primary=Color(0xFFC8BA86),secondary=Color(0xFFABC09B),background=Color(0xFF22291F),surface=Color(0xFF30392A)))
  MaterialTheme(colorScheme=schemes[theme.coerceIn(0,2)]) {
   val d=LocalDensity.current
@@ -275,13 +276,17 @@ class MainActivity:ComponentActivity() {
  val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) {uri->if(uri!=null) scope.launch {runCatching {val text=vm.export();withContext(Dispatchers.IO){ctx.contentResolver.openOutputStream(uri)?.use {it.write(text.toByteArray())}?:error("文件无法打开")}}.onSuccess {vm.message("存档已导出到你选择的位置。")}.onFailure {vm.message(it.message?:"导出失败")} }}
  val exportChats=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")){uri->if(uri!=null)scope.launch {runCatching {vm.exportDialogues(uri)}.onSuccess {vm.message("全部对话已导出，游戏内记录仍保留。")}.onFailure {vm.message("导出失败：${it.message}")}}}
  val import=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {uri->if(uri!=null) scope.launch {runCatching {withContext(Dispatchers.IO){ctx.contentResolver.openInputStream(uri)?.use { readBoundedSave(it)}?:error("文件无法打开")}}.onSuccess {vm.import(it)}.onFailure {vm.message(it.message?:"导入失败")} }}
- var group by rememberSaveable {mutableStateOf("存档")};var savePage by rememberSaveable {mutableIntStateOf(0)};var selectedEntry by remember {mutableStateOf<Entry?>(null)}
+ var group by rememberSaveable {mutableStateOf("存档")};var savePage by rememberSaveable {mutableIntStateOf(0)};var selectedEntry by remember {mutableStateOf<Entry?>(null)};var deletingSlot by remember {mutableStateOf<Slot?>(null)}
+ LaunchedEffect(ui.slots.size){savePage=savePage.coerceAtMost((ui.slots.size-1).coerceAtLeast(0)/4)}
  LaunchedEffect(group) {if(group=="史书")vm.page(0)}
  Page {
   Choices(listOf("存档","史书","模型","设置"),group,{group=it})
   when(group) {
    "存档" -> Panel("纪年存档","自动保存 · 最多8个独立槽位") {
-    ui.slots.drop(savePage*4).take(4).forEach {slot->OutlinedButton(onClick={vm.load(slot.id)},enabled=!ui.busy,modifier=Modifier.fillMaxWidth()){Text("${if(slot.id==ui.slot) "●" else "○"} 槽${slot.id} · ${slot.name} · ${slot.turn*3}个月")}}
+    ui.slots.drop(savePage*4).take(4).forEach {slot->Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)){
+     OutlinedButton(onClick={vm.load(slot.id)},enabled=!ui.busy,modifier=Modifier.weight(1f)){Text("${if(slot.id==ui.slot) "●" else "○"} 槽${slot.id} · ${slot.name} · ${slot.turn*3}个月")}
+     TextButton(onClick={deletingSlot=slot},enabled=!ui.busy,modifier=Modifier.testTag("delete-save-${slot.id}")){Text("删除")}
+    }}
     if(ui.slots.size>4)Row {TextButton(onClick={savePage--},enabled=savePage>0){Text("上一页")};TextButton(onClick={savePage++},enabled=(savePage+1)*4<ui.slots.size){Text("下一页")}}
     Row {TextButton(onClick=new){Text("新建")};TextButton(onClick={vm.manualSave()}){Text("手动快照")}}
     TextButton(onClick={exportChats.launch("山河纪年-全部对话-槽${ui.slot}.json")}){Text("导出全部对话")}
@@ -304,6 +309,7 @@ class MainActivity:ComponentActivity() {
    }
   }
  }
+ deletingSlot?.let {slot->AlertDialog(onDismissRequest={deletingSlot=null},title={Text("永久删除存档槽 ${slot.id}？")},text={Text("这会永久删除该槽的世界状态、史书记载和人物对话，不影响其他存档或本地模型。此操作不可撤销；如需保留，请先取消并导出该槽。")},confirmButton={TextButton(onClick={vm.deleteSave(slot.id);deletingSlot=null},enabled=!ui.busy,modifier=Modifier.testTag("confirm-delete-save")){Text("永久删除")}},dismissButton={TextButton(onClick={deletingSlot=null}){Text("取消")}})}
  selectedEntry?.let {e->AlertDialog(onDismissRequest={selectedEntry=null},title={Text("${e.day}日 · ${e.action}")},text={Column(Modifier.heightIn(max=420.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)){Text(e.narrative);HorizontalDivider();e.ledger.forEach {Text(it,style=MaterialTheme.typography.bodySmall)};Text("种子${e.seed} · 决策${e.revision}",style=MaterialTheme.typography.labelSmall)}},confirmButton={TextButton(onClick={selectedEntry=null}){Text("关闭")}})}
 }
 @Composable private fun NewDialog(close:()->Unit,start:(String,String,String,String,String,String,String,String,String,Boolean,Boolean)->Unit) {

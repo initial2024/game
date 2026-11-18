@@ -87,8 +87,11 @@ class ModelDownloadService:Service(){
       require(offset==spec.bytes){"下载未完整，保留断点"};update("正在校验SHA-256",progress=1f)
       if(ModelManager.hash(part)!=spec.sha256){part.delete();error("完整性校验失败，拒绝安装")}
       if(ModelTransfer.paused.get())break
-      ModelManager.checkHeader(part);check(part.renameTo(model)){"无法安装已校验文件"}
-      prefs.edit().putString("sha",spec.sha256).putString("active",spec.label).commit();update("${spec.label}下载完成，校验通过",false,1f,true);installed=true;break
+      ModelManager.checkHeader(part)
+      // Replace only after complete download and SHA-256 verification; retain old model on failure.
+      try {java.nio.file.Files.move(part.toPath(),model.toPath(),java.nio.file.StandardCopyOption.ATOMIC_MOVE,java.nio.file.StandardCopyOption.REPLACE_EXISTING)}
+      catch(_:java.nio.file.AtomicMoveNotSupportedException){java.nio.file.Files.move(part.toPath(),model.toPath(),java.nio.file.StandardCopyOption.REPLACE_EXISTING)}
+      prefs.edit().putString("sha",spec.sha256).putString("active",spec.label).putString("active-spec",SaveJson.encodeToString(spec)).commit();update("${spec.label}下载完成，校验通过",false,1f,true);installed=true;break
      }catch(e:Exception){failure=e;if(!ModelTransfer.paused.get())update("当前源失败，保留断点并尝试下一源：${e.message?.take(80)}")}
     }
     if(!installed)update(if(ModelTransfer.paused.get())"已暂停；返回模型中心可继续"else"下载失败：${failure?.message?.take(160)}；可切源继续",false)

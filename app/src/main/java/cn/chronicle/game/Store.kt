@@ -52,6 +52,13 @@ class Store(context:Context,databaseName:String="chronicle.db"):SQLiteOpenHelper
   db.execSQL("INSERT INTO history(slot,revision,json) SELECT ?,revision,json FROM history WHERE slot=?",arrayOf(to,from))
   db.execSQL("INSERT INTO dialogues(slot,person,role,content,day,source) SELECT ?,person,role,content,day,source FROM dialogues WHERE slot=? ORDER BY id",arrayOf(to,from))
  } }
+ /** Delete exactly one game slot and its attached chronicles and conversations atomically. */
+ fun deleteSlot(slot:Int) { require(slot in 1..8){"存档槽超出范围"};transaction { db ->
+  val deleted=db.delete("saves","slot=?",arrayOf(slot.toString()))
+  require(deleted==1){"存档不存在或已删除"}
+  db.delete("history","slot=?",arrayOf(slot.toString()))
+  db.delete("dialogues","slot=?",arrayOf(slot.toString()))
+ } }
  fun history(slot:Int,offset:Int=0,limit:Int=20):List<Entry> = readableDatabase.rawQuery("SELECT json FROM history WHERE slot=? ORDER BY revision DESC LIMIT ? OFFSET ?",arrayOf(slot.toString(),limit.coerceIn(1,10001).toString(),offset.toString())).use { c -> buildList { while(c.moveToNext()) add(SaveJson.decodeFromString<Entry>(c.getString(0))) } }
  fun dialogues(slot:Int,person:Int?=null,limit:Int=2000):List<DialogueRecord> = readableDatabase.rawQuery("SELECT person,role,content,day,source FROM dialogues WHERE slot=?"+(if(person!=null)" AND person=?" else "")+" ORDER BY id DESC LIMIT ?",(listOf(slot.toString())+(if(person!=null)listOf(person.toString())else emptyList())+limit.coerceIn(1,2000).toString()).toTypedArray()).use {c->buildList {while(c.moveToNext())add(DialogueRecord(c.getInt(0),c.getString(1),c.getString(2),c.getInt(3),c.getString(4)))}.reversed()}
  fun appendDialogue(slot:Int,record:DialogueRecord){transaction {db->val w=load(slot)?:error("存档不存在");checkDialogue(record,w);putDialogue(db,slot,record)}}

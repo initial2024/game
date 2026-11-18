@@ -92,6 +92,25 @@ class GameViewModel(app:Application):AndroidViewModel(app) {
  }
  fun load(id:Int)=task { cancelAi();chatMutable.value=ChatState(); val w=loadWorld(id)?:error("存档不存在");resumePrefs.edit().putInt("slot",id).commit();mutable.update { currentUi -> currentUi.copy(world=w,slot=id,cityId=null,paused=true,aiText="",archive=emptyList(),offset=0,message="存档已读取。") } }
  fun manualSave()=task { val id=(1..8).firstOrNull { n->store.slots().none { it.id==n } } ?: error("没有空存档槽");store.copyTo(mutable.value.slot,id);mutable.update { currentUi -> currentUi.copy(slots=store.slots(),message="已建立独立快照：槽 $id") } }
+ fun deleteSave(id:Int)=task {
+  require(id in 1..8){"存档槽超出范围"}
+  val active=mutable.value.world!=null&&mutable.value.slot==id
+  if(active)cancelAi()
+  store.deleteSlot(id)
+  val remaining=store.slots()
+  if(active) {
+   // A removed active world must never keep ticking or accept an old map order.
+   mutable.update { it.copy(world=null,paused=true,cityId=null,aiText="",archive=emptyList(),offset=0) }
+   chatMutable.value=ChatState()
+   val fallback=remaining.firstOrNull()
+   val nextId=fallback?.id?:1
+   val nextWorld=fallback?.let {loadWorld(it.id)}
+   resumePrefs.edit().putInt("slot",nextId).commit()
+   mutable.update {it.copy(world=nextWorld,slot=nextId,slots=remaining,paused=true,cityId=null,archive=emptyList(),offset=0,aiText="",message=if(nextWorld==null)"已删除槽 $id，当前没有存档，请重新开局。" else "已删除槽 $id，自动切换至槽 $nextId（时间已暂停）。")}
+  } else {
+   mutable.update {it.copy(slots=remaining,message="已永久删除槽 $id，其他存档不变。")}
+  }
+ }
  fun page(offset:Int)=task { val p=offset.coerceAtLeast(0);mutable.update { currentUi -> currentUi.copy(archive=store.history(mutable.value.slot,p,5),offset=p) } }
  suspend fun exportDialogues(uri:android.net.Uri)=withContext(Dispatchers.IO){lock.withLock {getApplication<Application>().contentResolver.openOutputStream(uri)?.bufferedWriter()?.use {store.exportDialogues(mutable.value.slot,it)}?:error("文件无法打开")}}
  suspend fun export():String=withContext(Dispatchers.IO) { lock.withLock { store.export(mutable.value.slot) } }
