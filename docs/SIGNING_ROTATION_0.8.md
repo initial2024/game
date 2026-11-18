@@ -4,9 +4,11 @@ The owner explicitly authorized creating a NEW Android release signing identity 
 
 ## Public, non-secret certificate fingerprint
 
-- New certificate SHA-256: `0ed01577085333ba3d64c54f25304aaa4068e2b37b6f7c5d7aa2baf81a4d3b87`
+- New certificate SHA-256: `fd1025cdc4d99c82720d6af49812d6b0491c5be03305a086608d97f0615fa768`
 - Algorithm: RSA-3072, SHA256withRSA, PKCS#12
 - Key alias: `chronicle`
+- Verified PKCS#12 keystore SHA-256 (private backup file, do not publish its bytes): `5194836b7d2ea4bc347630e2181362cc13b22a1d3432a3f0ffe207d11b6915df`
+- Certificate was regenerated and locally checked from the private PKCS#12 backup; previous placeholder certificate (`0ed01577...`) is not the signing identity.
 - Old certificate SHA-256 (legacy APKs only): `ebd2aa94bee6d781d020e45a203c9b8f2d416a4f4b654da7cfadc9a67e438c49`
 - Application ID remains `cn.chronicle.shanhe`
 - v0.8.0: `versionCode=13`, `versionName=0.8.0`
@@ -20,7 +22,7 @@ Do not attempt to alter `applicationId` merely to bypass the signing mismatch. T
 
 ## Private key safety
 
-The newly generated `private-signing.p12` and its passwords must **never** be committed or uploaded as a public artifact or included in a PR comment. Store private backup copies offline in an encrypted vault. A lost new signing key prevents future in-place updates of newly signed releases.
+The new `private-signing.p12` and its passwords must **never** be committed or uploaded as a public artifact or included in a PR comment. Store private backup copies offline in an encrypted vault. A lost new signing key prevents future in-place updates of newly signed releases.
 
 The repository owner must set three GitHub Actions repository secrets using the private handoff files (not committed):
 

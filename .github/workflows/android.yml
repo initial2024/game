@@ -202,7 +202,7 @@ jobs:
           signer="$ANDROID_HOME/build-tools/35.0.0/apksigner"
           "$signer" verify --verbose "$apk"
           cert="$("$signer" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n 1 | tr -d ':' | tr '[:upper:]' '[:lower:]')"
-          expected="0ed01577085333ba3d64c54f25304aaa4068e2b37b6f7c5d7aa2baf81a4d3b87"
+          expected="fd1025cdc4d99c82720d6af49812d6b0491c5be03305a086608d97f0615fa768"
           if [ "$cert" != "$expected" ]; then echo 'BLOCKED_SIGNING_CERTIFICATE_MISMATCH'; exit 1; fi
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" > "$RUNNER_TEMP/chronicle-badging.txt"
           grep -q "^package: name='cn.chronicle.shanhe' versionCode='13' versionName='0.8.0'" "$RUNNER_TEMP/chronicle-badging.txt" || { echo 'BLOCKED_RELEASE_VERSION_OR_PACKAGE_MISMATCH'; exit 1; }
@@ -235,7 +235,7 @@ jobs:
             "version":"0.8.0", "versionCode":13, "applicationId":"cn.chronicle.shanhe",
             "source_sha":os.environ["GITHUB_SHA"], "workflow_run_id":os.environ["GITHUB_RUN_ID"],
             "signed":True,
-            "certificate_sha256":"0ed01577085333ba3d64c54f25304aaa4068e2b37b6f7c5d7aa2baf81a4d3b87",
+            "certificate_sha256":"fd1025cdc4d99c82720d6af49812d6b0491c5be03305a086608d97f0615fa768",
             "apk_sha256":hashlib.sha256(apk.read_bytes()).hexdigest(),
             "apk_bytes":apk.stat().st_size
           },indent=2,ensure_ascii=False)+"\n",encoding="utf-8")
