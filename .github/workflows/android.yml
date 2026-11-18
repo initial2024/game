@@ -160,9 +160,12 @@ jobs:
           name: android-real-model-report
           path: ${{ runner.temp }}/android-real-model-report
   signed-apk:
-    if: github.event_name == 'workflow_dispatch' && inputs.signed_apk
-    needs: build
+    # Do not sign untested source or forked PRs: all four upstream gates must pass.
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/feature/character-chat-hf-search') || (github.event_name == 'workflow_dispatch' && inputs.signed_apk && github.ref == 'refs/heads/feature/character-chat-hf-search') }}
+    needs: [build, browser-map, android-test, release-smoke]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       CHRONICLE_KEYSTORE_BASE64: ${{ secrets.CHRONICLE_KEYSTORE_BASE64 }}
       CHRONICLE_STORE_PASSWORD: ${{ secrets.CHRONICLE_STORE_PASSWORD }}
@@ -178,19 +181,71 @@ jobs:
         with:
           packages: platform-tools
       - uses: gradle/actions/setup-gradle@v4
-      - name: Require persistent signing secrets
+      - run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'
+      - name: Require EXISTING private signing identity
         shell: bash
         run: |
-          test -n "$CHRONICLE_KEYSTORE_BASE64" || { echo 'Persistent signing key missing; refusing to replace identity.'; exit 1; }
-          test -n "$CHRONICLE_STORE_PASSWORD"
-          test -n "$CHRONICLE_KEY_PASSWORD"
+          set -euo pipefail
+          test -n "$CHRONICLE_KEYSTORE_BASE64" || { echo 'BLOCKED_NO_EXISTING_PRIVATE_SIGNING_KEY'; exit 1; }
+          test -n "$CHRONICLE_STORE_PASSWORD" || { echo 'BLOCKED_NO_EXISTING_STORE_PASSWORD'; exit 1; }
+          test -n "$CHRONICLE_KEY_PASSWORD" || { echo 'BLOCKED_NO_EXISTING_KEY_PASSWORD'; exit 1; }
           printf '%s' "$CHRONICLE_KEYSTORE_BASE64" | base64 -d > "$CHRONICLE_KEYSTORE"
           chmod 600 "$CHRONICLE_KEYSTORE"
-      - run: ./gradlew :app:assembleRelease
+      - name: Build original-identity ARM64 release
+        run: ./gradlew :app:assembleRelease
+      - name: Verify certificate, package, version and ABI
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk="app/build/outputs/apk/release/app-arm64-v8a-release.apk"
+          test -s "$apk" || { echo 'BLOCKED_SIGNED_ARM64_NOT_FOUND'; exit 1; }
+          signer="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          "$signer" verify --verbose "$apk"
+          cert="$("$signer" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n 1 | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          expected="ebd2aa94bee6d781d020e45a203c9b8f2d416a4f4b654da7cfadc9a67e438c49"
+          if [ "$cert" != "$expected" ]; then echo 'BLOCKED_SIGNING_CERTIFICATE_MISMATCH'; exit 1; fi
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" > "$RUNNER_TEMP/chronicle-badging.txt"
+          grep -q "^package: name='cn.chronicle.shanhe' versionCode='13' versionName='0.8.0'" "$RUNNER_TEMP/chronicle-badging.txt" || { echo 'BLOCKED_RELEASE_VERSION_OR_PACKAGE_MISMATCH'; exit 1; }
+          unzip -Z1 "$apk" > "$RUNNER_TEMP/chronicle-files.txt"
+          grep -q '^lib/arm64-v8a/' "$RUNNER_TEMP/chronicle-files.txt" || { echo 'BLOCKED_MISSING_ARM64'; exit 1; }
+          if grep -Eq '^lib/(x86_64|x86|armeabi-v7a)/' "$RUNNER_TEMP/chronicle-files.txt"; then echo 'BLOCKED_WRONG_ABI'; exit 1; fi
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$apk"
+          sha256sum "$apk"
+          echo "VERIFIED_RELEASE_CERT_SHA256=$cert"
+          echo "VERIFIED_RELEASE_SOURCE_SHA=$GITHUB_SHA"
       - uses: actions/upload-artifact@v4
         with:
-          name: chronicle-arm64-signed-apk
-          path: app/build/outputs/apk/release/*.apk
+          name: chronicle-0.8.0-arm64-stable-signed
+          path: app/build/outputs/apk/release/app-arm64-v8a-release.apk
+          compression-level: 9
+      - name: Publish verified ARM64 APK to apk-preview
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/character-chat-hf-search'
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk="app/build/outputs/apk/release/app-arm64-v8a-release.apk"
+          worktree="$RUNNER_TEMP/chronicle-apk-preview"
+          git fetch origin refs/heads/apk-preview:refs/remotes/origin/apk-preview
+          git worktree add --detach "$worktree" refs/remotes/origin/apk-preview
+          cp "$apk" "$worktree/chronicle-ai-0.8.0-arm64.apk"
+          python3 - "$apk" "$worktree/chronicle-ai-0.8.0-build.json" <<'PY'
+          import hashlib, json, os, pathlib, sys
+          apk=pathlib.Path(sys.argv[1]); out=pathlib.Path(sys.argv[2])
+          out.write_text(json.dumps({
+            "version":"0.8.0", "versionCode":13, "applicationId":"cn.chronicle.shanhe",
+            "source_sha":os.environ["GITHUB_SHA"], "workflow_run_id":os.environ["GITHUB_RUN_ID"],
+            "signed":True,
+            "certificate_sha256":"ebd2aa94bee6d781d020e45a203c9b8f2d416a4f4b654da7cfadc9a67e438c49",
+            "apk_sha256":hashlib.sha256(apk.read_bytes()).hexdigest(),
+            "apk_bytes":apk.stat().st_size
+          },indent=2,ensure_ascii=False)+"\n",encoding="utf-8")
+          PY
+          git -C "$worktree" config user.name "github-actions[bot]"
+          git -C "$worktree" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$worktree" add chronicle-ai-0.8.0-arm64.apk chronicle-ai-0.8.0-build.json
+          git -C "$worktree" diff --cached --quiet || git -C "$worktree" commit -m "release: verified Chronicle AI 0.8.0 ARM64 $GITHUB_SHA"
+          git -C "$worktree" push origin HEAD:refs/heads/apk-preview
+          echo 'PUBLISHED=chronicle-ai-0.8.0-arm64.apk'
       - if: always()
         run: rm -f "$CHRONICLE_KEYSTORE"
 
